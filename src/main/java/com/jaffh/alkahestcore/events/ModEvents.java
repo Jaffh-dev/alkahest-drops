@@ -1,7 +1,7 @@
 package com.jaffh.alkahestcore.events;
 
 import com.jaffh.alkahestcore.AlkahestCore;
-import com.jaffh.alkahestcore.dropscore.common.mobdrops.MobDropManager;
+import com.jaffh.alkahestcore.dropscore.server.mobdrops.MobDropManager;
 import com.jaffh.alkahestcore.fluidscore.common.interactions.FluidInteractionManager;
 import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;

@@ -1,7 +1,7 @@
 package com.jaffh.alkahestcore;
 
 
-import com.jaffh.alkahestcore.dropscore.common.mobdrops.MobDropInjector;
+import com.jaffh.alkahestcore.dropscore.server.mobdrops.MobDropInjector;
 import com.jaffh.alkahestcore.fluidscore.AlkahestConfig;
 import com.jaffh.alkahestcore.fluidscore.common.FluidManager;
 import com.jaffh.alkahestcore.fluidscore.common.jsonfluids.CustomFluidJsonLoader;
