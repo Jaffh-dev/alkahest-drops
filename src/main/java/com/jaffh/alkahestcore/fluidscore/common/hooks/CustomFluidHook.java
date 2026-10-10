@@ -2,7 +2,7 @@ package com.jaffh.alkahestcore.fluidscore.common.hooks;
 
 import com.jaffh.alkahestcore.fluidscore.common.fluids.BaseFluid;
 import com.jaffh.alkahestcore.fluidscore.common.fluids.CustomFluid;
-import com.jaffh.alkahestcore.fluidscore.common.behaviour.IHotFluidBehaviour;
+import com.jaffh.alkahestcore.fluidscore.common.behavior.IHotFluidBehavior;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.GameRules;
@@ -23,7 +23,7 @@ import java.util.Random;
  * Maps the data-driven parameters from the fluid's {@link CustomFluid.Configs} record
  * directly into the simulation, physics, and world interaction engine.
  */
-public class CustomFluidHook extends BaseFluidHook implements IHotFluidBehaviour {
+public class CustomFluidHook extends BaseFluidHook implements IHotFluidBehavior {
 
     /**
      * Constructs a new configuration adapter hook for the specified fluid instance.
