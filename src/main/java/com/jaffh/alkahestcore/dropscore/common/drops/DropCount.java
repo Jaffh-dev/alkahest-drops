@@ -7,8 +7,6 @@ package com.jaffh.alkahestcore.dropscore.common.drops;
  * @param max Largest count.
  */
 public record DropCount(int min, int max) {
-    /** The default range when a drop has no {@code count}: exactly one item. */
-    public static final DropCount ONE = new DropCount(1, 1);
 
     /**
      * Returns this range with an enchantment count bonus applied.

@@ -49,14 +49,23 @@ public record EnchantBonus(ChanceBonus chance, RollBonus roll, CountBonus count)
     /**
      * Represents a bonus to the rolls of roll-based behaviors.
      *
-     * @param bonusRollsPerLevel       Rolls added per level.
-     * @param bonusRollChancePerLevel  Roll chance added per level.
-     * @param maxBonusRolls            Cap of the total added rolls.
-     * @param maxBonusRollChance       Cap of the total added roll chance.
+     * @param bonusRollsPerLevel      Rolls added per level.
+     * @param bonusRollChancePerLevel Roll chance added per level.
+     * @param maxBonusRolls           Cap of the total added rolls.
+     * @param maxBonusRollChance      Cap of the total added roll chance.
+     * @param bonusIncrementPerLevel  Increment value added per level.
+     * @param maxBonusIncrement       Cap of the total added increment value.
      */
-    public record RollBonus(int bonusRollsPerLevel, double bonusRollChancePerLevel, int maxBonusRolls, double maxBonusRollChance) {
+    public record RollBonus(
+            int bonusRollsPerLevel,
+            double bonusRollChancePerLevel,
+            int maxBonusRolls,
+            double maxBonusRollChance,
+            int bonusIncrementPerLevel,
+            int maxBonusIncrement
+    ) {
         /** No roll bonus. */
-        public static final RollBonus NONE = new RollBonus(0, 0.0, 0, 0.0);
+        public static final RollBonus NONE = new RollBonus(0, 0.0, 0, 0.0, 0, 0);
 
         /**
          * Applies this bonus to a base number of rolls.
@@ -78,6 +87,17 @@ public record EnchantBonus(ChanceBonus chance, RollBonus roll, CountBonus count)
          */
         public double applyToChance(double baseChance, int level) {
             return Math.min(baseChance + Math.min(bonusRollChancePerLevel * level, maxBonusRollChance), 1.0);
+        }
+
+        /**
+         * Applies this bonus to a base increment value.
+         *
+         * @param baseIncrement Items added per successful roll without bonus.
+         * @param level         Enchantment level, 0 or more.
+         * @return The raised increment value.
+         */
+        public int applyToIncrement(int baseIncrement, int level) {
+            return baseIncrement + cappedBonus(bonusIncrementPerLevel, level, maxBonusIncrement);
         }
     }
 

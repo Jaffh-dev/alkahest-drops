@@ -1,9 +1,10 @@
 package com.jaffh.alkahestcore.dropscore.server.mobdrops;
 
-import com.jaffh.alkahestcore.dropscore.common.drops.DropBehaviour;
+import com.jaffh.alkahestcore.dropscore.common.drops.DropBehavior;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropCount;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropEntry;
 import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonus;
+import com.jaffh.alkahestcore.dropscore.server.drops.DropFile;
 import com.jaffh.alkahestcore.dropscore.server.drops.LootConditions;
 import com.jaffh.alkahestcore.dropscore.server.drops.RemovalEntry;
 import com.jaffh.alkahestcore.dropscore.server.drops.RemovalRule;
@@ -48,7 +49,7 @@ public class MobDropInjector {
         if (table == null) return;
 
         LootContext context = table.needsLootContext() ? createLootContext(level, event) : null;
-        List<RemovalRule> activeRemovals = collectActiveRemovals(table.conditionalRemovals(), context);
+        List<RemovalRule> activeRemovals = collectActiveRemovals(table.perKillRemovals(), context);
 
         removeEventDrops(event.getDrops(), table.removedItems(), activeRemovals);
         addDrops(event, table.dropFiles(), activeRemovals, context);
@@ -78,18 +79,18 @@ public class MobDropInjector {
     }
 
     /**
-     * Returns the part of each conditional removal file that applies to this kill: files whose global
+     * Returns the part of each per-kill removal file that applies to this kill: files whose global
      * conditions fail are dropped, and only the entries whose local conditions pass are kept.
      *
-     * @param conditionalRemovals Removal files tested per kill. Never null.
-     * @param context             Loot context, non-null whenever the list is not empty.
+     * @param perKillRemovals Removal files tested per kill (conditional, tag or {@code *} entries). Never null.
+     * @param context         Loot context, non-null whenever a removal has conditions.
      * @return The applying removals, each holding only its passing entries; an empty immutable list when none apply.
      */
-    private static List<RemovalRule> collectActiveRemovals(List<RemovalRule> conditionalRemovals, @Nullable LootContext context) {
-        if (conditionalRemovals.isEmpty()) return List.of();
+    private static List<RemovalRule> collectActiveRemovals(List<RemovalRule> perKillRemovals, @Nullable LootContext context) {
+        if (perKillRemovals.isEmpty()) return List.of();
 
-        List<RemovalRule> active = new ArrayList<>(conditionalRemovals.size());
-        for (RemovalRule removal : conditionalRemovals) {
+        List<RemovalRule> active = new ArrayList<>(perKillRemovals.size());
+        for (RemovalRule removal : perKillRemovals) {
             if (!LootConditions.testAll(removal.globalConditions(), context)) continue;
 
             List<RemovalEntry> passing = new ArrayList<>(removal.entries().size());
@@ -110,7 +111,7 @@ public class MobDropInjector {
      *
      * @param drops          Mutable drops of the event.
      * @param removedItems   Items removed unconditionally. Never null.
-     * @param activeRemovals Conditional removals that passed. Never null.
+     * @param activeRemovals Per-kill removals that passed. Never null.
      */
     private static void removeEventDrops(Collection<ItemEntity> drops, Set<Item> removedItems, List<RemovalRule> activeRemovals) {
         if (removedItems.isEmpty() && activeRemovals.isEmpty()) return;
@@ -127,7 +128,7 @@ public class MobDropInjector {
     /**
      * Tells whether any active removal lists an item.
      *
-     * @param activeRemovals Conditional removals that passed. Never null.
+     * @param activeRemovals Per-kill removals that passed. Never null.
      * @param item           Item to check.
      * @return True when one of the removals lists the item.
      */
@@ -144,15 +145,15 @@ public class MobDropInjector {
      *
      * @param event          Drops event of the dying entity.
      * @param dropFiles      Drop files of the entity type. Never null.
-     * @param activeRemovals Conditional removals that passed. Never null.
+     * @param activeRemovals Per-kill removals that passed. Never null.
      * @param context        Loot context, non-null whenever a file or drop has conditions.
      */
-    private static void addDrops(LivingDropsEvent event, List<MobDropFile> dropFiles, List<RemovalRule> activeRemovals, @Nullable LootContext context) {
+    private static void addDrops(LivingDropsEvent event, List<DropFile> dropFiles, List<RemovalRule> activeRemovals, @Nullable LootContext context) {
         LivingEntity entity = event.getEntityLiving();
         Random random = entity.level.getRandom();
         int lootingLevel = event.getLootingLevel();
 
-        for (MobDropFile file : dropFiles) {
+        for (DropFile file : dropFiles) {
             if (file.hasGlobalConditions() && !LootConditions.testAll(file.globalConditions(), context)) continue;
 
             for (DropEntry entry : file.entries()) {
@@ -172,7 +173,7 @@ public class MobDropInjector {
      *
      * @param dropFileId     Id of the drop file that adds the drop.
      * @param item           Dropped item.
-     * @param activeRemovals Conditional removals that passed. Never null.
+     * @param activeRemovals Per-kill removals that passed. Never null.
      * @return True when the drop must not be rolled.
      */
     private static boolean isDropRemoved(ResourceLocation dropFileId, Item item, List<RemovalRule> activeRemovals) {
@@ -196,7 +197,7 @@ public class MobDropInjector {
         if (random.nextDouble() >= chance) return ItemStack.EMPTY;
 
         DropCount range = entry.count().withBonus(bonus.count(), lootingLevel);
-        DropBehaviour behaviour = entry.behaviour().withBonus(bonus.roll(), lootingLevel);
-        return entry.createStack(behaviour.type().rollCount(range, behaviour, random));
+        DropBehavior behavior = entry.behavior().withBonus(bonus.roll(), lootingLevel);
+        return entry.createStack(behavior.type().rollCount(range, behavior, random));
     }
 }

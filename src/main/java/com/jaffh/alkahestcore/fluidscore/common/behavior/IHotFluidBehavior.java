@@ -1,4 +1,4 @@
-package com.jaffh.alkahestcore.fluidscore.common.behaviour;
+package com.jaffh.alkahestcore.fluidscore.common.behavior;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -11,7 +11,7 @@ import net.minecraft.world.level.block.state.BlockState;
  * <p>Can be implemented by any hook class that needs to interact with
  * flammable surroundings or produce steam/fizzing effects.</p>
  */
-public interface IHotFluidBehaviour {
+public interface IHotFluidBehavior {
 
     //constant to avoid creating a directions array everytime hasFlammableNeighbours is called
     Direction[] DIRECTIONS = Direction.values();

@@ -15,7 +15,7 @@ import java.util.List;
  * @param nbt          Tag copied onto every dropped stack, or null for none.
  * @param chance       Base chance (0–1) that the drop happens.
  * @param count        Base count range. Never null.
- * @param behaviour    How the count is rolled. Never null.
+ * @param behavior    How the count is rolled. Never null.
  * @param enchantBonus Per-level bonuses from Looting. Never null.
  * @param conditions   Vanilla loot conditions that must all pass. Immutable, never null.
  */
@@ -24,7 +24,7 @@ public record DropEntry(
         @Nullable CompoundTag nbt,
         double chance,
         DropCount count,
-        DropBehaviour behaviour,
+        DropBehavior behavior,
         EnchantBonus enchantBonus,
         List<LootItemCondition> conditions
 ) {

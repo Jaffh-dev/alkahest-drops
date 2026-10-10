@@ -1,7 +1,9 @@
 package com.jaffh.alkahestcore;
 
 
+import com.jaffh.alkahestcore.dropscore.common.DropscoreConfig;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.MobDropInjector;
+import com.jaffh.alkahestcore.dropscore.server.mobdrops.MobDropManager;
 import com.jaffh.alkahestcore.fluidscore.AlkahestConfig;
 import com.jaffh.alkahestcore.fluidscore.common.FluidManager;
 import com.jaffh.alkahestcore.fluidscore.common.jsonfluids.CustomFluidJsonLoader;
@@ -39,6 +41,8 @@ public class AlkahestCore
 
         CustomFluidJsonLoader.init(FLUID_MANAGER);
 
+        DropscoreConfig.register(ModLoadingContext.get());
+        modEventBus.addListener(MobDropManager::onConfigLoading);
         MinecraftForge.EVENT_BUS.register(new MobDropInjector());
 
         // Register the setup method for modloading

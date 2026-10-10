@@ -40,6 +40,19 @@ public record RemovalRule(
     }
 
     /**
+     * Tells whether testing this rule needs a loot context.
+     *
+     * @return True when the rule or any of its entries has conditions.
+     */
+    public boolean hasAnyConditions() {
+        if (hasGlobalConditions()) return true;
+        for (RemovalEntry entry : entries) {
+            if (entry.hasConditions()) return true;
+        }
+        return false;
+    }
+
+    /**
      * Returns a copy of this rule with other entries, used to split a rule at reload and to keep only the
      * entries that passed their conditions on a kill.
      *
@@ -58,7 +71,7 @@ public record RemovalRule(
      */
     public boolean removes(Item item) {
         for (RemovalEntry entry : entries) {
-            if (entry.item() == item) return true;
+            if (entry.target().matches(item)) return true;
         }
         return false;
     }
