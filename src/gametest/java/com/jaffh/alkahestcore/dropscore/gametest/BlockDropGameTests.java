@@ -199,6 +199,92 @@ public class BlockDropGameTests {
     }
 
     /**
+     * An experience drop adds its experience to a block that gives none in vanilla.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void experienceDropAdded(GameTestHelper helper) {
+        DropTestKit.breakBlock(helper, Blocks.BRICKS, new ItemStack(Items.IRON_PICKAXE), false);
+        helper.runAfterDelay(1, () -> {
+            DropTestKit.assertExperience(helper, 5);
+            helper.succeed();
+        });
+    }
+
+    /**
+     * {@code on_fortune.bonus_count} raises the experience by two per Fortune level: 5 + 4 with Fortune II.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void fortuneRaisesExperience(GameTestHelper helper) {
+        DropTestKit.breakBlock(helper, Blocks.BRICKS, enchantedPickaxe(Enchantments.BLOCK_FORTUNE, 2), false);
+        helper.runAfterDelay(1, () -> {
+            DropTestKit.assertExperience(helper, 9);
+            helper.succeed();
+        });
+    }
+
+    /**
+     * Every experience drop rolls on its own and the results add up: 4 + 6 from one {@code dstest_a} file and 2
+     * from a {@code dstest_b} file, while the 100 gated by a golden hoe {@code match_tool} is skipped.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void experienceDropsAddUp(GameTestHelper helper) {
+        DropTestKit.breakBlock(helper, Blocks.BOOKSHELF, new ItemStack(Items.IRON_AXE), false);
+        helper.runAfterDelay(1, () -> {
+            DropTestKit.assertExperience(helper, 12);
+            helper.succeed();
+        });
+    }
+
+    /**
+     * An explosion gives no block experience, as in vanilla, even with an experience drop.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void explosionGivesNoExperience(GameTestHelper helper) {
+        DropTestKit.explodeBlock(helper, Blocks.BRICKS);
+        helper.runAfterDelay(1, () -> {
+            DropTestKit.assertExperience(helper, 0);
+            helper.succeed();
+        });
+    }
+
+    /**
+     * {@code remove_experience} of {@code dstest_b} removes the vanilla experience and the 7 of {@code dstest_a},
+     * and keeps the 3 of its own namespace: the "set the experience" pattern.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void experienceRemovalKeepsOwnNamespace(GameTestHelper helper) {
+        DropTestKit.breakBlock(helper, Blocks.NETHER_QUARTZ_ORE, new ItemStack(Items.IRON_PICKAXE), false);
+        helper.runAfterDelay(1, () -> {
+            DropTestKit.assertExperience(helper, 3);
+            helper.succeed();
+        });
+    }
+
+    /**
+     * {@code hardness} linear with divisor 10 gives obsidian (hardness 50) 5 flint.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void hardnessCountForObsidian(GameTestHelper helper) {
+        DropTestKit.breakBlock(helper, Blocks.OBSIDIAN, new ItemStack(Items.DIAMOND_PICKAXE), false);
+        helper.runAfterDelay(1, () -> {
+            DropTestKit.assertItemCount(helper, Items.FLINT, 5);
+            helper.succeed();
+        });
+    }
+
+    /**
      * A block whose loot table is {@code minecraft:empty} never runs loot modifiers, so the break fallback drops
      * its dropscore drops after the tick.
      *
@@ -224,6 +310,8 @@ public class BlockDropGameTests {
         DropTestKit.assertIssue(issues, "unknown_block", "block", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "entity_key_in_block_file", "entity", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "on_looting_in_block_file", "drops[0].on_looting", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "experience_with_item", "drops[0].experience", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "experience_with_nbt", "drops[0].nbt", DropIssue.Severity.WARNING);
         helper.succeed();
     }
 

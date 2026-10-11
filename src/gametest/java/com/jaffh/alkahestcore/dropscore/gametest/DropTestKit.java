@@ -5,6 +5,7 @@ import com.mojang.authlib.GameProfile;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -12,6 +13,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
@@ -163,6 +165,34 @@ final class DropTestKit {
      */
     static int countExperienceOrbs(GameTestHelper helper) {
         return helper.getLevel().getEntities(EntityType.EXPERIENCE_ORB, arenaBounds(helper), orb -> true).size();
+    }
+
+    /**
+     * Sums the experience of the orbs in the arena. Orbs of the same value merge into one entity with a count,
+     * which has no getter, so it is read from the saved orb.
+     *
+     * @param helper Helper of the running test. Never null.
+     * @return The total experience.
+     */
+    static int sumExperience(GameTestHelper helper) {
+        int total = 0;
+        for (ExperienceOrb orb : helper.getLevel().getEntitiesOfClass(ExperienceOrb.class, arenaBounds(helper))) {
+            CompoundTag saved = orb.saveWithoutId(new CompoundTag());
+            total += orb.getValue() * Math.max(saved.getInt("Count"), 1);
+        }
+        return total;
+    }
+
+    /**
+     * Fails the test when the experience in the arena differs from the expected amount.
+     *
+     * @param helper   Helper of the running test. Never null.
+     * @param expected Expected total experience.
+     * @throws GameTestAssertException If the total differs.
+     */
+    static void assertExperience(GameTestHelper helper, int expected) {
+        int actual = sumExperience(helper);
+        check(actual == expected, "expected " + expected + " experience, got " + actual);
     }
 
     /**

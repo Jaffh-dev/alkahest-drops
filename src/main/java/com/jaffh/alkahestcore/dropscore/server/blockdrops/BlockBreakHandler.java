@@ -22,16 +22,17 @@ import java.util.List;
 
 /**
  * Handles what a loot modifier cannot do on {@link BlockEvent.BreakEvent}, which fires before the block is removed:
- * turns off experience when a removal file with {@code remove_experience} passes, and drops dropscore drops for
- * blocks whose loot table is {@code minecraft:empty} ({@code noDrops()}), since those never run loot modifiers.
+ * the experience of the break (turned off by {@code remove_experience}, raised by experience drops), and the drops
+ * of blocks whose loot table is {@code minecraft:empty} ({@code noDrops()}), since those never run loot modifiers.
  * Only player breaks give block experience, so this event covers every experience case; the fallback drops cover
  * player breaks only, not explosions or pistons.
  */
 public class BlockBreakHandler {
 
     /**
-     * Zeroes the experience of a block break. Runs at LOW priority so changes of other mods at NORMAL priority
-     * are overridden.
+     * Sets the experience of a block break: zeroed by passing {@code remove_experience} files, raised by experience
+     * drops. Like vanilla experience, it is skipped in creative and when the player cannot harvest the block. Runs at
+     * LOW priority so changes of other mods at NORMAL priority are overridden.
      *
      * @param event Break event of the block.
      */
@@ -39,14 +40,16 @@ public class BlockBreakHandler {
     public void onBlockBreak(BlockEvent.BreakEvent event) {
         if (!(event.getWorld() instanceof ServerLevel level)) return;
 
-        DropTable table = BlockDropManager.getTable(event.getState().getBlock());
-        if (table.experienceRemovals().isEmpty()) return;
+        BlockState state = event.getState();
+        DropTable table = BlockDropManager.getTable(state.getBlock());
+        if (!table.affectsExperience()) return;
 
-        LootContext context = createLootContext(level, event.getPos(), event.getState(), event.getPlayer(),
-                event.getPlayer().getMainHandItem());
-        if (table.shouldRemoveExperience(context)) {
-            event.setExpToDrop(0);
-        }
+        Player player = event.getPlayer();
+        BlockPos pos = event.getPos();
+        if (player.isCreative() || !state.canHarvestBlock(level, pos, player)) return;
+
+        LootContext context = createLootContext(level, pos, state, player, player.getMainHandItem());
+        event.setExpToDrop(table.applyExperience(event.getExpToDrop(), context, BlockDropApplier.rollContextOf(context)));
     }
 
     /**

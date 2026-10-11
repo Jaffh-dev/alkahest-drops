@@ -84,6 +84,26 @@ public record RemovalRule(
      * @return True when an entry names the item and the drop file belongs to another namespace.
      */
     public boolean shouldRemoveDropOf(ResourceLocation dropFileId, Item item) {
-        return !dropFileId.getNamespace().equals(fileId.getNamespace()) && removes(item);
+        return isOtherNamespace(dropFileId) && removes(item);
+    }
+
+    /**
+     * Tells whether this rule removes the experience drops of a dropscore drop file, ignoring conditions.
+     *
+     * @param dropFileId Id of the drop file that adds the experience. Never null.
+     * @return True when the rule has {@code remove_experience} and the drop file belongs to another namespace.
+     */
+    public boolean shouldRemoveExperienceOf(ResourceLocation dropFileId) {
+        return shouldRemoveExperience && isOtherNamespace(dropFileId);
+    }
+
+    /**
+     * Tells whether a drop file belongs to another namespace than this rule, so this rule may remove its drops.
+     *
+     * @param dropFileId Id of the drop file. Never null.
+     * @return True when the namespaces differ.
+     */
+    private boolean isOtherNamespace(ResourceLocation dropFileId) {
+        return !dropFileId.getNamespace().equals(fileId.getNamespace());
     }
 }

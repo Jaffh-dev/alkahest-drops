@@ -1,5 +1,6 @@
 package com.jaffh.alkahestcore.dropscore.server.drops;
 
+import com.jaffh.alkahestcore.dropscore.common.drops.DropBehaviorType;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.DropEntryJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.DropFileJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.EnchantBonusJson;
@@ -11,7 +12,7 @@ import javax.annotation.Nullable;
  */
 public enum DropFileFormat {
     /** Files in {@code data/<namespace>/mob_drops/}: target key {@code entity}, bonus key {@code on_looting}. */
-    MOB("mob drop files", "entity", "on_looting", true) {
+    MOB("mob drop files", "entity", "on_looting", DropBehaviorType.MAX_HEALTH) {
         @Nullable
         @Override
         public String targetOf(DropFileJson file) {
@@ -25,7 +26,7 @@ public enum DropFileFormat {
         }
     },
     /** Files in {@code data/<namespace>/block_drops/}: target key {@code block}, bonus key {@code on_fortune}. */
-    BLOCK("block drop files", "block", "on_fortune", false) {
+    BLOCK("block drop files", "block", "on_fortune", DropBehaviorType.HARDNESS) {
         @Nullable
         @Override
         public String targetOf(DropFileJson file) {
@@ -42,7 +43,7 @@ public enum DropFileFormat {
     private final String filesName;
     private final String targetKey;
     private final String bonusKey;
-    private final boolean canScaleWithHealth;
+    private final DropBehaviorType scaleType;
 
     /**
      * Creates a file format.
@@ -50,13 +51,13 @@ public enum DropFileFormat {
      * @param filesName          Name of the files of this format in messages, such as {@code mob drop files}.
      * @param targetKey          JSON key of the file target.
      * @param bonusKey           JSON key of a drop's enchantment bonus.
-     * @param canScaleWithHealth Whether drops may use the {@code max_health} behavior.
+     * @param scaleType          The only scaled behavior drops of this format may use.
      */
-    DropFileFormat(String filesName, String targetKey, String bonusKey, boolean canScaleWithHealth) {
+    DropFileFormat(String filesName, String targetKey, String bonusKey, DropBehaviorType scaleType) {
         this.filesName = filesName;
         this.targetKey = targetKey;
         this.bonusKey = bonusKey;
-        this.canScaleWithHealth = canScaleWithHealth;
+        this.scaleType = scaleType;
     }
 
     /**
@@ -114,11 +115,11 @@ public enum DropFileFormat {
     }
 
     /**
-     * Tells whether drops of this format may use the {@code max_health} behavior.
+     * Returns the scaled behavior drops of this format may use; the other scaled behavior is an error.
      *
-     * @return True for mob files, whose targets have a max health.
+     * @return {@code max_health} for mob files, {@code hardness} for block files.
      */
-    public boolean canScaleWithHealth() {
-        return canScaleWithHealth;
+    public DropBehaviorType scaleType() {
+        return scaleType;
     }
 }

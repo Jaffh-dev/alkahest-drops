@@ -182,6 +182,40 @@ public class MobDropGameTests {
     }
 
     /**
+     * A {@code remove_experience} file and an experience drop of the same namespace set the experience:
+     * 4 + 2 per Looting level, so 10 with Looting III, and none of the chicken's vanilla experience.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void lootingRaisesExperience(GameTestHelper helper) {
+        ItemStack sword = new ItemStack(Items.DIAMOND_SWORD);
+        sword.enchant(Enchantments.MOB_LOOTING, 3);
+        Player player = DropTestKit.playerHolding(helper, sword);
+        DropTestKit.killByPlayer(DropTestKit.spawnMob(helper, EntityType.CHICKEN), player);
+        helper.runAfterDelay(1, () -> {
+            DropTestKit.assertExperience(helper, 10);
+            helper.succeed();
+        });
+    }
+
+    /**
+     * {@code remove_experience} of {@code dstest_b} removes the 7 experience of {@code dstest_a} and keeps its own
+     * {@code max_health} experience: 0.6 · 10 health = 6 for a pig.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void experienceRemovalKeepsOwnNamespace(GameTestHelper helper) {
+        Player player = DropTestKit.playerHolding(helper, ItemStack.EMPTY);
+        DropTestKit.killByPlayer(DropTestKit.spawnMob(helper, EntityType.PIG), player);
+        helper.runAfterDelay(1, () -> {
+            DropTestKit.assertExperience(helper, 6);
+            helper.succeed();
+        });
+    }
+
+    /**
      * {@code remove_experience} gated by a sneaking killer drops no experience when the killer sneaks.
      *
      * @param helper Helper of the test.
@@ -228,6 +262,7 @@ public class MobDropGameTests {
         DropTestKit.assertIssue(issues, "bad_max_health", "drops[2].drop_behavior.rolls", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "block_key_in_mob_file", "block", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "on_fortune_in_mob_file", "drops[0].on_fortune", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "hardness_on_mob", "drops[0].drop_behavior.type", DropIssue.Severity.ERROR);
         helper.succeed();
     }
 }

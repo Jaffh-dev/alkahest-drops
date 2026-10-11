@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "block": "minecraft:obsidian",
+  "drops": [
+    { "item": "minecraft:flint", "chance": 1.0, "count": { "min": 0, "max": 64 },
+      "drop_behavior": { "type": "hardness", "function": "linear", "divisor": 10 } }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "entity": "minecraft:pig",
+  "drops": [ { "experience": true, "chance": 1.0, "count": { "min": 7, "max": 7 }, "drop_behavior": { "type": "uniform" } } ]
+}

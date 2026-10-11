@@ -45,6 +45,18 @@ public record DropFile(ResourceLocation fileId, List<LootItemCondition> globalCo
     }
 
     /**
+     * Tells whether this file has experience drops.
+     *
+     * @return True when at least one drop gives experience.
+     */
+    public boolean hasExperienceDrops() {
+        for (DropEntry entry : entries) {
+            if (entry.isExperience()) return true;
+        }
+        return false;
+    }
+
+    /**
      * Returns a copy of this file with other drops.
      *
      * @param keptEntries Drops to keep. Never null.

@@ -12,6 +12,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.event.entity.living.LivingExperienceDropEvent;
@@ -24,7 +25,8 @@ import java.util.WeakHashMap;
 
 /**
  * Applies the mob drop tables: on {@link LivingDropsEvent} it removes drops first, then rolls and adds dropscore
- * drops; on {@link LivingExperienceDropEvent} it turns off the experience when a removal file asks for it.
+ * item drops; on {@link LivingExperienceDropEvent} it turns off the experience when a removal file asks for it and
+ * adds dropscore experience drops.
  */
 public class MobDropInjector {
     /**
@@ -34,7 +36,7 @@ public class MobDropInjector {
     private final Map<LivingEntity, DamageSource> deathSources = new WeakHashMap<>();
 
     /**
-     * Remembers the damage source of a dying mob whose table turns off experience. Vanilla sets
+     * Remembers the damage source of a dying mob whose table changes its experience. Vanilla sets
      * {@code lastDamageSource} only after {@code die()} returns, so it cannot be read during the death.
      * Runs at LOWEST priority so deaths canceled by other mods are skipped.
      *
@@ -44,7 +46,7 @@ public class MobDropInjector {
     public void onLivingDeath(LivingDeathEvent event) {
         LivingEntity entity = event.getEntityLiving();
         if (!(entity.level instanceof ServerLevel)) return;
-        if (MobDropManager.getTable(entity.getType()).experienceRemovals().isEmpty()) return;
+        if (!MobDropManager.getTable(entity.getType()).affectsExperience()) return;
         deathSources.put(entity, event.getSource());
     }
 
@@ -73,10 +75,11 @@ public class MobDropInjector {
     }
 
     /**
-     * Drops no experience when a removal file with {@code remove_experience} has passing global conditions.
-     * Vanilla fires this event inside {@code dropAllDeathLoot}, before {@link LivingDropsEvent}, so the decision
-     * is made here, with the source kept by {@link #onLivingDeath}. Runs at LOW priority so changes of other mods
-     * at NORMAL priority are overridden.
+     * Drops no experience when a removal file with {@code remove_experience} has passing global conditions, then
+     * adds the experience drops. Vanilla fires this event inside {@code dropAllDeathLoot}, before
+     * {@link LivingDropsEvent}, and only for kills that give experience (by a player), so the decision is made here,
+     * with the source kept by {@link #onLivingDeath}. Runs at LOW priority so changes of other mods at NORMAL
+     * priority are overridden.
      *
      * @param event Experience drop event of the dying entity.
      */
@@ -86,12 +89,13 @@ public class MobDropInjector {
         if (!(entity.level instanceof ServerLevel level)) return;
 
         DropTable table = MobDropManager.getTable(entity.getType());
-        if (table.experienceRemovals().isEmpty()) return;
+        if (!table.affectsExperience()) return;
 
-        LootContext context = table.needsLootContext() ? createLootContext(level, entity, deathSourceOf(entity)) : null;
-        if (table.shouldRemoveExperience(context)) {
-            event.setDroppedExperience(0);
-        }
+        DamageSource source = deathSourceOf(entity);
+        LootContext context = table.needsLootContext() ? createLootContext(level, entity, source) : null;
+        int lootingLevel = ForgeHooks.getLootingLevel(entity, source.getEntity(), source);
+        RollContext rollContext = new RollContext(lootingLevel, entity.getMaxHealth(), level.getRandom());
+        event.setDroppedExperience(table.applyExperience(event.getDroppedExperience(), context, rollContext));
     }
 
     /**
