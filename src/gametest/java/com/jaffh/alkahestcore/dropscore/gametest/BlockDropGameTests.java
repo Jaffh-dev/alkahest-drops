@@ -154,7 +154,7 @@ public class BlockDropGameTests {
     }
 
     /**
-     * {@code remove_experience} on diamond ore drops no experience; the diamond still drops.
+     * An experience removal on diamond ore drops no experience; the diamond still drops.
      *
      * @param helper Helper of the test.
      */
@@ -170,7 +170,7 @@ public class BlockDropGameTests {
     }
 
     /**
-     * {@code remove_experience} gated by a sneaking breaker drops no experience when the player sneaks.
+     * An experience removal gated by a sneaking breaker (global condition) drops no experience when the player sneaks.
      *
      * @param helper Helper of the test.
      */
@@ -256,7 +256,7 @@ public class BlockDropGameTests {
     }
 
     /**
-     * {@code remove_experience} of {@code dstest_b} removes the vanilla experience and the 7 of {@code dstest_a},
+     * The experience removal of {@code dstest_b} removes the vanilla experience and the 7 of {@code dstest_a},
      * and keeps the 3 of its own namespace: the "set the experience" pattern.
      *
      * @param helper Helper of the test.
@@ -299,6 +299,23 @@ public class BlockDropGameTests {
     }
 
     /**
+     * A {@code set_damage} function damages the dropped sword to half its durability: 125 of 250.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void functionDamagesDrop(GameTestHelper helper) {
+        DropTestKit.breakBlock(helper, Blocks.SPONGE, ItemStack.EMPTY, false);
+        helper.runAfterDelay(1, () -> {
+            List<ItemStack> swords = DropTestKit.droppedStacks(helper, Items.IRON_SWORD);
+            DropTestKit.check(swords.size() == 1, "expected 1 iron sword, got " + swords.size());
+            int damage = swords.get(0).getDamageValue();
+            DropTestKit.check(damage == 125, "expected damage 125, got " + damage);
+            helper.succeed();
+        });
+    }
+
+    /**
      * The invalid block files of {@code dstest_c} are reported with the right path and severity.
      *
      * @param helper Helper of the test.
@@ -312,6 +329,7 @@ public class BlockDropGameTests {
         DropTestKit.assertIssue(issues, "on_looting_in_block_file", "drops[0].on_looting", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "experience_with_item", "drops[0].experience", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "experience_with_nbt", "drops[0].nbt", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "looting_enchant_on_block", "drops[0].functions[0]", DropIssue.Severity.WARNING);
         helper.succeed();
     }
 

@@ -1,0 +1,1 @@
+{ "version": 1, "entity": "minecraft:cow", "removals": [ { "item": "minecraft:leather", "experience": true } ] }

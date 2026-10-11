@@ -1,5 +1,5 @@
 {
   "version": 1,
   "block": "minecraft:diamond_ore",
-  "remove_experience": true
+  "removals": [ { "experience": true } ]
 }

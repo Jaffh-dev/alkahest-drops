@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "entity": "minecraft:elder_guardian",
+  "drops": [
+    { "experience": true, "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" }, "functions": [ { "function": "minecraft:furnace_smelt" } ] },
+    { "item": "minecraft:stick", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" },
+      "functions": [ { "function": "minecraft:apply_bonus", "enchantment": "minecraft:fortune", "formula": "minecraft:ore_drops" } ] },
+    { "item": "minecraft:stick", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" }, "functions": [ { "function": "minecraft:set_count", "count": 2 } ] },
+    { "item": "minecraft:stick", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" }, "functions": [ { "function": "minecraft:set_count", "count": 2, "add": true } ] },
+    { "item": "minecraft:stick", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" },
+      "on_looting": { "bonus_count": { "bonus_max_per_level": 1 } },
+      "functions": [ { "function": "minecraft:looting_enchant", "count": { "min": 0, "max": 1 } } ] }
+  ]
+}

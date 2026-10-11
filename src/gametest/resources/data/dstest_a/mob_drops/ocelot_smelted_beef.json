@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "entity": "minecraft:ocelot",
+  "drops": [
+    { "item": "minecraft:beef", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" }, "functions": [ { "function": "minecraft:furnace_smelt" } ] },
+    { "item": "minecraft:cooked_porkchop", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" } }
+  ]
+}

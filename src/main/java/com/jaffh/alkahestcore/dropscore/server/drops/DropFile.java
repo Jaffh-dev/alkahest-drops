@@ -34,12 +34,12 @@ public record DropFile(ResourceLocation fileId, List<LootItemCondition> globalCo
     /**
      * Tells whether rolling this file needs a loot context.
      *
-     * @return True when the file or any of its drops has conditions.
+     * @return True when the file or any of its drops has conditions, or any drop has loot functions.
      */
-    public boolean hasAnyConditions() {
+    public boolean needsLootContext() {
         if (hasGlobalConditions()) return true;
         for (DropEntry entry : entries) {
-            if (entry.hasConditions()) return true;
+            if (entry.hasConditions() || entry.hasFunctions()) return true;
         }
         return false;
     }

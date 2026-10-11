@@ -78,12 +78,12 @@ public final class DropFileParser {
         DropFileJson file = DropValues.readObject(upgraded, DropFileJson.class, ctx);
 
         boolean isDropFile = file.drops != null;
-        boolean isRemovalFile = file.removals != null || Boolean.TRUE.equals(file.shouldRemoveExperience);
+        boolean isRemovalFile = file.removals != null;
         if (isDropFile && isRemovalFile) {
-            throw ctx.error("a file cannot have both 'drops' and 'removals'/'remove_experience'; split it into two files");
+            throw ctx.error("a file cannot have both 'drops' and 'removals'; split it into two files");
         }
         if (!isDropFile && !isRemovalFile) {
-            ctx.warn("no 'drops', 'removals' or 'remove_experience: true', file skipped");
+            ctx.warn("no 'drops' or 'removals', file skipped");
             return null;
         }
 
@@ -128,7 +128,7 @@ public final class DropFileParser {
     /**
      * Reads the entries of a removal file, skipping each invalid entry.
      *
-     * @param file             Parsed file with {@code removals} and/or {@code remove_experience: true}. Never null.
+     * @param file             Parsed file with {@code removals}. Never null.
      * @param target           Raw target. Never null.
      * @param globalConditions Parsed global conditions. Never null.
      * @param ctx              Context of the file root. Never null.
@@ -136,7 +136,7 @@ public final class DropFileParser {
      */
     @Nullable
     private ParsedDropFile parseRemovalFile(DropFileJson file, String target, List<LootItemCondition> globalConditions, ParseContext ctx) {
-        JsonArray removals = file.removals != null ? file.removals : new JsonArray();
+        JsonArray removals = file.removals;
         List<RemovalEntry> entries = new ArrayList<>(removals.size());
         for (int i = 0; i < removals.size(); i++) {
             try {
@@ -145,19 +145,17 @@ public final class DropFileParser {
                 log.report(e.toIssue("entry skipped"));
             }
         }
-
-        boolean shouldRemoveExperience = Boolean.TRUE.equals(file.shouldRemoveExperience);
-        if (entries.isEmpty() && !shouldRemoveExperience) {
+        if (entries.isEmpty()) {
             ctx.warn("no valid removals, file skipped");
             return null;
         }
-        return new ParsedDropFile.Removals(target,
-                new RemovalRule(ctx.fileId(), globalConditions, shouldRemoveExperience, entries));
+        return new ParsedDropFile.Removals(target, new RemovalRule(ctx.fileId(), globalConditions, entries));
     }
 
     /**
-     * Reads one {@code removals} entry: an item id, {@code #item_tag} or {@code *} string, or an object
-     * with {@code item} (same values) and local {@code conditions}, both required.
+     * Reads one {@code removals} entry: an item id, {@code #item_tag} or {@code *} string; an object with
+     * {@code item} (same values) and local {@code conditions}, both required; or an object with
+     * {@code "experience": true} and optional local {@code conditions}.
      *
      * @param element JSON value of the entry. Never null.
      * @param ctx     Context of the entry. Never null.
@@ -169,12 +167,20 @@ public final class DropFileParser {
             return new RemovalEntry(DropValues.parseItemTarget(element.getAsString(), ctx), List.of());
         }
         if (!element.isJsonObject()) {
-            throw ctx.error("must be an item id, '#tag', '*' or an object with 'item' and 'conditions'");
+            throw ctx.error("must be an item id, '#tag', '*' or an object with 'item' and 'conditions' "
+                    + "or with 'experience': true");
         }
 
         RemovalEntryJson entry = DropValues.readObject(element, RemovalEntryJson.class, ctx);
-        ParseContext itemCtx = ctx.at("item");
         ParseContext conditionsCtx = ctx.at("conditions");
+        if (Boolean.TRUE.equals(entry.experience)) {
+            if (entry.item != null) {
+                throw ctx.at("experience").error("cannot be used with 'item'; an entry removes either items or experience");
+            }
+            return new RemovalEntry(null, DropValues.parseConditions(entry.conditions, conditionsCtx));
+        }
+
+        ParseContext itemCtx = ctx.at("item");
         ItemTarget target = DropValues.parseItemTarget(itemCtx.require(entry.item), itemCtx);
         return new RemovalEntry(target, DropValues.parseConditions(conditionsCtx.require(entry.conditions), conditionsCtx));
     }

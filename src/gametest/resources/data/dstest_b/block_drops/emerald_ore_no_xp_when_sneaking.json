@@ -3,5 +3,5 @@
   "block": "minecraft:emerald_ore",
   "conditions": [ { "condition": "minecraft:entity_properties", "entity": "this",
                     "predicate": { "flags": { "is_sneaking": true } } } ],
-  "remove_experience": true
+  "removals": [ { "experience": true } ]
 }

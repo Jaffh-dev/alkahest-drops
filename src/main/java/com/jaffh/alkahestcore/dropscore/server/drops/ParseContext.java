@@ -47,6 +47,17 @@ public record ParseContext(ResourceLocation fileId, String path, DropIssueLog lo
     }
 
     /**
+     * Returns the context of a path below the current key written in the same notation, such as the
+     * {@code .conditions[0]} vanilla loot validation reports.
+     *
+     * @param suffix Path to append, starting with {@code .} or {@code [}; empty for the current key. Never null.
+     * @return A context whose path ends with the suffix.
+     */
+    public ParseContext atSuffix(String suffix) {
+        return new ParseContext(fileId, path + suffix, log);
+    }
+
+    /**
      * Creates an error for the current key, to be thrown by the caller.
      *
      * @param message English description of the problem. Never null.
