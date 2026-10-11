@@ -44,6 +44,7 @@ public class AlkahestCore
         DropscoreConfig.register(ModLoadingContext.get());
         modEventBus.addListener(MobDropManager::onConfigLoading);
         MinecraftForge.EVENT_BUS.register(new MobDropInjector());
+        MinecraftForge.EVENT_BUS.addListener(MobDropManager::onTagsUpdated);
 
         // Register the setup method for modloading
         modEventBus.addListener(this::setup);

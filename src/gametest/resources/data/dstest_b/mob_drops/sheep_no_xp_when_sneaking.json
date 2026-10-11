@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "entity": "minecraft:sheep",
+  "conditions": [ { "condition": "minecraft:entity_properties", "entity": "killer",
+                    "predicate": { "flags": { "is_sneaking": true } } } ],
+  "remove_experience": true
+}

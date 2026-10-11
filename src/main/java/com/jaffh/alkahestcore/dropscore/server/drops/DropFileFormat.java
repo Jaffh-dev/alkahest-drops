@@ -11,7 +11,7 @@ import javax.annotation.Nullable;
  */
 public enum DropFileFormat {
     /** Files in {@code data/<namespace>/mob_drops/}: target key {@code entity}, bonus key {@code on_looting}. */
-    MOB("entity", "on_looting") {
+    MOB("entity", "on_looting", true) {
         @Nullable
         @Override
         public String targetOf(DropFileJson file) {
@@ -25,7 +25,7 @@ public enum DropFileFormat {
         }
     },
     /** Files in {@code data/<namespace>/block_drops/}: target key {@code block}, bonus key {@code on_fortune}. */
-    BLOCK("block", "on_fortune") {
+    BLOCK("block", "on_fortune", false) {
         @Nullable
         @Override
         public String targetOf(DropFileJson file) {
@@ -41,16 +41,19 @@ public enum DropFileFormat {
 
     private final String targetKey;
     private final String bonusKey;
+    private final boolean canScaleWithHealth;
 
     /**
      * Creates a file format.
      *
-     * @param targetKey JSON key of the file target.
-     * @param bonusKey  JSON key of a drop's enchantment bonus.
+     * @param targetKey          JSON key of the file target.
+     * @param bonusKey           JSON key of a drop's enchantment bonus.
+     * @param canScaleWithHealth Whether drops may use the {@code max_health} behavior.
      */
-    DropFileFormat(String targetKey, String bonusKey) {
+    DropFileFormat(String targetKey, String bonusKey, boolean canScaleWithHealth) {
         this.targetKey = targetKey;
         this.bonusKey = bonusKey;
+        this.canScaleWithHealth = canScaleWithHealth;
     }
 
     /**
@@ -87,5 +90,14 @@ public enum DropFileFormat {
      */
     public String bonusKey() {
         return bonusKey;
+    }
+
+    /**
+     * Tells whether drops of this format may use the {@code max_health} behavior.
+     *
+     * @return True for mob files, whose targets have a max health.
+     */
+    public boolean canScaleWithHealth() {
+        return canScaleWithHealth;
     }
 }

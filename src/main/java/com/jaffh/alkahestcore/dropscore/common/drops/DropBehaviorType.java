@@ -11,7 +11,7 @@ public enum DropBehaviorType {
     /** Picks a count uniformly between min and max. */
     UNIFORM(false) {
         @Override
-        public int rollCount(DropCount range, DropBehavior behavior, Random random) {
+        public int rollCount(DropCount range, DropBehavior behavior, float maxHealth, Random random) {
             if (range.min() >= range.max()) return range.min();
             return range.min() + random.nextInt(range.max() - range.min() + 1);
         }
@@ -19,7 +19,7 @@ public enum DropBehaviorType {
     /** Starts at min and makes every roll independently, adding the increment on each success. */
     FIXED_ROLLS(true) {
         @Override
-        public int rollCount(DropCount range, DropBehavior behavior, Random random) {
+        public int rollCount(DropCount range, DropBehavior behavior, float maxHealth, Random random) {
             int total = range.min();
             for (int i = 0; i < behavior.rolls() && total < range.max(); i++) {
                 if (random.nextDouble() < behavior.chancePerRoll()) {
@@ -32,13 +32,20 @@ public enum DropBehaviorType {
     /** Starts at min and keeps rolling while rolls succeed, stopping at the first failure. */
     CHAINED_ROLLS(true) {
         @Override
-        public int rollCount(DropCount range, DropBehavior behavior, Random random) {
+        public int rollCount(DropCount range, DropBehavior behavior, float maxHealth, Random random) {
             int total = range.min();
             for (int i = 0; i < behavior.rolls() && total < range.max(); i++) {
                 if (random.nextDouble() >= behavior.chancePerRoll()) break;
                 total += behavior.incrementValue();
             }
             return Math.min(total, range.max());
+        }
+    },
+    /** Scales the count with the mob's max health, clamped to the count range. Mobs only. */
+    MAX_HEALTH(false) {
+        @Override
+        public int rollCount(DropCount range, DropBehavior behavior, float maxHealth, Random random) {
+            return behavior.healthFormula().countFor(maxHealth, range);
         }
     };
 
@@ -66,11 +73,12 @@ public enum DropBehaviorType {
      * Rolls the item count of one drop.
      *
      * @param range     Count range with any enchantment bonus already applied. Never null.
-     * @param behavior Roll settings with any enchantment bonus already applied. Never null.
+     * @param behavior  Roll settings with any enchantment bonus already applied. Never null.
+     * @param maxHealth Max health of the dying mob, 0 for blocks.
      * @param random    Random source of the level.
      * @return The rolled count, between {@code range.min()} and {@code range.max()} when min ≤ max.
      */
-    public abstract int rollCount(DropCount range, DropBehavior behavior, Random random);
+    public abstract int rollCount(DropCount range, DropBehavior behavior, float maxHealth, Random random);
 
     /**
      * Finds the behavior type named by a JSON id such as {@code "fixed_rolls"}.

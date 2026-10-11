@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "entity": "#dstest_b:wiped",
+  "conditions": [ { "condition": "minecraft:inverted", "term": { "condition": "minecraft:killed_by_player" } } ],
+  "removals": [ "*" ]
+}
