@@ -14,4 +14,8 @@ public class DropBehaviorJson {
 
     @SerializedName("increment_value")
     public Integer incrementValue;
+
+    public String function;
+    public Double multiplier;
+    public Double divisor;
 }

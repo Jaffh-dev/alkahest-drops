@@ -15,6 +15,20 @@ base {
 // Mojang ships Java 17 to end users in 1.18+, so your mod should target Java 17.
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
+// GameTests live in their own source set so they never ship in the mod jar; only the gameTestServer run loads them.
+sourceSets {
+    gametest {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+
+configurations {
+    gametestImplementation.extendsFrom implementation
+    gametestCompileOnly.extendsFrom compileOnly
+    gametestRuntimeOnly.extendsFrom runtimeOnly
+}
+
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
 minecraft {
     // The mappings can be changed at any time and must be in the following format.
@@ -88,6 +102,16 @@ minecraft {
             // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
             property 'forge.enabledGameTestNamespaces', mod_id
 
+            // Opt-in: ./gradlew runClient -PwithGameTests loads the GameTests for /test. Their test rules
+            // (dstest_* namespaces) then apply in every world of that session, so it is off by default.
+            if (project.hasProperty('withGameTests')) {
+                property 'forge.enableGameTest', 'true'
+                mods {
+                    "${mod_id}" {
+                        source sourceSets.gametest
+                    }
+                }
+            }
         }
 
         server {
@@ -99,7 +123,14 @@ minecraft {
         // By default, the server will crash when no gametests are provided.
         // The gametest system is also enabled by default for other run configs under the /test command.
         gameTestServer {
+            workingDirectory project.file('run-gametest')
             property 'forge.enabledGameTestNamespaces', mod_id
+
+            mods {
+                "${mod_id}" {
+                    source sourceSets.gametest
+                }
+            }
         }
 
         data {
@@ -219,4 +250,8 @@ publishing {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+}
+
+tasks.matching { it.name == 'runGameTestServer' || (it.name == 'runClient' && project.hasProperty('withGameTests')) }.configureEach {
+    dependsOn 'gametestClasses'
 }

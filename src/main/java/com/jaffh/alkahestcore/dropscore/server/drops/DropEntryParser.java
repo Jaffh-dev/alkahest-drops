@@ -6,6 +6,8 @@ import com.jaffh.alkahestcore.dropscore.common.drops.DropBehaviorType;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropCount;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropEntry;
 import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonus;
+import com.jaffh.alkahestcore.dropscore.common.drops.HealthFormula;
+import com.jaffh.alkahestcore.dropscore.common.drops.HealthFunction;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.BonusRollJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.CountJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.DropBehaviorJson;
@@ -126,7 +128,7 @@ public final class DropEntryParser {
 
     /**
      * Resolves {@code drop_behavior}. Roll settings are required for roll-based types and ignored, with a
-     * warning, for {@code uniform}.
+     * warning, for the others; health settings are read only by {@code max_health}, which mob files alone accept.
      *
      * @param behavior Gson DTO, or null when missing.
      * @param bonusJson Enchantment bonus of the drop, or null when missing.
@@ -141,13 +143,20 @@ public final class DropEntryParser {
         DropBehaviorType type = DropBehaviorType.fromId(typeId)
                 .orElseThrow(() -> typeCtx.error("unknown type '" + typeId + "'"));
 
+        if (type == DropBehaviorType.MAX_HEALTH) {
+            if (!format.canScaleWithHealth()) throw typeCtx.error("'" + typeId + "' is only valid in mob drop files");
+            warnIgnoredRollSettings(json, typeId, ctx);
+            return DropBehavior.ofMaxHealth(parseHealthFormula(json, ctx));
+        }
+
+        warnIgnoredHealthSettings(json, typeId, ctx);
         if (!type.needsRollSettings()) {
             warnIgnoredRollSettings(json, typeId, ctx);
             return DropBehavior.UNIFORM;
         }
 
         BonusRollJson rollBonus = bonusJson != null ? bonusJson.bonusRoll : null;
-        return new DropBehavior(
+        return DropBehavior.ofRolls(
                 type,
                 parseRolls(json.rolls, rollBonus != null && rollBonus.bonusRollsPerLevel != null, ctx.at("rolls")),
                 parseChancePerRoll(json.chancePerRoll, rollBonus != null && rollBonus.bonusRollChancePerLevel != null, ctx.at("chance_per_roll")),
@@ -167,6 +176,44 @@ public final class DropEntryParser {
         if (json.rolls != null) ctx.at("rolls").warn(message);
         if (json.chancePerRoll != null) ctx.at("chance_per_roll").warn(message);
         if (json.incrementValue != null) ctx.at("increment_value").warn(message);
+    }
+
+    /**
+     * Warns about each health setting given to a type other than {@code max_health}.
+     *
+     * @param json   Gson DTO of {@code drop_behavior}. Never null.
+     * @param typeId Raw type id, for the message. Never null.
+     * @param ctx    Context of {@code drop_behavior}. Never null.
+     */
+    private static void warnIgnoredHealthSettings(DropBehaviorJson json, String typeId, ParseContext ctx) {
+        String message = "is ignored by type '" + typeId + "'";
+        if (json.function != null) ctx.at("function").warn(message);
+        if (json.multiplier != null) ctx.at("multiplier").warn(message);
+        if (json.divisor != null) ctx.at("divisor").warn(message);
+    }
+
+    /**
+     * Resolves the settings of {@code max_health}: {@code function} defaults to linear, {@code multiplier}
+     * and {@code divisor} default to 1 and must be above 0.
+     *
+     * @param json Gson DTO of {@code drop_behavior}. Never null.
+     * @param ctx  Context of {@code drop_behavior}. Never null.
+     * @return The formula settings.
+     * @throws DropDataException If the function is unknown, or the multiplier or divisor is 0 or negative.
+     */
+    private static HealthFormula parseHealthFormula(DropBehaviorJson json, ParseContext ctx) throws DropDataException {
+        HealthFormula defaults = HealthFormula.DEFAULT;
+        HealthFunction function = defaults.function();
+        if (json.function != null) {
+            ParseContext functionCtx = ctx.at("function");
+            function = HealthFunction.fromId(json.function)
+                    .orElseThrow(() -> functionCtx.error("unknown function '" + json.function + "', expected 'linear' or 'log'"));
+        }
+        double multiplier = json.multiplier != null ? json.multiplier : defaults.multiplier();
+        double divisor = json.divisor != null ? json.divisor : defaults.divisor();
+        ctx.at("multiplier").requirePositive(multiplier);
+        ctx.at("divisor").requirePositive(divisor);
+        return new HealthFormula(function, multiplier, divisor);
     }
 
     /**

@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "entity": "minecraft:zombie",
+  "drops": [
+    { "item": "minecraft:bone", "chance": 1.0, "count": { "min": 0, "max": 64 },
+      "drop_behavior": { "type": "max_health", "function": "log", "multiplier": 3, "divisor": 10 } }
+  ]
+}
