@@ -154,7 +154,7 @@ public class BlockDropGameTests {
     }
 
     /**
-     * {@code remove_experience} on diamond ore drops no experience; the diamond still drops.
+     * An experience removal on diamond ore drops no experience; the diamond still drops.
      *
      * @param helper Helper of the test.
      */
@@ -170,7 +170,7 @@ public class BlockDropGameTests {
     }
 
     /**
-     * {@code remove_experience} gated by a sneaking breaker drops no experience when the player sneaks.
+     * An experience removal gated by a sneaking breaker (global condition) drops no experience when the player sneaks.
      *
      * @param helper Helper of the test.
      */
@@ -256,7 +256,7 @@ public class BlockDropGameTests {
     }
 
     /**
-     * {@code remove_experience} of {@code dstest_b} removes the vanilla experience and the 7 of {@code dstest_a},
+     * The experience removal of {@code dstest_b} removes the vanilla experience and the 7 of {@code dstest_a},
      * and keeps the 3 of its own namespace: the "set the experience" pattern.
      *
      * @param helper Helper of the test.

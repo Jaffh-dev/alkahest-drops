@@ -22,7 +22,7 @@ import java.util.List;
 
 /**
  * Handles what a loot modifier cannot do on {@link BlockEvent.BreakEvent}, which fires before the block is removed:
- * the experience of the break (turned off by {@code remove_experience}, raised by experience drops), and the drops
+ * the experience of the break (turned off by experience removal entries, raised by experience drops), and the drops
  * of blocks whose loot table is {@code minecraft:empty} ({@code noDrops()}), since those never run loot modifiers.
  * Only player breaks give block experience, so this event covers every experience case; the fallback drops cover
  * player breaks only, not explosions or pistons.
@@ -30,7 +30,7 @@ import java.util.List;
 public class BlockBreakHandler {
 
     /**
-     * Sets the experience of a block break: zeroed by passing {@code remove_experience} files, raised by experience
+     * Sets the experience of a block break: zeroed by passing experience removal entries, raised by experience
      * drops. Like vanilla experience, it is skipped in creative and when the player cannot harvest the block. Runs at
      * LOW priority so changes of other mods at NORMAL priority are overridden.
      *

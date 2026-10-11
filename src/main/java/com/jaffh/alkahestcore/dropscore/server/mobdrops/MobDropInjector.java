@@ -75,7 +75,7 @@ public class MobDropInjector {
     }
 
     /**
-     * Drops no experience when a removal file with {@code remove_experience} has passing global conditions, then
+     * Drops no experience when an experience removal entry has passing global and local conditions, then
      * adds the experience drops. Vanilla fires this event inside {@code dropAllDeathLoot}, before
      * {@link LivingDropsEvent}, and only for kills that give experience (by a player), so the decision is made here,
      * with the source kept by {@link #onLivingDeath}. Runs at LOW priority so changes of other mods at NORMAL

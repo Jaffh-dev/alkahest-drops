@@ -182,7 +182,7 @@ public class MobDropGameTests {
     }
 
     /**
-     * A {@code remove_experience} file and an experience drop of the same namespace set the experience:
+     * A removal file with an experience entry and an experience drop of the same namespace set the experience:
      * 4 + 2 per Looting level, so 10 with Looting III, and none of the chicken's vanilla experience.
      *
      * @param helper Helper of the test.
@@ -200,7 +200,7 @@ public class MobDropGameTests {
     }
 
     /**
-     * {@code remove_experience} of {@code dstest_b} removes the 7 experience of {@code dstest_a} and keeps its own
+     * The experience removal of {@code dstest_b} removes the 7 experience of {@code dstest_a} and keeps its own
      * {@code max_health} experience: 0.6 · 10 health = 6 for a pig.
      *
      * @param helper Helper of the test.
@@ -216,7 +216,8 @@ public class MobDropGameTests {
     }
 
     /**
-     * {@code remove_experience} gated by a sneaking killer drops no experience when the killer sneaks.
+     * An experience removal entry whose local condition is a sneaking killer drops no experience when the killer
+     * sneaks.
      *
      * @param helper Helper of the test.
      */
@@ -256,6 +257,7 @@ public class MobDropGameTests {
         DropTestKit.assertIssue(issues, "version_missing", "version", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "player_removal", "entity", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "both_kinds", "", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "experience_removal_with_item", "removals[0].experience", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "unknown_namespace", "entity", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "bad_max_health", "drops[0].drop_behavior.divisor", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "bad_max_health", "drops[1].drop_behavior.function", DropIssue.Severity.ERROR);

@@ -10,7 +10,9 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Represents everything dropscore does for one target (entity type or block), built the first time the target
@@ -21,9 +23,10 @@ import java.util.Set;
  * @param removedItems       Items unconditional single-item entries remove from the event drops. Immutable, never null.
  * @param removedTargets     Tag and {@code *} targets unconditional entries remove from the event drops.
  *                           Immutable, never null.
- * @param perKillRemovals    Removal files with global or local conditions, tested per drop. Immutable, never null.
- * @param experienceRemovals Removal files with {@code remove_experience}, gated by their global conditions only.
+ * @param perKillRemovals    Item part of removal files with global or local conditions, tested per drop.
  *                           Immutable, never null.
+ * @param experienceRemovals Experience part of removal files, holding only their experience entries, tested per
+ *                           drop. Immutable, never null.
  * @param hasExperienceDrops Whether a drop file adds experience.
  * @param needsLootContext   Whether any condition must be tested, so a drop must build a loot context.
  */
@@ -51,8 +54,11 @@ public record DropTable(
         List<RemovalRule> perKill = new ArrayList<>();
         List<RemovalRule> experience = new ArrayList<>();
         for (RemovalRule removal : removals) {
-            if (removal.shouldRemoveExperience()) experience.add(removal);
-            splitRemoval(removal, unconditional, perKill);
+            Map<Boolean, List<RemovalEntry>> byKind = removal.entries().stream()
+                    .collect(Collectors.partitioningBy(RemovalEntry::isExperience));
+            List<RemovalEntry> experienceEntries = byKind.get(true);
+            if (!experienceEntries.isEmpty()) experience.add(removal.withEntries(experienceEntries));
+            splitRemoval(removal.withEntries(byKind.get(false)), unconditional, perKill);
         }
 
         List<DropFile> keptFiles = dropFiles.stream()
@@ -74,7 +80,7 @@ public record DropTable(
 
         boolean needsLootContext = keptFiles.stream().anyMatch(DropFile::hasAnyConditions)
                 || perKill.stream().anyMatch(RemovalRule::hasAnyConditions)
-                || experience.stream().anyMatch(RemovalRule::hasGlobalConditions);
+                || experience.stream().anyMatch(RemovalRule::hasAnyConditions);
         return new DropTable(
                 keptFiles,
                 Set.copyOf(removedItems),
@@ -87,10 +93,10 @@ public record DropTable(
     }
 
     /**
-     * Splits the item entries of a removal rule into the part applied once when the table is built and the part
+     * Splits the item part of a removal rule into the part applied once when the table is built and the part
      * tested per drop. Entries are applied at build time only when neither the file nor the entry has conditions.
      *
-     * @param removal       Rule to split. Never null.
+     * @param removal       Rule holding only item entries. Never null.
      * @param unconditional Receives the build-time part, when it has entries.
      * @param perKill       Receives the per-drop part, when it has entries.
      */
@@ -109,7 +115,7 @@ public record DropTable(
 
     /**
      * Removes from a drop file every item drop that an unconditional removal of another namespace removes.
-     * Experience drops are kept: only {@code remove_experience} removes them, when the experience drops.
+     * Experience drops are kept: experience removal entries remove them in {@link #applyExperience}.
      *
      * @param file          Drop file. Never null.
      * @param unconditional Build-time removal rules of the same target. Never null.
@@ -136,7 +142,7 @@ public record DropTable(
     /**
      * Tells whether this table changes the experience of a drop, so the experience event must be handled.
      *
-     * @return True when a removal file has {@code remove_experience} or a drop file adds experience.
+     * @return True when a removal file removes experience or a drop file adds experience.
      */
     public boolean affectsExperience() {
         return hasExperienceDrops || !experienceRemovals.isEmpty();
@@ -233,9 +239,9 @@ public record DropTable(
     }
 
     /**
-     * Computes the experience of a drop: removal files with {@code remove_experience} whose global conditions pass
-     * zero the event experience and skip the experience drops of other namespaces, then every remaining experience
-     * drop whose global and local conditions pass is rolled and added.
+     * Computes the experience of a drop: removal files with an experience entry whose global and local conditions
+     * pass zero the event experience and skip the experience drops of other namespaces, then every remaining
+     * experience drop whose global and local conditions pass is rolled and added.
      *
      * @param experience  Experience of the event (vanilla and other mods).
      * @param lootContext Loot context, non-null whenever {@link #needsLootContext()} is true.
@@ -245,7 +251,7 @@ public record DropTable(
     public int applyExperience(int experience, @Nullable LootContext lootContext, RollContext rollContext) {
         List<RemovalRule> activeRemovals = new ArrayList<>();
         for (RemovalRule removal : experienceRemovals) {
-            if (LootConditions.testAll(removal.globalConditions(), lootContext)) activeRemovals.add(removal);
+            if (isExperienceRemovalActive(removal, lootContext)) activeRemovals.add(removal);
         }
 
         int total = activeRemovals.isEmpty() ? experience : 0;
@@ -265,11 +271,27 @@ public record DropTable(
     }
 
     /**
-     * Tells whether an active {@code remove_experience} file of another namespace removes the experience drops of
+     * Tells whether an experience removal applies: its global conditions and the local conditions of at least one
+     * of its experience entries pass.
+     *
+     * @param removal     Experience part of a removal file. Never null.
+     * @param lootContext Loot context, non-null whenever {@link #needsLootContext()} is true.
+     * @return True when the removal turns off experience for this drop.
+     */
+    private static boolean isExperienceRemovalActive(RemovalRule removal, @Nullable LootContext lootContext) {
+        if (!LootConditions.testAll(removal.globalConditions(), lootContext)) return false;
+        for (RemovalEntry entry : removal.entries()) {
+            if (LootConditions.testAll(entry.conditions(), lootContext)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Tells whether an active experience removal of another namespace removes the experience drops of
      * a drop file.
      *
      * @param dropFileId     Id of the drop file. Never null.
-     * @param activeRemovals Experience removals whose global conditions passed. Never null.
+     * @param activeRemovals Experience removals whose conditions passed. Never null.
      * @return True when the file's experience drops must not be rolled.
      */
     private static boolean isExperienceRemoved(ResourceLocation dropFileId, List<RemovalRule> activeRemovals) {

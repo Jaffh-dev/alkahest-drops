@@ -11,17 +11,11 @@ import java.util.List;
  * It removes matching event drops (vanilla and other mods) and matching drops added by drop files of
  * other namespaces, never drops added by its own namespace.
  *
- * @param fileId                 Source file id. Never null.
- * @param globalConditions       Conditions that gate every entry and {@code remove_experience}. Immutable, never null.
- * @param shouldRemoveExperience Whether the file turns off experience when its global conditions pass.
- * @param entries                Items to remove, each with its local conditions. Immutable, never null.
+ * @param fileId           Source file id. Never null.
+ * @param globalConditions Conditions that gate every entry. Immutable, never null.
+ * @param entries          Items or experience to remove, each with its local conditions. Immutable, never null.
  */
-public record RemovalRule(
-        ResourceLocation fileId,
-        List<LootItemCondition> globalConditions,
-        boolean shouldRemoveExperience,
-        List<RemovalEntry> entries
-) {
+public record RemovalRule(ResourceLocation fileId, List<LootItemCondition> globalConditions, List<RemovalEntry> entries) {
     /**
      * Creates a removal rule and stores immutable copies of its lists.
      */
@@ -57,10 +51,22 @@ public record RemovalRule(
      * entries that passed their conditions on a kill.
      *
      * @param keptEntries Entries of the copy. Never null.
-     * @return A new rule with the same file id, global conditions and experience flag.
+     * @return A new rule with the same file id and global conditions.
      */
     public RemovalRule withEntries(List<RemovalEntry> keptEntries) {
-        return new RemovalRule(fileId, globalConditions, shouldRemoveExperience, keptEntries);
+        return new RemovalRule(fileId, globalConditions, keptEntries);
+    }
+
+    /**
+     * Tells whether an entry of this rule removes experience, ignoring local conditions.
+     *
+     * @return True when at least one entry is an experience entry.
+     */
+    public boolean removesExperience() {
+        for (RemovalEntry entry : entries) {
+            if (entry.isExperience()) return true;
+        }
+        return false;
     }
 
     /**
@@ -71,7 +77,7 @@ public record RemovalRule(
      */
     public boolean removes(Item item) {
         for (RemovalEntry entry : entries) {
-            if (entry.target().matches(item)) return true;
+            if (entry.removes(item)) return true;
         }
         return false;
     }
@@ -91,10 +97,10 @@ public record RemovalRule(
      * Tells whether this rule removes the experience drops of a dropscore drop file, ignoring conditions.
      *
      * @param dropFileId Id of the drop file that adds the experience. Never null.
-     * @return True when the rule has {@code remove_experience} and the drop file belongs to another namespace.
+     * @return True when an entry removes experience and the drop file belongs to another namespace.
      */
     public boolean shouldRemoveExperienceOf(ResourceLocation dropFileId) {
-        return shouldRemoveExperience && isOtherNamespace(dropFileId);
+        return isOtherNamespace(dropFileId) && removesExperience();
     }
 
     /**
