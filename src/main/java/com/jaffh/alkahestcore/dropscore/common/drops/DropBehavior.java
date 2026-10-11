@@ -7,12 +7,11 @@ package com.jaffh.alkahestcore.dropscore.common.drops;
  * @param rolls          Number of rolls for the roll-based types.
  * @param chancePerRoll  Chance (0–1) that one roll succeeds.
  * @param incrementValue Items added per successful roll.
- * @param healthFormula  Settings of the {@code max_health} type, {@link HealthFormula#DEFAULT} for other types.
- *                       Never null.
+ * @param scaleFormula   Settings of the scaled types, {@link ScaleFormula#DEFAULT} for other types. Never null.
  */
-public record DropBehavior(DropBehaviorType type, int rolls, double chancePerRoll, int incrementValue, HealthFormula healthFormula) {
+public record DropBehavior(DropBehaviorType type, int rolls, double chancePerRoll, int incrementValue, ScaleFormula scaleFormula) {
     /** The {@code uniform} behavior, which has no roll settings. */
-    public static final DropBehavior UNIFORM = new DropBehavior(DropBehaviorType.UNIFORM, 0, 0.0, 0, HealthFormula.DEFAULT);
+    public static final DropBehavior UNIFORM = new DropBehavior(DropBehaviorType.UNIFORM, 0, 0.0, 0, ScaleFormula.DEFAULT);
 
     /**
      * Creates a roll-based behavior.
@@ -24,17 +23,18 @@ public record DropBehavior(DropBehaviorType type, int rolls, double chancePerRol
      * @return The new behavior.
      */
     public static DropBehavior ofRolls(DropBehaviorType type, int rolls, double chancePerRoll, int incrementValue) {
-        return new DropBehavior(type, rolls, chancePerRoll, incrementValue, HealthFormula.DEFAULT);
+        return new DropBehavior(type, rolls, chancePerRoll, incrementValue, ScaleFormula.DEFAULT);
     }
 
     /**
-     * Creates a {@code max_health} behavior.
+     * Creates a scaled behavior.
      *
-     * @param healthFormula Settings of the formula. Never null.
+     * @param type         {@link DropBehaviorType#MAX_HEALTH} or {@link DropBehaviorType#HARDNESS}. Never null.
+     * @param scaleFormula Settings of the formula. Never null.
      * @return The new behavior.
      */
-    public static DropBehavior ofMaxHealth(HealthFormula healthFormula) {
-        return new DropBehavior(DropBehaviorType.MAX_HEALTH, 0, 0.0, 0, healthFormula);
+    public static DropBehavior ofScale(DropBehaviorType type, ScaleFormula scaleFormula) {
+        return new DropBehavior(type, 0, 0.0, 0, scaleFormula);
     }
 
     /**
@@ -52,7 +52,7 @@ public record DropBehavior(DropBehaviorType type, int rolls, double chancePerRol
                 bonus.applyToRolls(rolls, level),
                 bonus.applyToChance(chancePerRoll, level),
                 bonus.applyToIncrement(incrementValue, level),
-                healthFormula
+                scaleFormula
         );
     }
 }

@@ -2,6 +2,9 @@ package com.jaffh.alkahestcore;
 
 
 import com.jaffh.alkahestcore.dropscore.common.DropscoreConfig;
+import com.jaffh.alkahestcore.dropscore.common.DropscoreLootModifiers;
+import com.jaffh.alkahestcore.dropscore.server.blockdrops.BlockBreakHandler;
+import com.jaffh.alkahestcore.dropscore.server.blockdrops.BlockDropManager;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.MobDropInjector;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.MobDropManager;
 import com.jaffh.alkahestcore.fluidscore.AlkahestConfig;
@@ -42,9 +45,13 @@ public class AlkahestCore
         CustomFluidJsonLoader.init(FLUID_MANAGER);
 
         DropscoreConfig.register(ModLoadingContext.get());
-        modEventBus.addListener(MobDropManager::onConfigLoading);
+        modEventBus.addListener(MobDropManager.INSTANCE::onConfigLoading);
         MinecraftForge.EVENT_BUS.register(new MobDropInjector());
-        MinecraftForge.EVENT_BUS.addListener(MobDropManager::onTagsUpdated);
+        MinecraftForge.EVENT_BUS.addListener(MobDropManager.INSTANCE::onTagsUpdated);
+        DropscoreLootModifiers.register(modEventBus, ID);
+        modEventBus.addListener(BlockDropManager.INSTANCE::onConfigLoading);
+        MinecraftForge.EVENT_BUS.register(new BlockBreakHandler());
+        MinecraftForge.EVENT_BUS.addListener(BlockDropManager.INSTANCE::onTagsUpdated);
 
         // Register the setup method for modloading
         modEventBus.addListener(this::setup);

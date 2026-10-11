@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "block": "minecraft:nether_quartz_ore",
+  "drops": [ { "experience": true, "chance": 1.0, "count": { "min": 3, "max": 3 }, "drop_behavior": { "type": "uniform" } } ]
+}

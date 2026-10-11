@@ -6,8 +6,8 @@ import com.jaffh.alkahestcore.dropscore.common.drops.DropBehaviorType;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropCount;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropEntry;
 import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonus;
-import com.jaffh.alkahestcore.dropscore.common.drops.HealthFormula;
-import com.jaffh.alkahestcore.dropscore.common.drops.HealthFunction;
+import com.jaffh.alkahestcore.dropscore.common.drops.ScaleFormula;
+import com.jaffh.alkahestcore.dropscore.common.drops.ScaleFunction;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.BonusRollJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.CountJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.DropBehaviorJson;
@@ -18,9 +18,9 @@ import javax.annotation.Nullable;
 import java.util.Locale;
 
 /**
- * Validates one entry of {@code drops} and resolves it into a {@link DropEntry}. {@code item}, {@code chance},
- * {@code count} and {@code drop_behavior} are required; out-of-range values are clamped with a warning when
- * the intent is clear and rejected otherwise.
+ * Validates one entry of {@code drops} and resolves it into a {@link DropEntry}. {@code item} (or
+ * {@code "experience": true}), {@code chance}, {@code count} and {@code drop_behavior} are required; out-of-range
+ * values are clamped with a warning when the intent is clear and rejected otherwise.
  */
 public final class DropEntryParser {
     private final DropFileFormat format;
@@ -49,8 +49,18 @@ public final class DropEntryParser {
      */
     public DropEntry parse(JsonElement element, ParseContext ctx) throws DropDataException {
         DropEntryJson drop = DropValues.readObject(element, DropEntryJson.class, ctx);
+        boolean isExperience = Boolean.TRUE.equals(drop.experience);
+        if (isExperience && drop.item != null) {
+            throw ctx.at("experience").error("cannot be used with 'item'; a drop gives either an item or experience");
+        }
+        if (isExperience && drop.nbt != null) ctx.at("nbt").warn("is ignored by experience drops");
         ParseContext itemCtx = ctx.at("item");
         EnchantBonusJson bonusJson = format.enchantBonusOf(drop);
+        DropFileFormat other = format.other();
+        if (other.enchantBonusOf(drop) != null) {
+            ctx.at(other.bonusKey()).warn("is a key of " + other.filesName() + "; only this bonus is ignored, the drop "
+                    + "still loads without it; " + format.filesName() + " use '" + format.bonusKey() + "'");
+        }
         EnchantBonus bonus = bonusParser.parse(bonusJson, ctx.at(format.bonusKey()));
         DropBehavior behavior = parseBehavior(drop.dropBehavior, bonusJson, ctx.at("drop_behavior"));
         if (!behavior.type().needsRollSettings() && bonusJson != null && bonusJson.bonusRoll != null) {
@@ -59,8 +69,8 @@ public final class DropEntryParser {
         }
 
         return new DropEntry(
-                DropValues.resolveItem(itemCtx.require(drop.item), itemCtx),
-                DropValues.parseNbt(drop.nbt, ctx.at("nbt")),
+                isExperience ? null : DropValues.resolveItem(itemCtx.require(drop.item), itemCtx),
+                isExperience ? null : DropValues.parseNbt(drop.nbt, ctx.at("nbt")),
                 parseChance(drop.chance, bonusJson, ctx.at("chance")),
                 parseCount(drop.count, bonusJson, ctx.at("count")),
                 behavior,
@@ -128,7 +138,8 @@ public final class DropEntryParser {
 
     /**
      * Resolves {@code drop_behavior}. Roll settings are required for roll-based types and ignored, with a
-     * warning, for the others; health settings are read only by {@code max_health}, which mob files alone accept.
+     * warning, for the others; scale settings are read only by the scaled types, {@code max_health} in mob files
+     * and {@code hardness} in block files.
      *
      * @param behavior Gson DTO, or null when missing.
      * @param bonusJson Enchantment bonus of the drop, or null when missing.
@@ -143,13 +154,16 @@ public final class DropEntryParser {
         DropBehaviorType type = DropBehaviorType.fromId(typeId)
                 .orElseThrow(() -> typeCtx.error("unknown type '" + typeId + "'"));
 
-        if (type == DropBehaviorType.MAX_HEALTH) {
-            if (!format.canScaleWithHealth()) throw typeCtx.error("'" + typeId + "' is only valid in mob drop files");
+        if (type.isScaled()) {
+            if (type != format.scaleType()) {
+                throw typeCtx.error("'" + typeId + "' is only valid in " + format.other().filesName() + "; "
+                        + format.filesName() + " use '" + format.scaleType().name().toLowerCase(Locale.ROOT) + "'");
+            }
             warnIgnoredRollSettings(json, typeId, ctx);
-            return DropBehavior.ofMaxHealth(parseHealthFormula(json, ctx));
+            return DropBehavior.ofScale(type, parseScaleFormula(json, ctx));
         }
 
-        warnIgnoredHealthSettings(json, typeId, ctx);
+        warnIgnoredScaleSettings(json, typeId, ctx);
         if (!type.needsRollSettings()) {
             warnIgnoredRollSettings(json, typeId, ctx);
             return DropBehavior.UNIFORM;
@@ -179,13 +193,13 @@ public final class DropEntryParser {
     }
 
     /**
-     * Warns about each health setting given to a type other than {@code max_health}.
+     * Warns about each scale setting given to a type that is not scaled.
      *
      * @param json   Gson DTO of {@code drop_behavior}. Never null.
      * @param typeId Raw type id, for the message. Never null.
      * @param ctx    Context of {@code drop_behavior}. Never null.
      */
-    private static void warnIgnoredHealthSettings(DropBehaviorJson json, String typeId, ParseContext ctx) {
+    private static void warnIgnoredScaleSettings(DropBehaviorJson json, String typeId, ParseContext ctx) {
         String message = "is ignored by type '" + typeId + "'";
         if (json.function != null) ctx.at("function").warn(message);
         if (json.multiplier != null) ctx.at("multiplier").warn(message);
@@ -193,7 +207,7 @@ public final class DropEntryParser {
     }
 
     /**
-     * Resolves the settings of {@code max_health}: {@code function} defaults to linear, {@code multiplier}
+     * Resolves the settings of a scaled type: {@code function} defaults to linear, {@code multiplier}
      * and {@code divisor} default to 1 and must be above 0.
      *
      * @param json Gson DTO of {@code drop_behavior}. Never null.
@@ -201,19 +215,19 @@ public final class DropEntryParser {
      * @return The formula settings.
      * @throws DropDataException If the function is unknown, or the multiplier or divisor is 0 or negative.
      */
-    private static HealthFormula parseHealthFormula(DropBehaviorJson json, ParseContext ctx) throws DropDataException {
-        HealthFormula defaults = HealthFormula.DEFAULT;
-        HealthFunction function = defaults.function();
+    private static ScaleFormula parseScaleFormula(DropBehaviorJson json, ParseContext ctx) throws DropDataException {
+        ScaleFormula defaults = ScaleFormula.DEFAULT;
+        ScaleFunction function = defaults.function();
         if (json.function != null) {
             ParseContext functionCtx = ctx.at("function");
-            function = HealthFunction.fromId(json.function)
+            function = ScaleFunction.fromId(json.function)
                     .orElseThrow(() -> functionCtx.error("unknown function '" + json.function + "', expected 'linear' or 'log'"));
         }
         double multiplier = json.multiplier != null ? json.multiplier : defaults.multiplier();
         double divisor = json.divisor != null ? json.divisor : defaults.divisor();
         ctx.at("multiplier").requirePositive(multiplier);
         ctx.at("divisor").requirePositive(divisor);
-        return new HealthFormula(function, multiplier, divisor);
+        return new ScaleFormula(function, multiplier, divisor);
     }
 
     /**

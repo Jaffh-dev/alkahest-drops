@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "block": "minecraft:bookshelf",
+  "drops": [
+    { "experience": true, "chance": 1.0, "count": { "min": 4, "max": 4 }, "drop_behavior": { "type": "uniform" } },
+    { "experience": true, "chance": 1.0, "count": { "min": 6, "max": 6 }, "drop_behavior": { "type": "uniform" } },
+    { "experience": true, "chance": 1.0, "count": { "min": 100, "max": 100 }, "drop_behavior": { "type": "uniform" },
+      "conditions": [ { "condition": "minecraft:match_tool", "predicate": { "items": [ "minecraft:golden_hoe" ] } } ] }
+  ]
+}

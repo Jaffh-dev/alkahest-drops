@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "block": "minecraft:*",
+  "conditions": [ { "condition": "minecraft:match_tool", "predicate": { "items": [ "minecraft:golden_hoe" ] } } ],
+  "drops": [ { "item": "minecraft:barrier", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" } } ]
+}

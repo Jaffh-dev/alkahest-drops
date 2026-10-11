@@ -87,6 +87,11 @@ public final class DropFileParser {
             return null;
         }
 
+        DropFileFormat other = format.other();
+        if (format.targetOf(file) == null && other.targetOf(file) != null) {
+            throw ctx.at(other.targetKey()).error("is a key of " + other.filesName() + "; "
+                    + format.filesName() + " use '" + format.targetKey() + "'");
+        }
         String target = ctx.at(format.targetKey()).require(format.targetOf(file));
         List<LootItemCondition> globalConditions = DropValues.parseConditions(file.conditions, ctx.at("conditions"));
         return isDropFile

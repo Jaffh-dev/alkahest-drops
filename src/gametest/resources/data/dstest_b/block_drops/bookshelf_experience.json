@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "block": "minecraft:bookshelf",
+  "drops": [ { "experience": true, "chance": 1.0, "count": { "min": 2, "max": 2 }, "drop_behavior": { "type": "uniform" } } ]
+}

@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "block": "minecraft:smooth_stone",
+  "removals": [ "minecraft:gold_ingot" ]
+}
