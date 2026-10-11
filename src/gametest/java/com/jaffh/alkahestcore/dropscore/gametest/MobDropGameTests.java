@@ -5,7 +5,6 @@ import com.jaffh.alkahestcore.dropscore.server.drops.DropIssue;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.MobDropManager;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -220,28 +219,15 @@ public class MobDropGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void loadReportsIssues(GameTestHelper helper) {
         List<DropIssue> issues = MobDropManager.getIssues();
-        assertIssue(issues, "version_missing", "version", DropIssue.Severity.ERROR);
-        assertIssue(issues, "player_removal", "entity", DropIssue.Severity.ERROR);
-        assertIssue(issues, "both_kinds", "", DropIssue.Severity.ERROR);
-        assertIssue(issues, "unknown_namespace", "entity", DropIssue.Severity.WARNING);
-        assertIssue(issues, "bad_max_health", "drops[0].drop_behavior.divisor", DropIssue.Severity.ERROR);
-        assertIssue(issues, "bad_max_health", "drops[1].drop_behavior.function", DropIssue.Severity.ERROR);
-        assertIssue(issues, "bad_max_health", "drops[2].drop_behavior.rolls", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "version_missing", "version", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "player_removal", "entity", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "both_kinds", "", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "unknown_namespace", "entity", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "bad_max_health", "drops[0].drop_behavior.divisor", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "bad_max_health", "drops[1].drop_behavior.function", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "bad_max_health", "drops[2].drop_behavior.rolls", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "block_key_in_mob_file", "block", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "on_fortune_in_mob_file", "drops[0].on_fortune", DropIssue.Severity.WARNING);
         helper.succeed();
-    }
-
-    /**
-     * Fails the test unless a {@code dstest_c} file reported a problem at a path with a severity.
-     *
-     * @param issues   Issues of the last load. Never null.
-     * @param file     File name in {@code dstest_c/mob_drops}, without extension. Never null.
-     * @param field    JSON path of the problem, {@code ""} for the file root. Never null.
-     * @param severity Expected severity. Never null.
-     */
-    private static void assertIssue(List<DropIssue> issues, String file, String field, DropIssue.Severity severity) {
-        ResourceLocation fileId = ResourceLocation.tryParse("dstest_c:" + file);
-        boolean isReported = issues.stream().anyMatch(issue -> issue.fileId().equals(fileId)
-                && issue.field().equals(field) && issue.severity() == severity);
-        DropTestKit.check(isReported, "missing " + severity + " for " + fileId + " at '" + field + "'");
     }
 }

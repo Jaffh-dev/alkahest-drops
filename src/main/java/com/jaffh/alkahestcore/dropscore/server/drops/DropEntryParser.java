@@ -51,6 +51,11 @@ public final class DropEntryParser {
         DropEntryJson drop = DropValues.readObject(element, DropEntryJson.class, ctx);
         ParseContext itemCtx = ctx.at("item");
         EnchantBonusJson bonusJson = format.enchantBonusOf(drop);
+        DropFileFormat other = format.other();
+        if (other.enchantBonusOf(drop) != null) {
+            ctx.at(other.bonusKey()).warn("is a key of " + other.filesName() + "; only this bonus is ignored, the drop "
+                    + "still loads without it; " + format.filesName() + " use '" + format.bonusKey() + "'");
+        }
         EnchantBonus bonus = bonusParser.parse(bonusJson, ctx.at(format.bonusKey()));
         DropBehavior behavior = parseBehavior(drop.dropBehavior, bonusJson, ctx.at("drop_behavior"));
         if (!behavior.type().needsRollSettings() && bonusJson != null && bonusJson.bonusRoll != null) {

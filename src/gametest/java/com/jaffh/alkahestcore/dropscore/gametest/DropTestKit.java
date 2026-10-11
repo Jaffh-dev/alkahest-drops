@@ -1,8 +1,12 @@
 package com.jaffh.alkahestcore.dropscore.gametest;
 
+import com.jaffh.alkahestcore.dropscore.server.drops.DropIssue;
+import com.mojang.authlib.GameProfile;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
@@ -13,10 +17,18 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Explosion;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.common.util.FakePlayer;
+
+import java.util.List;
+import java.util.UUID;
 
 /**
- * Spawns, kills and inspects mobs inside the {@code dropscore_arena} template for the dropscore GameTests.
+ * Spawns, kills, breaks and inspects mobs and blocks inside the {@code dropscore_arena} template for the
+ * dropscore GameTests.
  */
 final class DropTestKit {
     /** Template every dropscore test runs in: a 9×5×9 stone floor. */
@@ -25,6 +37,7 @@ final class DropTestKit {
     private static final BlockPos CENTER = new BlockPos(4, 1, 4);
     private static final BlockPos FAR_CORNER = new BlockPos(9, 5, 9);
     private static final float LETHAL_DAMAGE = 10_000.0F;
+    private static final float SMALL_EXPLOSION_POWER = 1.0F;
 
     /**
      * Prevents instantiation of this utility class.
@@ -89,6 +102,35 @@ final class DropTestKit {
     }
 
     /**
+     * Places a block at the arena center and breaks it like a survival player would: the break event, the loot
+     * table with the tool and player, and the experience. Uses a fake server player, since a mock player cannot break.
+     *
+     * @param helper     Helper of the running test. Never null.
+     * @param block      Block to place and break. Never null.
+     * @param tool       Item in the player's main hand, {@link ItemStack#EMPTY} for none. Never null.
+     * @param isSneaking Whether the player crouches, matching the {@code is_sneaking} entity flag.
+     */
+    static void breakBlock(GameTestHelper helper, Block block, ItemStack tool, boolean isSneaking) {
+        helper.setBlock(CENTER, block);
+        ServerPlayer player = new FakePlayer(helper.getLevel(), new GameProfile(UUID.randomUUID(), "dropscore_test"));
+        player.setItemInHand(InteractionHand.MAIN_HAND, tool);
+        if (isSneaking) player.setPose(Pose.CROUCHING);
+        player.gameMode.destroyBlock(helper.absolutePos(CENTER));
+    }
+
+    /**
+     * Places a block at the arena center and blows it up with an explosion too weak to break the stone floor.
+     *
+     * @param helper Helper of the running test. Never null.
+     * @param block  Block to place and blow up. Never null.
+     */
+    static void explodeBlock(GameTestHelper helper, Block block) {
+        helper.setBlock(CENTER, block);
+        Vec3 center = Vec3.atCenterOf(helper.absolutePos(CENTER));
+        helper.getLevel().explode(null, center.x, center.y, center.z, SMALL_EXPLOSION_POWER, Explosion.BlockInteraction.BREAK);
+    }
+
+    /**
      * Counts the dropped items of one kind in the arena.
      *
      * @param helper Helper of the running test. Never null.
@@ -136,6 +178,23 @@ final class DropTestKit {
         if (actual != expected) {
             throw new GameTestAssertException("expected " + expected + " " + item.getRegistryName() + ", got " + actual);
         }
+    }
+
+    /**
+     * Fails the test unless a {@code dstest_c} file reported a problem at a path with a severity.
+     *
+     * @param issues   Issues of the last load. Never null.
+     * @param file     File name in {@code dstest_c/mob_drops} or {@code dstest_c/block_drops}, without extension.
+     *                 Never null.
+     * @param field    JSON path of the problem, {@code ""} for the file root. Never null.
+     * @param severity Expected severity. Never null.
+     * @throws GameTestAssertException If no such problem was reported.
+     */
+    static void assertIssue(List<DropIssue> issues, String file, String field, DropIssue.Severity severity) {
+        ResourceLocation fileId = ResourceLocation.tryParse("dstest_c:" + file);
+        boolean isReported = issues.stream().anyMatch(issue -> issue.fileId().equals(fileId)
+                && issue.field().equals(field) && issue.severity() == severity);
+        check(isReported, "missing " + severity + " for " + fileId + " at '" + field + "'");
     }
 
     /**

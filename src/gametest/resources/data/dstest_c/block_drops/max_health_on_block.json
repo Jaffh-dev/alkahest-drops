@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "block": "minecraft:stone",
+  "drops": [ { "item": "minecraft:bone", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "max_health" } } ]
+}

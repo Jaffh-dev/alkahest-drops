@@ -11,7 +11,7 @@ import javax.annotation.Nullable;
  */
 public enum DropFileFormat {
     /** Files in {@code data/<namespace>/mob_drops/}: target key {@code entity}, bonus key {@code on_looting}. */
-    MOB("entity", "on_looting", true) {
+    MOB("mob drop files", "entity", "on_looting", true) {
         @Nullable
         @Override
         public String targetOf(DropFileJson file) {
@@ -25,7 +25,7 @@ public enum DropFileFormat {
         }
     },
     /** Files in {@code data/<namespace>/block_drops/}: target key {@code block}, bonus key {@code on_fortune}. */
-    BLOCK("block", "on_fortune", false) {
+    BLOCK("block drop files", "block", "on_fortune", false) {
         @Nullable
         @Override
         public String targetOf(DropFileJson file) {
@@ -39,6 +39,7 @@ public enum DropFileFormat {
         }
     };
 
+    private final String filesName;
     private final String targetKey;
     private final String bonusKey;
     private final boolean canScaleWithHealth;
@@ -46,11 +47,13 @@ public enum DropFileFormat {
     /**
      * Creates a file format.
      *
+     * @param filesName          Name of the files of this format in messages, such as {@code mob drop files}.
      * @param targetKey          JSON key of the file target.
      * @param bonusKey           JSON key of a drop's enchantment bonus.
      * @param canScaleWithHealth Whether drops may use the {@code max_health} behavior.
      */
-    DropFileFormat(String targetKey, String bonusKey, boolean canScaleWithHealth) {
+    DropFileFormat(String filesName, String targetKey, String bonusKey, boolean canScaleWithHealth) {
+        this.filesName = filesName;
         this.targetKey = targetKey;
         this.bonusKey = bonusKey;
         this.canScaleWithHealth = canScaleWithHealth;
@@ -73,6 +76,24 @@ public enum DropFileFormat {
      */
     @Nullable
     public abstract EnchantBonusJson enchantBonusOf(DropEntryJson drop);
+
+    /**
+     * Returns the other format, whose keys are a likely mistake in files of this one.
+     *
+     * @return {@link #BLOCK} for {@link #MOB} and the other way around.
+     */
+    public DropFileFormat other() {
+        return this == MOB ? BLOCK : MOB;
+    }
+
+    /**
+     * Returns the name of the files of this format in messages.
+     *
+     * @return {@code mob drop files} or {@code block drop files}.
+     */
+    public String filesName() {
+        return filesName;
+    }
 
     /**
      * Returns the JSON key of the file target.

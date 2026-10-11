@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "block": "minecraft:coal_ore",
+  "removals": [ "minecraft:coal" ]
+}
