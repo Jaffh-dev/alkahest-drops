@@ -13,19 +13,23 @@ import com.jaffh.alkahestcore.dropscore.server.drops.json.CountJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.DropBehaviorJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.DropEntryJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.EnchantBonusJson;
+import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Locale;
 
 /**
  * Validates one entry of {@code drops} and resolves it into a {@link DropEntry}. {@code item} (or
  * {@code "experience": true}), {@code chance}, {@code count} and {@code drop_behavior} are required; out-of-range
- * values are clamped with a warning when the intent is clear and rejected otherwise.
+ * values are clamped with a warning when the intent is clear and rejected otherwise. {@code functions} are optional
+ * vanilla loot functions.
  */
 public final class DropEntryParser {
     private final DropFileFormat format;
     private final DropLimits limits;
     private final EnchantBonusParser bonusParser;
+    private final LootFunctionChecker functionChecker;
 
     /**
      * Creates a parser for one file format and the given limits.
@@ -37,6 +41,7 @@ public final class DropEntryParser {
         this.format = format;
         this.limits = limits;
         this.bonusParser = new EnchantBonusParser(limits);
+        this.functionChecker = new LootFunctionChecker(format);
     }
 
     /**
@@ -54,6 +59,7 @@ public final class DropEntryParser {
             throw ctx.at("experience").error("cannot be used with 'item'; a drop gives either an item or experience");
         }
         if (isExperience && drop.nbt != null) ctx.at("nbt").warn("is ignored by experience drops");
+        if (isExperience && drop.functions != null) ctx.at("functions").warn("is ignored by experience drops");
         ParseContext itemCtx = ctx.at("item");
         EnchantBonusJson bonusJson = format.enchantBonusOf(drop);
         DropFileFormat other = format.other();
@@ -75,8 +81,24 @@ public final class DropEntryParser {
                 parseCount(drop.count, bonusJson, ctx.at("count")),
                 behavior,
                 bonus,
-                DropValues.parseConditions(drop.conditions, ctx.at("conditions"))
+                DropValues.parseConditions(drop.conditions, ctx.at("conditions")),
+                isExperience ? List.of() : parseFunctions(drop, bonusJson != null, ctx)
         );
+    }
+
+    /**
+     * Resolves {@code functions} and warns about functions that would not work as expected.
+     *
+     * @param drop            Gson DTO of the drop. Never null.
+     * @param hasEnchantBonus Whether the drop has the format's bonus key.
+     * @param ctx             Context of the drop. Never null.
+     * @return The functions in file order, empty when the key is missing.
+     * @throws DropDataException If any function is invalid.
+     */
+    private List<LootItemFunction> parseFunctions(DropEntryJson drop, boolean hasEnchantBonus, ParseContext ctx) throws DropDataException {
+        List<LootItemFunction> functions = DropValues.parseFunctions(drop.functions, ctx.at("functions"));
+        if (!functions.isEmpty()) functionChecker.check(functions, drop.functions, hasEnchantBonus, ctx);
+        return functions;
     }
 
     /**

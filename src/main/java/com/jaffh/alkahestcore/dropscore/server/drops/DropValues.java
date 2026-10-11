@@ -12,6 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.storage.loot.Deserializers;
+import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraftforge.registries.ForgeRegistries;
 
@@ -19,11 +20,12 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 /**
- * Reads the JSON values shared by every part of a dropscore file: objects, ids, items, NBT and loot conditions.
+ * Reads the JSON values shared by every part of a dropscore file: objects, ids, items, NBT, loot conditions and
+ * loot functions.
  */
 public final class DropValues {
     private static final Gson GSON = new Gson();
-    private static final Gson LOOT_GSON = Deserializers.createConditionSerializer().create();
+    private static final Gson LOOT_GSON = Deserializers.createFunctionSerializer().create();
 
     /**
      * Prevents instantiation of this utility class.
@@ -66,6 +68,23 @@ public final class DropValues {
         } catch (RuntimeException e) {
             // Vanilla condition serializers also throw non-Gson exceptions, such as ResourceLocationException for bad ids.
             throw ctx.error("invalid loot condition (" + e.getMessage() + ")");
+        }
+    }
+
+    /**
+     * Parses a JSON array of vanilla loot functions, including functions registered by other mods.
+     *
+     * @param functions JSON array, or null when missing.
+     * @param ctx       Context of the {@code functions} key. Never null.
+     * @return The parsed functions in file order, empty when the array is missing or empty.
+     * @throws DropDataException If any function is invalid.
+     */
+    public static List<LootItemFunction> parseFunctions(@Nullable JsonArray functions, ParseContext ctx) throws DropDataException {
+        if (functions == null || functions.isEmpty()) return List.of();
+        try {
+            return List.of(LOOT_GSON.fromJson(functions, LootItemFunction[].class));
+        } catch (RuntimeException e) {
+            throw ctx.error("invalid loot function (" + e.getMessage() + ")");
         }
     }
 

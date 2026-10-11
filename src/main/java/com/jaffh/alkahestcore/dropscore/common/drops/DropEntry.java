@@ -3,6 +3,7 @@ package com.jaffh.alkahestcore.dropscore.common.drops;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 
 import javax.annotation.Nullable;
@@ -19,6 +20,8 @@ import java.util.List;
  * @param behavior     How the count is rolled. Never null.
  * @param enchantBonus Per-level bonuses from Looting or Fortune. Never null.
  * @param conditions   Vanilla loot conditions that must all pass. Immutable, never null.
+ * @param functions    Vanilla loot functions applied in order to every dropped stack, after {@code nbt}. Always
+ *                     empty for experience. Immutable, never null.
  */
 public record DropEntry(
         @Nullable Item item,
@@ -27,13 +30,15 @@ public record DropEntry(
         DropCount count,
         DropBehavior behavior,
         EnchantBonus enchantBonus,
-        List<LootItemCondition> conditions
+        List<LootItemCondition> conditions,
+        List<LootItemFunction> functions
 ) {
     /**
-     * Creates a drop entry and stores an immutable copy of the conditions.
+     * Creates a drop entry and stores immutable copies of the conditions and functions.
      */
     public DropEntry {
         conditions = List.copyOf(conditions);
+        functions = List.copyOf(functions);
     }
 
     /**
@@ -52,6 +57,15 @@ public record DropEntry(
      */
     public boolean hasConditions() {
         return !conditions.isEmpty();
+    }
+
+    /**
+     * Tells whether this drop has loot functions to apply.
+     *
+     * @return True when at least one function is set.
+     */
+    public boolean hasFunctions() {
+        return !functions.isEmpty();
     }
 
     /**

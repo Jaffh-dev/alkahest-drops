@@ -148,6 +148,20 @@ final class DropTestKit {
     }
 
     /**
+     * Returns the dropped stacks of one kind in the arena.
+     *
+     * @param helper Helper of the running test. Never null.
+     * @param item   Item to find. Never null.
+     * @return The stacks of the item entities holding the item, in no order.
+     */
+    static List<ItemStack> droppedStacks(GameTestHelper helper, Item item) {
+        return helper.getLevel().getEntitiesOfClass(ItemEntity.class, arenaBounds(helper)).stream()
+                .map(ItemEntity::getItem)
+                .filter(stack -> stack.is(item))
+                .toList();
+    }
+
+    /**
      * Counts every dropped item entity in the arena.
      *
      * @param helper Helper of the running test. Never null.

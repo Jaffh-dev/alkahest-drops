@@ -4,6 +4,10 @@ import com.jaffh.alkahestcore.dropscore.common.drops.DropBehaviorType;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.DropEntryJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.DropFileJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.EnchantBonusJson;
+import net.minecraft.world.level.storage.loot.functions.LootItemFunctionType;
+import net.minecraft.world.level.storage.loot.functions.LootItemFunctions;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSet;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 
 import javax.annotation.Nullable;
 
@@ -24,6 +28,16 @@ public enum DropFileFormat {
         public EnchantBonusJson enchantBonusOf(DropEntryJson drop) {
             return drop.onLooting;
         }
+
+        @Override
+        public LootContextParamSet lootParams() {
+            return LootContextParamSets.ENTITY;
+        }
+
+        @Override
+        public LootItemFunctionType enchantBonusFunction() {
+            return LootItemFunctions.LOOTING_ENCHANT;
+        }
     },
     /** Files in {@code data/<namespace>/block_drops/}: target key {@code block}, bonus key {@code on_fortune}. */
     BLOCK("block drop files", "block", "on_fortune", DropBehaviorType.HARDNESS) {
@@ -37,6 +51,16 @@ public enum DropFileFormat {
         @Override
         public EnchantBonusJson enchantBonusOf(DropEntryJson drop) {
             return drop.onFortune;
+        }
+
+        @Override
+        public LootContextParamSet lootParams() {
+            return LootContextParamSets.BLOCK;
+        }
+
+        @Override
+        public LootItemFunctionType enchantBonusFunction() {
+            return LootItemFunctions.APPLY_BONUS;
         }
     };
 
@@ -77,6 +101,21 @@ public enum DropFileFormat {
      */
     @Nullable
     public abstract EnchantBonusJson enchantBonusOf(DropEntryJson drop);
+
+    /**
+     * Returns the loot parameters the loot context of this format can hold, the same as the vanilla loot tables
+     * of its targets.
+     *
+     * @return {@code entity} parameters for mob files, {@code block} parameters for block files.
+     */
+    public abstract LootContextParamSet lootParams();
+
+    /**
+     * Returns the vanilla loot function that adds its own bonus for the enchantment of {@link #bonusKey()}.
+     *
+     * @return {@code looting_enchant} for mob files, {@code apply_bonus} for block files.
+     */
+    public abstract LootItemFunctionType enchantBonusFunction();
 
     /**
      * Returns the other format, whose keys are a likely mistake in files of this one.

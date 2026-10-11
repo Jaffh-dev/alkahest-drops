@@ -26,4 +26,5 @@ public class DropEntryJson {
     public EnchantBonusJson onFortune;
 
     public JsonArray conditions;
+    public JsonArray functions;
 }

@@ -247,6 +247,71 @@ public class MobDropGameTests {
     }
 
     /**
+     * A {@code set_name} function names the dropped stack.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void functionNamesDrop(GameTestHelper helper) {
+        DropTestKit.killWithoutPlayer(DropTestKit.spawnMob(helper, EntityType.PANDA));
+        helper.runAfterDelay(1, () -> {
+            List<ItemStack> papers = DropTestKit.droppedStacks(helper, Items.PAPER);
+            DropTestKit.check(papers.size() == 1, "expected 1 paper stack, got " + papers.size());
+            String name = papers.get(0).getHoverName().getString();
+            DropTestKit.check(name.equals("Dropscore Paper"), "expected the name 'Dropscore Paper', got '" + name + "'");
+            helper.succeed();
+        });
+    }
+
+    /**
+     * A {@code furnace_smelt} function gated by vanilla's {@code is_on_fire} flag cooks both beef of a burning mob.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void functionSmeltsWhenMobBurns(GameTestHelper helper) {
+        Mob goat = DropTestKit.spawnMob(helper, EntityType.GOAT);
+        goat.setSecondsOnFire(10);
+        DropTestKit.killWithoutPlayer(goat);
+        helper.runAfterDelay(1, () -> {
+            DropTestKit.assertItemCount(helper, Items.COOKED_BEEF, 2);
+            DropTestKit.assertItemCount(helper, Items.BEEF, 0);
+            helper.succeed();
+        });
+    }
+
+    /**
+     * The same function leaves the beef raw when the mob does not burn.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void functionSkippedWhenMobDoesNotBurn(GameTestHelper helper) {
+        DropTestKit.killWithoutPlayer(DropTestKit.spawnMob(helper, EntityType.GOAT));
+        helper.runAfterDelay(1, () -> {
+            DropTestKit.assertItemCount(helper, Items.BEEF, 2);
+            DropTestKit.assertItemCount(helper, Items.COOKED_BEEF, 0);
+            helper.succeed();
+        });
+    }
+
+    /**
+     * A removal of beef by {@code dstest_b} removes a beef drop of {@code dstest_a} that {@code furnace_smelt} turns
+     * into cooked beef, since removals match the drop's {@code item}; the other drop of the file stays.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void removalMatchesItemBeforeFunctions(GameTestHelper helper) {
+        DropTestKit.killWithoutPlayer(DropTestKit.spawnMob(helper, EntityType.OCELOT));
+        helper.runAfterDelay(1, () -> {
+            DropTestKit.assertItemCount(helper, Items.COOKED_BEEF, 0);
+            DropTestKit.assertItemCount(helper, Items.COOKED_PORKCHOP, 1);
+            helper.succeed();
+        });
+    }
+
+    /**
      * The invalid files of {@code dstest_c} are reported with the right path and severity.
      *
      * @param helper Helper of the test.
@@ -265,6 +330,13 @@ public class MobDropGameTests {
         DropTestKit.assertIssue(issues, "block_key_in_mob_file", "block", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "on_fortune_in_mob_file", "drops[0].on_fortune", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "hardness_on_mob", "drops[0].drop_behavior.type", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "invalid_function", "drops[0].functions", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "function_warnings", "drops[0].functions", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "function_warnings", "drops[1].functions[0]", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "function_warnings", "drops[2].functions[0]", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "function_warnings", "drops[4].functions[0]", DropIssue.Severity.WARNING);
+        DropTestKit.check(issues.stream().noneMatch(issue -> issue.field().startsWith("drops[3].functions")
+                && issue.fileId().getPath().equals("function_warnings")), "set_count with add must not warn");
         helper.succeed();
     }
 }

@@ -28,7 +28,8 @@ import java.util.stream.Collectors;
  * @param experienceRemovals Experience part of removal files, holding only their experience entries, tested per
  *                           drop. Immutable, never null.
  * @param hasExperienceDrops Whether a drop file adds experience.
- * @param needsLootContext   Whether any condition must be tested, so a drop must build a loot context.
+ * @param needsLootContext   Whether any condition must be tested or loot function applied, so a drop must build a
+ *                           loot context.
  */
 public record DropTable(
         List<DropFile> dropFiles,
@@ -78,7 +79,7 @@ public record DropTable(
             }
         }
 
-        boolean needsLootContext = keptFiles.stream().anyMatch(DropFile::hasAnyConditions)
+        boolean needsLootContext = keptFiles.stream().anyMatch(DropFile::needsLootContext)
                 || perKill.stream().anyMatch(RemovalRule::hasAnyConditions)
                 || experience.stream().anyMatch(RemovalRule::hasAnyConditions);
         return new DropTable(
@@ -195,7 +196,9 @@ public record DropTable(
 
     /**
      * Rolls every item drop whose global and local conditions pass and that no active removal of another namespace
-     * removes. Global conditions are tested once per file. Experience drops are rolled by {@link #applyExperience}.
+     * removes, then applies its loot functions. Removals match the drop's {@code item}, even when a function turns
+     * it into another item. Global conditions are tested once per file. Experience drops are rolled by
+     * {@link #applyExperience}.
      *
      * @param activeRemovals Removals returned by {@link #collectActiveRemovals}. Never null.
      * @param lootContext    Loot context, non-null whenever {@link #needsLootContext()} is true.
@@ -214,7 +217,7 @@ public record DropTable(
                 if (isDropRemoved(file.fileId(), entry.item(), activeRemovals)) continue;
                 if (entry.hasConditions() && !LootConditions.testAll(entry.conditions(), lootContext)) continue;
 
-                ItemStack stack = DropRoller.roll(entry, rollContext);
+                ItemStack stack = DropRoller.roll(entry, rollContext, lootContext);
                 if (!stack.isEmpty()) {
                     stacks.add(stack);
                 }
