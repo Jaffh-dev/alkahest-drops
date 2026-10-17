@@ -1,0 +1,122 @@
+package com.jaffh.alkahestcore.dropscore.server.command;
+
+import java.util.List;
+import java.util.Locale;
+
+import static com.jaffh.alkahestcore.dropscore.server.command.HelpSection.argument;
+import static com.jaffh.alkahestcore.dropscore.server.command.HelpSection.example;
+
+/**
+ * Defines the {@code /dropscore help} topics, one per subcommand, with their text.
+ */
+enum HelpTopic {
+    /** {@code /dropscore validate}. */
+    VALIDATE("Lists the errors and warnings that the last /reload found in the dropscore files.", List.of(
+            HelpSection.usage("/dropscore validate [errors | warnings] [namespace] [page <n>]"),
+            HelpSection.arguments(
+                    argument("errors", "only errors: the file, drop or entry was skipped."),
+                    argument("warnings", "only warnings: a value was clamped or ignored, the rest still loads."),
+                    argument("namespace", "only the files of one datapack namespace, such as test_mobs."),
+                    argument("page <n>", "another page of a long list; the arrows at the bottom run it for you.")),
+            HelpSection.examples(
+                    example("/dropscore validate", "every problem"),
+                    example("/dropscore validate errors", "only the errors"),
+                    example("/dropscore validate warnings test_mobs", "the warnings of test_mobs")))),
+    /** {@code /dropscore files}. */
+    FILES("Shows which drop and removal files dropscore loaded, and which it skipped.", List.of(
+            HelpSection.usage("/dropscore files [namespace] [page <n>]"),
+            HelpSection.arguments(
+                    argument("no namespace", "the number of drop and removal files of each namespace, for mobs and "
+                            + "blocks. Click a namespace to list its files."),
+                    argument("namespace", "every file of that namespace: module, kind, file id, target and size."),
+                    argument("page <n>", "another page of a long list; the arrows at the bottom run it for you.")),
+            HelpSection.examples(
+                    example("/dropscore files", "the file counts of every namespace"),
+                    example("/dropscore files test_blocks", "the files of test_blocks")))),
+    /** {@code /dropscore sources}. */
+    SOURCES("Shows every file that adds an item or experience, and every file that removes it.", List.of(
+            HelpSection.usage("/dropscore sources <<item> | experience> [page <n>]"),
+            HelpSection.arguments(
+                    argument("item", "item id, such as minecraft:diamond."),
+                    argument("experience", "experience drops and experience removals instead of an item."),
+                    argument("page <n>", "another page of a long list; the arrows at the bottom run it for you.")),
+            HelpSection.examples(
+                    example("/dropscore sources minecraft:rotten_flesh", "who adds or removes rotten flesh"),
+                    example("/dropscore sources experience", "who adds or removes experience")))),
+    /** {@code /dropscore simulate}. */
+    SIMULATE("Rolls the loot table and the dropscore rules many times, without killing or breaking anything, "
+            + "and reports what dropped.", List.of(
+            HelpSection.usage(
+                    "/dropscore simulate entity <entity> [kills] [looting] [by <player | none | <killer>>] [sneaking] "
+                            + "[burning] [only <experience | <filter>>] [drop [no-text]]",
+                    "/dropscore simulate block <block> [breaks] [fortune] [by <player | none | explosion>] [sneaking] "
+                            + "[only <experience | <filter>>] [drop [no-text]]"),
+            HelpSection.arguments(
+                    argument("entity <entity>", "mob to kill, such as minecraft:zombie."),
+                    argument("block <block>", "block to break, with optional states, such as minecraft:wheat[age=7]."),
+                    argument("kills / breaks", "number of runs, 1 to 1000000; 1 when missing."),
+                    argument("looting / fortune", "forced enchantment level, 0 to 255, only after kills / breaks. "
+                            + "Without it, the level of the tool in the actor's main hand."),
+                    argument("by player", "you: a copy with your name, equipment and position (the default for "
+                            + "players). From the console, a blank player."),
+                    argument("by none", "no player: generic damage for mobs, a netherite pickaxe for blocks (the "
+                            + "console's default). No experience."),
+                    argument("by <killer>", "mobs only: a mob of that type kills, so killed_by_player fails and no "
+                            + "experience drops."),
+                    argument("by explosion", "blocks only: a TNT explosion, without tool or experience."),
+                    argument("sneaking", "the actor crouches; needs a player or a killer."),
+                    argument("burning", "mobs only: the mob dies on fire."),
+                    argument("only experience", "shows only the experience."),
+                    argument("only <filter>", "shows only the items matching an id, #tag or NBT; every run is still "
+                            + "rolled in full."),
+                    argument("drop", "also drops what the report shows at your position."),
+                    argument("drop no-text", "drops without any chat output, for datapack functions."),
+                    argument("page <n>", "/dropscore simulate page <n> shows another page of your last report, "
+                            + "without rolling again.")),
+            HelpSection.examples(
+                    example("/dropscore simulate entity minecraft:zombie 1000", "1000 zombie kills by you"),
+                    example("/dropscore simulate entity minecraft:cow 1000 3 only minecraft:beef", "beef with Looting III"),
+                    example("/dropscore simulate block minecraft:diamond_ore 500 3 by none", "diamond ore with Fortune III"),
+                    example("/dropscore simulate entity minecraft:zombie drop no-text", "one silent kill, for functions"))));
+
+    private final String summary;
+    private final List<HelpSection> sections;
+
+    /**
+     * Creates a topic.
+     *
+     * @param summary  One sentence on what the subcommand does. Never null.
+     * @param sections Sections of the page, in order. Never null.
+     */
+    HelpTopic(String summary, List<HelpSection> sections) {
+        this.summary = summary;
+        this.sections = sections;
+    }
+
+    /**
+     * Returns the subcommand name, which is also the topic's argument.
+     *
+     * @return Such as {@code simulate}.
+     */
+    String keyword() {
+        return name().toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * Returns one sentence on what the subcommand does.
+     *
+     * @return The summary.
+     */
+    String summary() {
+        return summary;
+    }
+
+    /**
+     * Returns the sections of the page.
+     *
+     * @return The sections, in order.
+     */
+    List<HelpSection> sections() {
+        return sections;
+    }
+}

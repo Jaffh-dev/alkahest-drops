@@ -1,7 +1,6 @@
 package com.jaffh.alkahestcore.dropscore.server.blockdrops;
 
 import com.jaffh.alkahestcore.dropscore.server.drops.DropTable;
-import com.jaffh.alkahestcore.dropscore.server.drops.RemovalRule;
 import com.jaffh.alkahestcore.dropscore.server.drops.RollContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
@@ -12,7 +11,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.Vec3;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -38,12 +36,7 @@ final class BlockDropApplier {
      * @return A new list with the drops after removals and the added drops.
      */
     static List<ItemStack> apply(DropTable table, List<ItemStack> drops, LootContext context) {
-        List<RemovalRule> activeRemovals = table.collectActiveRemovals(context);
-        List<ItemStack> result = new ArrayList<>(drops);
-        result.removeIf(stack -> table.removesEventDrop(stack.getItem(), activeRemovals));
-
-        result.addAll(table.rollDrops(activeRemovals, context, rollContextOf(context)));
-        return result;
+        return table.applyTo(drops, context, rollContextOf(context));
     }
 
     /**

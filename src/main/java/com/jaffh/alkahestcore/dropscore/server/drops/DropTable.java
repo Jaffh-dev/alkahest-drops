@@ -177,6 +177,23 @@ public record DropTable(
     }
 
     /**
+     * Applies this table to the drops of a loot table: removes the drops removal files name, then rolls and adds
+     * the dropscore item drops.
+     *
+     * @param drops       Drops already there (loot table and earlier modifiers). Never null, not modified.
+     * @param lootContext Loot context, non-null whenever {@link #needsLootContext()} is true.
+     * @param rollContext Enchantment level, scale value and random source of the drop. Never null.
+     * @return A new list with the drops left after removals and the added drops.
+     */
+    public List<ItemStack> applyTo(List<ItemStack> drops, @Nullable LootContext lootContext, RollContext rollContext) {
+        List<RemovalRule> activeRemovals = collectActiveRemovals(lootContext);
+        List<ItemStack> result = new ArrayList<>(drops);
+        result.removeIf(stack -> removesEventDrop(stack.getItem(), activeRemovals));
+        result.addAll(rollDrops(activeRemovals, lootContext, rollContext));
+        return result;
+    }
+
+    /**
      * Tells whether a drop that was already there (vanilla loot table or another mod) must be removed.
      *
      * @param item           Dropped item. Never null.

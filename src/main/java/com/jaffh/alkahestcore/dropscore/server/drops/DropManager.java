@@ -15,13 +15,16 @@ import net.minecraftforge.registries.IForgeRegistryEntry;
 import org.slf4j.Logger;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Datapack reload listener shared by the drop modules. Reads drop and removal files of one folder into an
- * immutable {@link DropRuleSet}, swapped in atomically on every reload, and keeps the problems of the last load
- * for {@code /dropscore validate}.
+ * immutable {@link DropRuleSet}, swapped in atomically on every reload, and keeps a {@link DropLoadReport} of the
+ * last load for the {@code /dropscore} commands.
  *
  * @param <T> Registry entry type of the targets, such as {@code EntityType<?>} or {@code Block}.
  */
@@ -29,11 +32,12 @@ public abstract class DropManager<T extends IForgeRegistryEntry<T>> extends Simp
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 
+    private final String folder;
     private final DropFileFormat format;
     private final TargetMatcher<T> matcher;
     private final String kind;
     private volatile DropRuleSet<T> rules;
-    private volatile List<DropIssue> issues = List.of();
+    private volatile DropLoadReport report = DropLoadReport.EMPTY;
     /**
      * Files waiting for the server config. When a world opens, Forge loads the world's datapacks before its
      * server config, so the first load waits for {@link #onConfigLoading} to read the configured limits.
@@ -51,6 +55,7 @@ public abstract class DropManager<T extends IForgeRegistryEntry<T>> extends Simp
      */
     protected DropManager(String folder, DropFileFormat format, TargetMatcher<T> matcher, String kind) {
         super(GSON, folder);
+        this.folder = folder;
         this.format = format;
         this.matcher = matcher;
         this.kind = kind;
@@ -73,7 +78,34 @@ public abstract class DropManager<T extends IForgeRegistryEntry<T>> extends Simp
      * @return An immutable list, empty when every file was valid.
      */
     public List<DropIssue> issues() {
-        return issues;
+        return report.issues();
+    }
+
+    /**
+     * Returns what the last load read: the loaded files, the skipped files and the problems found.
+     *
+     * @return The report of the last load. Never null.
+     */
+    public DropLoadReport report() {
+        return report;
+    }
+
+    /**
+     * Returns the datapack folder of this module.
+     *
+     * @return The folder under {@code data/<namespace>/}, such as {@code mob_drops}. Never null.
+     */
+    public String folder() {
+        return folder;
+    }
+
+    /**
+     * Returns the word naming the targets of this module.
+     *
+     * @return {@code mob} or {@code block}. Never null.
+     */
+    public String kind() {
+        return kind;
     }
 
     /**
@@ -110,7 +142,7 @@ public abstract class DropManager<T extends IForgeRegistryEntry<T>> extends Simp
         if (!DropscoreConfig.SPEC.isLoaded()) {
             pendingFiles = Map.copyOf(resources);
             rules = DropRuleSet.empty(matcher);
-            issues = List.of();
+            report = DropLoadReport.EMPTY;
             LOGGER.info("[dropscore] Waiting for the server config to load {} drops.", kind);
             return;
         }
@@ -140,13 +172,19 @@ public abstract class DropManager<T extends IForgeRegistryEntry<T>> extends Simp
         DropIssueLog log = new DropIssueLog();
         DropFileParser parser = new DropFileParser(format, limits, log);
         DropRuleSet.Builder<T> builder = new DropRuleSet.Builder<>(matcher);
+        List<ParsedDropFile> loadedFiles = new ArrayList<>();
+        Set<ResourceLocation> skippedFileIds = new HashSet<>();
         int dropFileCount = 0;
         int dropCount = 0;
         int removalFileCount = 0;
 
         for (Map.Entry<ResourceLocation, JsonElement> entry : resources.entrySet()) {
             ParsedDropFile parsed = parser.parse(entry.getKey(), entry.getValue()).orElse(null);
-            if (parsed == null || !addFile(parsed, builder, log)) continue;
+            if (parsed == null || !addFile(parsed, builder, log)) {
+                skippedFileIds.add(entry.getKey());
+                continue;
+            }
+            loadedFiles.add(parsed);
             if (parsed instanceof ParsedDropFile.Drops drops) {
                 dropFileCount++;
                 dropCount += drops.file().entries().size();
@@ -156,7 +194,7 @@ public abstract class DropManager<T extends IForgeRegistryEntry<T>> extends Simp
         }
 
         rules = builder.build();
-        issues = log.issues();
+        report = new DropLoadReport(loadedFiles, skippedFileIds, log.issues());
         LOGGER.info("[dropscore] Loaded {} {} drops from {} drop files and {} removal files ({} errors, {} warnings).",
                 dropCount, kind, dropFileCount, removalFileCount,
                 log.count(DropIssue.Severity.ERROR), log.count(DropIssue.Severity.WARNING));

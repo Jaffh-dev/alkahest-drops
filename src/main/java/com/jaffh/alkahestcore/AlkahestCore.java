@@ -5,6 +5,8 @@ import com.jaffh.alkahestcore.dropscore.common.DropscoreConfig;
 import com.jaffh.alkahestcore.dropscore.common.DropscoreLootModifiers;
 import com.jaffh.alkahestcore.dropscore.server.blockdrops.BlockBreakHandler;
 import com.jaffh.alkahestcore.dropscore.server.blockdrops.BlockDropManager;
+import com.jaffh.alkahestcore.dropscore.server.command.DropscoreCommand;
+import com.jaffh.alkahestcore.dropscore.server.mobdrops.LootingOverride;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.MobDropInjector;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.MobDropManager;
 import com.jaffh.alkahestcore.fluidscore.AlkahestConfig;
@@ -15,6 +17,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -52,6 +55,8 @@ public class AlkahestCore
         modEventBus.addListener(BlockDropManager.INSTANCE::onConfigLoading);
         MinecraftForge.EVENT_BUS.register(new BlockBreakHandler());
         MinecraftForge.EVENT_BUS.addListener(BlockDropManager.INSTANCE::onTagsUpdated);
+        MinecraftForge.EVENT_BUS.addListener(EventPriority.LOWEST, LootingOverride.INSTANCE::onLootingLevel);
+        MinecraftForge.EVENT_BUS.addListener(DropscoreCommand::onRegisterCommands);
 
         // Register the setup method for modloading
         modEventBus.addListener(this::setup);

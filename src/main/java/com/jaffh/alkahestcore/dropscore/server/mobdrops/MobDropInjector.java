@@ -117,7 +117,7 @@ public class MobDropInjector {
      * @param source Damage source that killed the entity. Never null.
      * @return A loot context with the entity, origin, damage source, killer and direct killer.
      */
-    private static LootContext createLootContext(ServerLevel level, LivingEntity entity, DamageSource source) {
+    static LootContext createLootContext(ServerLevel level, LivingEntity entity, DamageSource source) {
         LootContext.Builder builder = new LootContext.Builder(level)
                 .withRandom(level.getRandom())
                 .withParameter(LootContextParams.THIS_ENTITY, entity)
