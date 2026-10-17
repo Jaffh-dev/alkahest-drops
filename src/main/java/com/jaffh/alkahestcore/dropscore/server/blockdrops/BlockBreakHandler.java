@@ -18,6 +18,7 @@ import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 /**
@@ -108,13 +109,27 @@ public class BlockBreakHandler {
      * @return A loot context with the block state, block entity, origin, tool and player.
      */
     private static LootContext createLootContext(ServerLevel level, BlockPos pos, BlockState state, Player player, ItemStack tool) {
+        return lootContextBuilder(level, pos, state, player, tool).create(LootContextParamSets.BLOCK);
+    }
+
+    /**
+     * Starts the loot context of a block break, shared with the simulation, which may add an explosion radius.
+     *
+     * @param level  Level of the block. Never null.
+     * @param pos    Position of the block. Never null.
+     * @param state  State of the block. Never null.
+     * @param player Player breaking the block, or null for a break without a player (simulations only).
+     * @param tool   Tool breaking the block, {@link ItemStack#EMPTY} for none. Never null.
+     * @return A builder with the block state, block entity, origin, tool and player, to create with
+     *         {@link LootContextParamSets#BLOCK}.
+     */
+    static LootContext.Builder lootContextBuilder(ServerLevel level, BlockPos pos, BlockState state, @Nullable Player player, ItemStack tool) {
         return new LootContext.Builder(level)
                 .withRandom(level.getRandom())
                 .withParameter(LootContextParams.BLOCK_STATE, state)
                 .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(pos))
                 .withParameter(LootContextParams.TOOL, tool)
-                .withParameter(LootContextParams.THIS_ENTITY, player)
-                .withOptionalParameter(LootContextParams.BLOCK_ENTITY, level.getBlockEntity(pos))
-                .create(LootContextParamSets.BLOCK);
+                .withOptionalParameter(LootContextParams.THIS_ENTITY, player)
+                .withOptionalParameter(LootContextParams.BLOCK_ENTITY, level.getBlockEntity(pos));
     }
 }

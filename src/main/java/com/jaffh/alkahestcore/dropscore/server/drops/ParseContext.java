@@ -68,7 +68,8 @@ public record ParseContext(ResourceLocation fileId, String path, DropIssueLog lo
     }
 
     /**
-     * Creates a warning-level skip for an id that names nothing registered, usually an optional mod that is not installed.
+     * Creates a warning-level skip caused only by ids that name nothing registered, usually an optional mod that is
+     * not installed.
      *
      * @param message English description of the problem. Never null.
      * @return The exception to throw.

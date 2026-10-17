@@ -121,6 +121,16 @@ final class DropTestKit {
     }
 
     /**
+     * Returns the center of the arena block where mobs spawn and blocks are broken, in world coordinates.
+     *
+     * @param helper Helper of the running test. Never null.
+     * @return The center of the block.
+     */
+    static Vec3 arenaCenter(GameTestHelper helper) {
+        return Vec3.atCenterOf(helper.absolutePos(CENTER));
+    }
+
+    /**
      * Places a block at the arena center and blows it up with an explosion too weak to break the stone floor.
      *
      * @param helper Helper of the running test. Never null.

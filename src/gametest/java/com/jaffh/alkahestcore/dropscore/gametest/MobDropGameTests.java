@@ -330,6 +330,10 @@ public class MobDropGameTests {
         DropTestKit.assertIssue(issues, "block_key_in_mob_file", "block", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "on_fortune_in_mob_file", "drops[0].on_fortune", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "hardness_on_mob", "drops[0].drop_behavior.type", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "hardness_on_mob", "", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "no_entries", "", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "unknown_items_only", "removals[0]", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "unknown_items_only", "", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "invalid_function", "drops[0].functions", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "function_warnings", "drops[0].functions", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "function_warnings", "drops[1].functions[0]", DropIssue.Severity.WARNING);

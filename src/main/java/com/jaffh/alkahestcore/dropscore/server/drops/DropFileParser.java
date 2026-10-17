@@ -11,7 +11,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import org.slf4j.Logger;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -51,7 +50,7 @@ public final class DropFileParser {
     public Optional<ParsedDropFile> parse(ResourceLocation fileId, JsonElement json) {
         ParseContext ctx = ParseContext.root(fileId, log);
         try {
-            return Optional.ofNullable(parseFile(json, ctx));
+            return Optional.of(parseFile(json, ctx));
         } catch (DropDataException e) {
             log.report(e.toIssue("file skipped"));
             return Optional.empty();
@@ -68,10 +67,9 @@ public final class DropFileParser {
      *
      * @param json Root JSON value of the file. Never null.
      * @param ctx  Context of the file root. Never null.
-     * @return The parsed file, or null when it was skipped with a warning.
-     * @throws DropDataException If a file-level key is invalid.
+     * @return The parsed file.
+     * @throws DropDataException If a file-level key is invalid or no entry of the file is valid.
      */
-    @Nullable
     private ParsedDropFile parseFile(JsonElement json, ParseContext ctx) throws DropDataException {
         if (!json.isJsonObject()) throw ctx.error("file must be a JSON object");
         JsonObject upgraded = DropFileUpgrader.upgrade(json.getAsJsonObject(), ctx);
@@ -82,10 +80,7 @@ public final class DropFileParser {
         if (isDropFile && isRemovalFile) {
             throw ctx.error("a file cannot have both 'drops' and 'removals'; split it into two files");
         }
-        if (!isDropFile && !isRemovalFile) {
-            ctx.warn("no 'drops' or 'removals', file skipped");
-            return null;
-        }
+        if (!isDropFile && !isRemovalFile) throw ctx.error("no 'drops' or 'removals'");
 
         DropFileFormat other = format.other();
         if (format.targetOf(file) == null && other.targetOf(file) != null) {
@@ -106,22 +101,23 @@ public final class DropFileParser {
      * @param target           Raw target. Never null.
      * @param globalConditions Parsed global conditions. Never null.
      * @param ctx              Context of the file root. Never null.
-     * @return The drop file, or null when no drop is valid (reported as a warning).
+     * @return The drop file.
+     * @throws DropDataException If no drop is valid.
      */
-    @Nullable
-    private ParsedDropFile parseDropFile(DropFileJson file, String target, List<LootItemCondition> globalConditions, ParseContext ctx) {
+    private ParsedDropFile parseDropFile(DropFileJson file, String target, List<LootItemCondition> globalConditions,
+                                         ParseContext ctx) throws DropDataException {
         List<DropEntry> entries = new ArrayList<>(file.drops.size());
+        boolean isEverySkipAnUnknownId = !file.drops.isEmpty();
         for (int i = 0; i < file.drops.size(); i++) {
             try {
                 entries.add(entryParser.parse(file.drops.get(i), ctx.at("drops", i)));
             } catch (DropDataException e) {
-                log.report(e.toIssue("drop skipped"));
+                DropIssue issue = e.toIssue("drop skipped");
+                log.report(issue);
+                if (issue.severity() == DropIssue.Severity.ERROR) isEverySkipAnUnknownId = false;
             }
         }
-        if (entries.isEmpty()) {
-            ctx.warn("no valid drops, file skipped");
-            return null;
-        }
+        if (entries.isEmpty()) throw noValidEntries("no valid drops", isEverySkipAnUnknownId, ctx);
         return new ParsedDropFile.Drops(target, new DropFile(ctx.fileId(), globalConditions, entries));
     }
 
@@ -132,24 +128,38 @@ public final class DropFileParser {
      * @param target           Raw target. Never null.
      * @param globalConditions Parsed global conditions. Never null.
      * @param ctx              Context of the file root. Never null.
-     * @return The removal file, or null when it removes nothing (reported as a warning).
+     * @return The removal file.
+     * @throws DropDataException If no entry is valid.
      */
-    @Nullable
-    private ParsedDropFile parseRemovalFile(DropFileJson file, String target, List<LootItemCondition> globalConditions, ParseContext ctx) {
+    private ParsedDropFile parseRemovalFile(DropFileJson file, String target, List<LootItemCondition> globalConditions,
+                                            ParseContext ctx) throws DropDataException {
         JsonArray removals = file.removals;
         List<RemovalEntry> entries = new ArrayList<>(removals.size());
+        boolean isEverySkipAnUnknownId = !removals.isEmpty();
         for (int i = 0; i < removals.size(); i++) {
             try {
                 entries.add(parseRemovalEntry(removals.get(i), ctx.at("removals", i)));
             } catch (DropDataException e) {
-                log.report(e.toIssue("entry skipped"));
+                DropIssue issue = e.toIssue("entry skipped");
+                log.report(issue);
+                if (issue.severity() == DropIssue.Severity.ERROR) isEverySkipAnUnknownId = false;
             }
         }
-        if (entries.isEmpty()) {
-            ctx.warn("no valid removals, file skipped");
-            return null;
-        }
+        if (entries.isEmpty()) throw noValidEntries("no valid removals", isEverySkipAnUnknownId, ctx);
         return new ParsedDropFile.Removals(target, new RemovalRule(ctx.fileId(), globalConditions, entries));
+    }
+
+    /**
+     * Creates the skip of a file left without entries. It is a warning only when every entry named an item that
+     * is not installed (an optional mod), and an error otherwise, since then the file itself is wrong.
+     *
+     * @param message                English description of the problem. Never null.
+     * @param isEverySkipAnUnknownId Whether every skipped entry was skipped only for an unknown id.
+     * @param ctx                    Context of the file root. Never null.
+     * @return The exception to throw.
+     */
+    private static DropDataException noValidEntries(String message, boolean isEverySkipAnUnknownId, ParseContext ctx) {
+        return isEverySkipAnUnknownId ? ctx.unknownId(message) : ctx.error(message);
     }
 
     /**
