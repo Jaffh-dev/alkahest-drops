@@ -13,9 +13,6 @@ import com.jaffh.alkahestcore.dropscore.server.mobdrops.HitTracker;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.LootingOverride;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.MobDropInjector;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.MobDropManager;
-import com.jaffh.alkahestcore.fluidscore.AlkahestConfig;
-import com.jaffh.alkahestcore.fluidscore.common.FluidManager;
-import com.jaffh.alkahestcore.fluidscore.common.jsonfluids.CustomFluidJsonLoader;
 import com.mojang.logging.LogUtils;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.Block;
@@ -27,7 +24,6 @@ import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
 import net.minecraftforge.fml.event.lifecycle.InterModProcessEvent;
@@ -43,13 +39,6 @@ public class AlkahestCore
     public AlkahestCore()
     {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-
-        AlkahestConfig.loadEarly();
-        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, AlkahestConfig.SPEC);
-
-        FluidManager FLUID_MANAGER = new FluidManager(ID, modEventBus);
-
-        CustomFluidJsonLoader.init(FLUID_MANAGER);
 
         DropscoreConfig.register(ModLoadingContext.get());
         modEventBus.addListener(MobDropManager.INSTANCE::onConfigLoading);
