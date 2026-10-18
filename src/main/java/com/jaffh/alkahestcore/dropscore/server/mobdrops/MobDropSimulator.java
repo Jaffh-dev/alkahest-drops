@@ -4,10 +4,10 @@ import com.jaffh.alkahestcore.dropscore.server.drops.DropTable;
 import com.jaffh.alkahestcore.dropscore.server.drops.IDropSimulator;
 import com.jaffh.alkahestcore.dropscore.server.drops.RollContext;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulatedDrop;
-import com.jaffh.alkahestcore.dropscore.server.drops.TrackedDropRecorder;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulationActor;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulationFlag;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulationSetup;
+import com.jaffh.alkahestcore.dropscore.server.drops.TrackedDropRecorder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
@@ -20,11 +20,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraftforge.common.ForgeHooks;
-import net.minecraftforge.fml.util.ObfuscationReflectionHelper;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nullable;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -33,9 +32,6 @@ import java.util.List;
  * nobody. Equipment drops and drops other mods add in {@code LivingDropsEvent} are not simulated.
  */
 public final class MobDropSimulator implements IDropSimulator {
-    /** {@code LivingEntity.getExperienceReward(Player)}, protected in vanilla. */
-    private static final Method GET_EXPERIENCE_REWARD =
-            ObfuscationReflectionHelper.findMethod(LivingEntity.class, "m_6552_", Player.class);
     /** Fire ticks of a burning simulated mob; any positive value makes {@code is_on_fire} pass. */
     private static final int BURNING_TICKS = 100;
 
@@ -59,8 +55,8 @@ public final class MobDropSimulator implements IDropSimulator {
         this.level = setup.level();
         this.mob = mob;
         this.killer = killer;
-        this.source = damageSourceOf(killer);
-        this.lootTable = level.getServer().getLootTables().get(mob.getLootTable());
+        this.source = damageSourceOf(level, killer);
+        this.lootTable = level.getServer().getLootData().getLootTable(mob.getLootTable());
         this.table = MobDropManager.getTable(mob.getType());
         this.setup = setup;
     }
@@ -117,7 +113,7 @@ public final class MobDropSimulator implements IDropSimulator {
     private static LivingEntity createLiving(EntityType<?> type, SimulationSetup setup, String problem) {
         Entity entity = type.create(setup.level());
         if (!(entity instanceof LivingEntity living)) {
-            throw new IllegalArgumentException(type.getRegistryName() + " is not a living entity, it " + problem);
+            throw new IllegalArgumentException(ForgeRegistries.ENTITY_TYPES.getKey(type) + " is not a living entity, it " + problem);
         }
         living.moveTo(setup.origin().x, setup.origin().y, setup.origin().z, 0.0F, 0.0F);
         return living;
@@ -126,13 +122,14 @@ public final class MobDropSimulator implements IDropSimulator {
     /**
      * Returns the damage source of every kill.
      *
+     * @param level  Level of the simulation, which holds the damage types. Never null.
      * @param killer Killer, or null for nobody.
      * @return A player attack, a mob attack, or generic damage without a killer.
      */
-    private static DamageSource damageSourceOf(@Nullable LivingEntity killer) {
-        if (killer instanceof Player player) return DamageSource.playerAttack(player);
-        if (killer != null) return DamageSource.mobAttack(killer);
-        return DamageSource.GENERIC;
+    private static DamageSource damageSourceOf(ServerLevel level, @Nullable LivingEntity killer) {
+        if (killer instanceof Player player) return level.damageSources().playerAttack(player);
+        if (killer != null) return level.damageSources().mobAttack(killer);
+        return level.damageSources().generic();
     }
 
     /**
@@ -164,7 +161,8 @@ public final class MobDropSimulator implements IDropSimulator {
      * @return The dropped stacks.
      */
     private List<ItemStack> rollItems(LootContext context, RollContext rollContext) {
-        List<ItemStack> items = lootTable.getRandomItems(context);
+        List<ItemStack> items = new ArrayList<>();
+        lootTable.getRandomItems(context, items::add);
         return table.isEmpty() ? items : table.applyTo(items, context, rollContext);
     }
 
@@ -176,24 +174,9 @@ public final class MobDropSimulator implements IDropSimulator {
      * @return The experience, 0 when the killer is not a player.
      */
     private int rollExperience(LootContext context, RollContext rollContext) {
-        if (!(killer instanceof Player player)) return 0;
-        int experience = vanillaExperience(player);
+        if (!(killer instanceof Player)) return 0;
+        int experience = mob.getExperienceReward();
         return table.affectsExperience() ? table.applyExperience(experience, context, rollContext) : experience;
-    }
-
-    /**
-     * Returns the experience vanilla gives for the mob.
-     *
-     * @param player Killing player. Never null.
-     * @return The vanilla experience reward.
-     * @throws IllegalStateException If the reflective call fails.
-     */
-    private int vanillaExperience(Player player) {
-        try {
-            return (int) GET_EXPERIENCE_REWARD.invoke(mob, player);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new IllegalStateException("cannot read the experience reward of " + mob.getType().getRegistryName(), e);
-        }
     }
 
     /**

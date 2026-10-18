@@ -6,7 +6,7 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -31,7 +31,7 @@ final class CommandText {
      * @return A new mutable component.
      */
     static MutableComponent text(String text) {
-        return new TextComponent(text);
+        return Component.literal(text);
     }
 
     /**
@@ -42,7 +42,7 @@ final class CommandText {
      * @return A new mutable component.
      */
     static MutableComponent text(String text, ChatFormatting color) {
-        return new TextComponent(text).withStyle(color);
+        return Component.literal(text).withStyle(color);
     }
 
     /**
@@ -53,7 +53,7 @@ final class CommandText {
      * @return A new mutable component.
      */
     static MutableComponent bold(String text, ChatFormatting color) {
-        return new TextComponent(text).withStyle(color, ChatFormatting.BOLD);
+        return Component.literal(text).withStyle(color, ChatFormatting.BOLD);
     }
 
     /**

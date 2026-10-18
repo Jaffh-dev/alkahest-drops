@@ -1,8 +1,9 @@
 package com.jaffh.alkahestcore.dropscore.common.drops;
 
+import net.minecraft.util.RandomSource;
+
 import java.util.Locale;
 import java.util.Optional;
-import java.util.Random;
 
 /**
  * Defines how the final count of a drop is rolled inside its count range.
@@ -11,7 +12,7 @@ public enum DropBehaviorType {
     /** Picks a count uniformly between min and max. */
     UNIFORM(false, false) {
         @Override
-        public int rollCount(DropCount range, DropBehavior behavior, float scaleValue, Random random) {
+        public int rollCount(DropCount range, DropBehavior behavior, float scaleValue, RandomSource random) {
             if (range.min() >= range.max()) return range.min();
             return range.min() + random.nextInt(range.max() - range.min() + 1);
         }
@@ -19,7 +20,7 @@ public enum DropBehaviorType {
     /** Starts at min and makes every roll independently, adding the increment on each success. */
     FIXED_ROLLS(true, false) {
         @Override
-        public int rollCount(DropCount range, DropBehavior behavior, float scaleValue, Random random) {
+        public int rollCount(DropCount range, DropBehavior behavior, float scaleValue, RandomSource random) {
             int total = range.min();
             for (int i = 0; i < behavior.rolls() && total < range.max(); i++) {
                 if (random.nextDouble() < behavior.chancePerRoll()) {
@@ -32,7 +33,7 @@ public enum DropBehaviorType {
     /** Starts at min and keeps rolling while rolls succeed, stopping at the first failure. */
     CHAINED_ROLLS(true, false) {
         @Override
-        public int rollCount(DropCount range, DropBehavior behavior, float scaleValue, Random random) {
+        public int rollCount(DropCount range, DropBehavior behavior, float scaleValue, RandomSource random) {
             int total = range.min();
             for (int i = 0; i < behavior.rolls() && total < range.max(); i++) {
                 if (random.nextDouble() >= behavior.chancePerRoll()) break;
@@ -44,14 +45,14 @@ public enum DropBehaviorType {
     /** Scales the count with the mob's max health, clamped to the count range. Mobs only. */
     MAX_HEALTH(false, true) {
         @Override
-        public int rollCount(DropCount range, DropBehavior behavior, float scaleValue, Random random) {
+        public int rollCount(DropCount range, DropBehavior behavior, float scaleValue, RandomSource random) {
             return behavior.scaleFormula().countFor(scaleValue, range);
         }
     },
     /** Scales the count with the block's hardness, clamped to the count range. Blocks only. */
     HARDNESS(false, true) {
         @Override
-        public int rollCount(DropCount range, DropBehavior behavior, float scaleValue, Random random) {
+        public int rollCount(DropCount range, DropBehavior behavior, float scaleValue, RandomSource random) {
             return behavior.scaleFormula().countFor(scaleValue, range);
         }
     };
@@ -97,7 +98,7 @@ public enum DropBehaviorType {
      * @param random     Random source of the level.
      * @return The rolled count, between {@code range.min()} and {@code range.max()} when min ≤ max.
      */
-    public abstract int rollCount(DropCount range, DropBehavior behavior, float scaleValue, Random random);
+    public abstract int rollCount(DropCount range, DropBehavior behavior, float scaleValue, RandomSource random);
 
     /**
      * Finds the behavior type named by a JSON id such as {@code "fixed_rolls"}.

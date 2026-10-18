@@ -111,7 +111,8 @@ final class ResetCommand {
             if (mode.resetsPity()) pityCounters += progress.resetMisses(keys);
         }
         String who = targets.size() == 1 ? targets.iterator().next().getGameProfile().getName() : targets.size() + " players";
-        context.getSource().sendSuccess(message(selection.label(), who, firstKills, firstBreaks, pityCounters), true);
+        MutableComponent message = message(selection.label(), who, firstKills, firstBreaks, pityCounters);
+        context.getSource().sendSuccess(() -> message, true);
         return firstKills + firstBreaks + pityCounters;
     }
 

@@ -16,7 +16,6 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraftforge.registries.IForgeRegistryEntry;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -113,8 +112,8 @@ final class DropsCommand {
      * @param removeLines Receives the removal lines. Never null.
      * @param <T>         Registry entry type of the module.
      */
-    private static <T extends IForgeRegistryEntry<T>> void collect(DropManager<T> manager, T value,
-                                                                   List<Component> addLines, List<Component> removeLines) {
+    private static <T> void collect(DropManager<T> manager, T value,
+                                    List<Component> addLines, List<Component> removeLines) {
         for (ParsedDropFile file : manager.report().files()) {
             if (!manager.doesFileApplyTo(file.fileId(), value)) continue;
             if (file instanceof ParsedDropFile.Drops drops) {

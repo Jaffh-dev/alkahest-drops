@@ -26,7 +26,7 @@ public final class MobDropManager extends DropManager<EntityType<?>> {
      */
     private MobDropManager() {
         super("mob_drops", DropFileFormat.MOB,
-                new TargetMatcher<>(ForgeRegistries.ENTITIES, EntityType::is, type -> type != EntityType.PLAYER),
+                new TargetMatcher<>(ForgeRegistries.ENTITY_TYPES, EntityType::is, type -> type != EntityType.PLAYER),
                 "mob");
     }
 

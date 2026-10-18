@@ -13,6 +13,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraftforge.common.ForgeHooks;
@@ -49,8 +50,8 @@ public class MobDropInjector {
      */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onLivingDeath(LivingDeathEvent event) {
-        LivingEntity entity = event.getEntityLiving();
-        if (!(entity.level instanceof ServerLevel)) return;
+        LivingEntity entity = event.getEntity();
+        if (!(entity.level() instanceof ServerLevel)) return;
         if (!MobDropManager.getTable(entity.getType()).affectsExperience()) return;
         deathSources.put(entity, event.getSource());
     }
@@ -62,8 +63,8 @@ public class MobDropInjector {
      */
     @SubscribeEvent(priority = EventPriority.LOW)
     public void onLivingDrops(LivingDropsEvent event) {
-        LivingEntity entity = event.getEntityLiving();
-        if (!(entity.level instanceof ServerLevel level)) return;
+        LivingEntity entity = event.getEntity();
+        if (!(entity.level() instanceof ServerLevel level)) return;
         deathSources.remove(entity);
 
         DropTable table = MobDropManager.getTable(entity.getType());
@@ -80,7 +81,7 @@ public class MobDropInjector {
                 : List.of();
         for (RolledDrop drop : table.rollDrops(activeRemovals, context, rollContext, attackerRolls)) {
             ItemEntity itemEntity = new ItemEntity(level, entity.getX(), entity.getY(), entity.getZ(), drop.stack());
-            itemEntity.setOwner(drop.owner());
+            itemEntity.setTarget(drop.owner());
             event.getDrops().add(itemEntity);
         }
     }
@@ -126,8 +127,8 @@ public class MobDropInjector {
      */
     @SubscribeEvent(priority = EventPriority.LOW)
     public void onExperienceDrop(LivingExperienceDropEvent event) {
-        LivingEntity entity = event.getEntityLiving();
-        if (!(entity.level instanceof ServerLevel level)) return;
+        LivingEntity entity = event.getEntity();
+        if (!(entity.level() instanceof ServerLevel level)) return;
 
         DropTable table = MobDropManager.getTable(entity.getType());
         if (!table.affectsExperience()) return;
@@ -143,11 +144,11 @@ public class MobDropInjector {
      * Returns the damage source that killed an entity, since the experience event does not carry it.
      *
      * @param entity Dying entity. Never null.
-     * @return The source kept on death, or {@link DamageSource#GENERIC} when the death event was not seen.
+     * @return The source kept on death, or the generic damage source when the death event was not seen.
      */
     private DamageSource deathSourceOf(LivingEntity entity) {
         DamageSource source = deathSources.get(entity);
-        return source != null ? source : DamageSource.GENERIC;
+        return source != null ? source : entity.damageSources().generic();
     }
 
     /**
@@ -159,8 +160,7 @@ public class MobDropInjector {
      * @return A loot context with the entity, origin, damage source, killer and direct killer.
      */
     static LootContext createLootContext(ServerLevel level, LivingEntity entity, DamageSource source) {
-        LootContext.Builder builder = new LootContext.Builder(level)
-                .withRandom(level.getRandom())
+        LootParams.Builder builder = new LootParams.Builder(level)
                 .withParameter(LootContextParams.THIS_ENTITY, entity)
                 .withParameter(LootContextParams.ORIGIN, entity.position())
                 .withParameter(LootContextParams.DAMAGE_SOURCE, source)
@@ -171,6 +171,6 @@ public class MobDropInjector {
             builder.withParameter(LootContextParams.LAST_DAMAGE_PLAYER, player);
         }
 
-        return builder.create(LootContextParamSets.ENTITY);
+        return new LootContext.Builder(builder.create(LootContextParamSets.ENTITY)).create(null);
     }
 }

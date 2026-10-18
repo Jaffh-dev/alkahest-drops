@@ -12,7 +12,6 @@ import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraftforge.event.TagsUpdatedEvent;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
-import net.minecraftforge.registries.IForgeRegistryEntry;
 import org.slf4j.Logger;
 
 import javax.annotation.Nullable;
@@ -30,7 +29,7 @@ import java.util.Set;
  *
  * @param <T> Registry entry type of the targets, such as {@code EntityType<?>} or {@code Block}.
  */
-public abstract class DropManager<T extends IForgeRegistryEntry<T>> extends SimpleJsonResourceReloadListener {
+public abstract class DropManager<T> extends SimpleJsonResourceReloadListener {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 

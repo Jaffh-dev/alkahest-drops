@@ -5,7 +5,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.TagParser;
 import net.minecraft.resources.ResourceLocation;
@@ -128,7 +128,7 @@ public final class DropValues {
     public static ItemTarget parseItemTarget(String raw, ParseContext ctx) throws DropDataException {
         if (raw.equals("*")) return ItemTarget.ANY;
         if (raw.startsWith("#")) {
-            return new ItemTarget.Tagged(TagKey.create(Registry.ITEM_REGISTRY, parseId(raw.substring(1), ctx)));
+            return new ItemTarget.Tagged(TagKey.create(Registries.ITEM, parseId(raw.substring(1), ctx)));
         }
         return new ItemTarget.Exact(resolveItem(raw, ctx));
     }

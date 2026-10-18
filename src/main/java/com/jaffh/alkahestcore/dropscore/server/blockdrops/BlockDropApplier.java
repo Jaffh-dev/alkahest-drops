@@ -65,6 +65,6 @@ final class BlockDropApplier {
         BlockState state = context.getParamOrNull(LootContextParams.BLOCK_STATE);
         Vec3 origin = context.getParamOrNull(LootContextParams.ORIGIN);
         if (state == null || origin == null) return 0.0F;
-        return state.getDestroySpeed(context.getLevel(), new BlockPos(origin));
+        return state.getDestroySpeed(context.getLevel(), BlockPos.containing(origin));
     }
 }

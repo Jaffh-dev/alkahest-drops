@@ -47,9 +47,9 @@ public final class DropscoreCommand {
                 .requires(source -> source.hasPermission(PERMISSION_LEVEL))
                 .then(ValidateCommand.build())
                 .then(FilesCommand.build())
-                .then(SourcesCommand.build())
+                .then(SourcesCommand.build(event.getBuildContext()))
                 .then(DropsCommand.build())
-                .then(SimulateCommand.build())
+                .then(SimulateCommand.build(event.getBuildContext()))
                 .then(ResetCommand.build())
                 .then(HelpCommand.build()));
     }

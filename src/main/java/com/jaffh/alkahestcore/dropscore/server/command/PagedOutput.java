@@ -89,10 +89,12 @@ final class PagedOutput {
         int start = pageStarts.get(shownPage - 1);
         int end = shownPage < pageCount ? pageStarts.get(shownPage) : lines.size();
 
-        source.sendSuccess(titleBar(title), false);
-        for (Component line : intro) source.sendSuccess(line, false);
-        for (Component line : lines.subList(start, end)) source.sendSuccess(line, false);
-        source.sendSuccess(pageBar(shownPage, pageCount, command), false);
+        Component header = titleBar(title);
+        source.sendSuccess(() -> header, false);
+        for (Component line : intro) source.sendSuccess(() -> line, false);
+        for (Component line : lines.subList(start, end)) source.sendSuccess(() -> line, false);
+        Component footer = pageBar(shownPage, pageCount, command);
+        source.sendSuccess(() -> footer, false);
     }
 
     /**

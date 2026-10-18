@@ -10,7 +10,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -20,11 +19,12 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.Explosion;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.util.FakePlayer;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.List;
 import java.util.UUID;
@@ -92,7 +92,7 @@ final class DropTestKit {
      * @param player Attacking player. Never null.
      */
     static void killByPlayer(LivingEntity mob, Player player) {
-        mob.hurt(DamageSource.playerAttack(player), LETHAL_DAMAGE);
+        mob.hurt(mob.damageSources().playerAttack(player), LETHAL_DAMAGE);
     }
 
     /**
@@ -101,7 +101,7 @@ final class DropTestKit {
      * @param mob Mob to kill. Never null.
      */
     static void killWithoutPlayer(LivingEntity mob) {
-        mob.hurt(DamageSource.GENERIC, LETHAL_DAMAGE);
+        mob.hurt(mob.damageSources().generic(), LETHAL_DAMAGE);
     }
 
     /**
@@ -175,7 +175,7 @@ final class DropTestKit {
     static void explodeBlock(GameTestHelper helper, Block block) {
         helper.setBlock(CENTER, block);
         Vec3 center = Vec3.atCenterOf(helper.absolutePos(CENTER));
-        helper.getLevel().explode(null, center.x, center.y, center.z, SMALL_EXPLOSION_POWER, Explosion.BlockInteraction.BREAK);
+        helper.getLevel().explode(null, center.x, center.y, center.z, SMALL_EXPLOSION_POWER, Level.ExplosionInteraction.BLOCK);
     }
 
     /**
@@ -274,7 +274,7 @@ final class DropTestKit {
     static void assertItemCount(GameTestHelper helper, Item item, int expected) {
         int actual = countItems(helper, item);
         if (actual != expected) {
-            throw new GameTestAssertException("expected " + expected + " " + item.getRegistryName() + ", got " + actual);
+            throw new GameTestAssertException("expected " + expected + " " + ForgeRegistries.ITEMS.getKey(item) + ", got " + actual);
         }
     }
 

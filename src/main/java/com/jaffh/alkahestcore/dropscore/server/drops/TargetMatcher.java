@@ -3,7 +3,6 @@ package com.jaffh.alkahestcore.dropscore.server.drops;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.IForgeRegistryEntry;
 
 import java.util.List;
 import java.util.function.BiPredicate;
@@ -16,7 +15,7 @@ import java.util.function.Predicate;
  *
  * @param <T> Registry entry type, such as {@code EntityType<?>} or {@code Block}.
  */
-public final class TargetMatcher<T extends IForgeRegistryEntry<T>> {
+public final class TargetMatcher<T> {
     private static final String ANY = "*";
     private static final String TAG_PREFIX = "#";
     private static final String NAMESPACE_SUFFIX = ":*";
@@ -127,7 +126,7 @@ public final class TargetMatcher<T extends IForgeRegistryEntry<T>> {
      * @return The namespace, such as {@code minecraft}.
      */
     public String namespaceOf(T value) {
-        return value.getRegistryName().getNamespace();
+        return registry.getKey(value).getNamespace();
     }
 
     /**

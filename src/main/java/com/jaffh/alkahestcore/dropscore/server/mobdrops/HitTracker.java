@@ -36,8 +36,8 @@ public class HitTracker {
      */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onLivingHurt(LivingHurtEvent event) {
-        LivingEntity entity = event.getEntityLiving();
-        if (!(entity.level instanceof ServerLevel) || event.getAmount() <= 0) return;
+        LivingEntity entity = event.getEntity();
+        if (!(entity.level() instanceof ServerLevel) || event.getAmount() <= 0) return;
         if (!(event.getSource().getEntity() instanceof Player player)) return;
         if (!MobDropManager.getTable(entity.getType()).hasPerPlayerDrops()) return;
         record(entity, player);

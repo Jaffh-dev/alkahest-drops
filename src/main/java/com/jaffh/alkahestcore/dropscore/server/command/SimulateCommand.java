@@ -14,21 +14,21 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.context.ParsedCommandNode;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.ChatFormatting;
+import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.commands.arguments.EntitySummonArgument;
+import net.minecraft.commands.arguments.ResourceArgument;
 import net.minecraft.commands.arguments.blocks.BlockStateArgument;
 import net.minecraft.commands.arguments.item.ItemPredicateArgument;
 import net.minecraft.commands.synchronization.SuggestionProviders;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 /**
@@ -79,33 +79,47 @@ final class SimulateCommand {
     /**
      * Builds the {@code simulate} node.
      *
+     * @param buildContext Registry access of the command arguments. Never null.
      * @return The node.
      */
-    static LiteralArgumentBuilder<CommandSourceStack> build() {
+    static LiteralArgumentBuilder<CommandSourceStack> build(CommandBuildContext buildContext) {
         return PagedOutput.withPages(Commands.literal("simulate"), (context, page) -> showPage(context.getSource(), page))
                 .then(Commands.literal("entity")
-                        .then(continueFrom(Commands.argument("entity", EntitySummonArgument.id())
-                                .suggests(SuggestionProviders.SUMMONABLE_ENTITIES), Kind.ENTITY, 0)))
+                        .then(continueFrom(entityArgument("entity", buildContext), Kind.ENTITY, 0, buildContext)))
                 .then(Commands.literal("block")
-                        .then(continueFrom(Commands.argument("block", BlockStateArgument.block()), Kind.BLOCK, 0)));
+                        .then(continueFrom(Commands.argument("block", BlockStateArgument.block(buildContext)), Kind.BLOCK, 0, buildContext)));
+    }
+
+    /**
+     * Creates an argument node of a summonable entity type, suggesting the summonable types.
+     *
+     * @param name         Name of the argument. Never null.
+     * @param buildContext Registry access of the command arguments. Never null.
+     * @return The node.
+     */
+    private static ArgumentBuilder<CommandSourceStack, ?> entityArgument(String name, CommandBuildContext buildContext) {
+        return Commands.argument(name, ResourceArgument.resource(buildContext, Registries.ENTITY_TYPE))
+                .suggests(SuggestionProviders.SUMMONABLE_ENTITIES);
     }
 
     /**
      * Makes a node run the simulation and lets every later stage follow it, so each stage is optional while the
      * order stays fixed. A stage that needs the previous one only follows the node ending that stage.
      *
-     * @param node       Node ending a stage, or the target node. Never null.
-     * @param kind       Mob or block simulation. Never null.
-     * @param firstStage Index of the first stage that may follow, in {@link Kind#stages}.
+     * @param node         Node ending a stage, or the target node. Never null.
+     * @param kind         Mob or block simulation. Never null.
+     * @param firstStage   Index of the first stage that may follow, in {@link Kind#stages}.
+     * @param buildContext Registry access of the command arguments. Never null.
      * @return The node.
      */
-    private static ArgumentBuilder<CommandSourceStack, ?> continueFrom(ArgumentBuilder<CommandSourceStack, ?> node, Kind kind, int firstStage) {
+    private static ArgumentBuilder<CommandSourceStack, ?> continueFrom(ArgumentBuilder<CommandSourceStack, ?> node, Kind kind,
+                                                                       int firstStage, CommandBuildContext buildContext) {
         node.executes(context -> simulate(context, kind));
         for (int i = firstStage; i < kind.stages.size(); i++) {
             Stage stage = kind.stages.get(i);
             if (stage.needsPreviousStage && i != firstStage) continue;
             int nextStage = i + 1;
-            node.then(stage.create(kind, leaf -> continueFrom(leaf, kind, nextStage)));
+            node.then(stage.create(kind, buildContext, leaf -> continueFrom(leaf, kind, nextStage, buildContext)));
         }
         return node;
     }
@@ -129,7 +143,7 @@ final class SimulateCommand {
         try {
             simulator = kind.factory.create(context, setup);
         } catch (IllegalArgumentException e) {
-            source.sendFailure(new TextComponent(e.getMessage()));
+            source.sendFailure(Component.literal(e.getMessage()));
             return 0;
         }
 
@@ -158,7 +172,7 @@ final class SimulateCommand {
     private static int showPage(CommandSourceStack source, int page) {
         Report report = LAST_REPORTS.get(source.getTextName());
         if (report == null) {
-            source.sendFailure(new TextComponent("No simulation to show: run /dropscore simulate entity|block first"));
+            source.sendFailure(Component.literal("No simulation to show: run /dropscore simulate entity|block first"));
             return 0;
         }
         PagedOutput.send(source, TITLE, report.intro(), report.lines(), page, PAGE_COMMAND);
@@ -190,7 +204,7 @@ final class SimulateCommand {
     private static SimulationActor readActor(CommandContext<CommandSourceStack> context, Set<String> usedNodes) throws CommandSyntaxException {
         Player sourcePlayer = context.getSource().getEntity() instanceof Player player ? player : null;
         if (usedNodes.contains(KILLER)) {
-            return new SimulationActor.AsEntity(ForgeRegistries.ENTITIES.getValue(EntitySummonArgument.getSummonableEntity(context, KILLER)));
+            return new SimulationActor.AsEntity(ResourceArgument.getSummonableEntityType(context, KILLER).value());
         }
         if (usedNodes.contains(EXPLOSION)) return new SimulationActor.Explosion();
         if (usedNodes.contains(NOBODY)) return new SimulationActor.Nobody();
@@ -310,10 +324,12 @@ final class SimulateCommand {
      *
      * @param tracking Settings of the drop. Never null.
      * @param kind     Mob or block simulation, which names the runs. Never null.
-     * @return Such as {@code " (pity 50 kills)"} or {@code " (first break)"}.
+     * @return Such as {@code " (guaranteed within 50 kills)"} or {@code " (first break)"}.
      */
     private static Component trackingNote(DropTracking tracking, Kind kind) {
-        String note = tracking.isFirstDrop() ? "first " + kind.runNoun : "pity " + CommandText.count(tracking.pity(), kind.runNoun);
+        String note = tracking.isFirstDrop()
+                ? "first " + kind.runNoun
+                : "guaranteed within " + CommandText.count(tracking.pity(), kind.runNoun);
         return CommandText.text(" (" + note + ")", ChatFormatting.GREEN);
     }
 
@@ -381,53 +397,60 @@ final class SimulateCommand {
         /** {@code <kills>} or {@code <breaks>}; 1 when missing. */
         RUNS(false) {
             @Override
-            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
+            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, CommandBuildContext buildContext,
+                                                          UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
                 return next.apply(Commands.argument(kind.runArgument, IntegerArgumentType.integer(1, MAX_RUNS)));
             }
         },
         /** {@code <looting>} or {@code <fortune>}, only right after the run count so a lone number is always the count. */
         LEVEL(true) {
             @Override
-            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
+            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, CommandBuildContext buildContext,
+                                                          UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
                 return next.apply(Commands.argument(kind.levelArgument, IntegerArgumentType.integer(0, MAX_ENCHANT_LEVEL)));
             }
         },
         /** {@code by <actor>}. */
         BY(false) {
             @Override
-            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
+            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, CommandBuildContext buildContext,
+                                                          UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
                 LiteralArgumentBuilder<CommandSourceStack> by = Commands.literal("by");
-                for (ArgumentBuilder<CommandSourceStack, ?> actor : kind.actorNodes.get()) by.then(next.apply(actor));
+                for (ArgumentBuilder<CommandSourceStack, ?> actor : kind.actorNodes.apply(buildContext)) by.then(next.apply(actor));
                 return by;
             }
         },
         /** {@code sneaking}. */
         SNEAKING(false) {
             @Override
-            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
+            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, CommandBuildContext buildContext,
+                                                          UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
                 return next.apply(Commands.literal(SimulationFlag.SNEAKING.keyword()));
             }
         },
         /** {@code burning}, mobs only. */
         BURNING(false) {
             @Override
-            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
+            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, CommandBuildContext buildContext,
+                                                          UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
                 return next.apply(Commands.literal(SimulationFlag.BURNING.keyword()));
             }
         },
         /** {@code only experience} or {@code only <item filter>}. */
         ONLY(false) {
             @Override
-            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
+            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, CommandBuildContext buildContext,
+                                                          UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
                 return Commands.literal("only")
                         .then(next.apply(Commands.literal(EXPERIENCE)))
-                        .then(next.apply(Commands.argument(FILTER, ItemPredicateArgument.itemPredicate())));
+                        .then(next.apply(Commands.argument(FILTER, ItemPredicateArgument.itemPredicate(buildContext))));
             }
         },
         /** {@code drop}, optionally followed by {@code no-text}. */
         DROP(false) {
             @Override
-            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
+            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, CommandBuildContext buildContext,
+                                                          UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
                 return next.apply(Commands.literal(DROP_OPTION)).then(next.apply(Commands.literal(NO_TEXT)));
             }
         };
@@ -446,11 +469,13 @@ final class SimulateCommand {
         /**
          * Creates the nodes of this stage.
          *
-         * @param kind Mob or block simulation. Never null.
-         * @param next Attaches the later stages to a node that ends this stage, and returns it. Never null.
+         * @param kind         Mob or block simulation. Never null.
+         * @param buildContext Registry access of the command arguments. Never null.
+         * @param next         Attaches the later stages to a node that ends this stage, and returns it. Never null.
          * @return The first node of this stage.
          */
-        abstract ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next);
+        abstract ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, CommandBuildContext buildContext,
+                                                          UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next);
     }
 
     /**
@@ -460,21 +485,20 @@ final class SimulateCommand {
         /** Mob kills, with an optional Looting level, a killer and the mob on fire. */
         ENTITY("kill", "looting",
                 List.of(Stage.RUNS, Stage.LEVEL, Stage.BY, Stage.SNEAKING, Stage.BURNING, Stage.ONLY, Stage.DROP),
-                () -> List.of(Commands.literal(PLAYER), Commands.literal(NOBODY),
-                        Commands.argument(KILLER, EntitySummonArgument.id()).suggests(SuggestionProviders.SUMMONABLE_ENTITIES)),
+                buildContext -> List.of(Commands.literal(PLAYER), Commands.literal(NOBODY), entityArgument(KILLER, buildContext)),
                 (context, setup) -> MobDropSimulator.create(
-                        ForgeRegistries.ENTITIES.getValue(EntitySummonArgument.getSummonableEntity(context, "entity")), setup)),
+                        ResourceArgument.getSummonableEntityType(context, "entity").value(), setup)),
         /** Block breaks, with an optional Fortune level and a breaker. */
         BLOCK("break", "fortune",
                 List.of(Stage.RUNS, Stage.LEVEL, Stage.BY, Stage.SNEAKING, Stage.ONLY, Stage.DROP),
-                () -> List.of(Commands.literal(PLAYER), Commands.literal(NOBODY), Commands.literal(EXPLOSION)),
+                buildContext -> List.of(Commands.literal(PLAYER), Commands.literal(NOBODY), Commands.literal(EXPLOSION)),
                 (context, setup) -> BlockDropSimulator.create(BlockStateArgument.getBlock(context, "block").getState(), setup));
 
         private final String runNoun;
         private final String runArgument;
         private final String levelArgument;
         private final List<Stage> stages;
-        private final Supplier<List<ArgumentBuilder<CommandSourceStack, ?>>> actorNodes;
+        private final Function<CommandBuildContext, List<ArgumentBuilder<CommandSourceStack, ?>>> actorNodes;
         private final SimulatorFactory factory;
 
         /**
@@ -488,7 +512,7 @@ final class SimulateCommand {
          * @param factory       Creates the simulator. Never null.
          */
         Kind(String runNoun, String levelArgument, List<Stage> stages,
-             Supplier<List<ArgumentBuilder<CommandSourceStack, ?>>> actorNodes, SimulatorFactory factory) {
+             Function<CommandBuildContext, List<ArgumentBuilder<CommandSourceStack, ?>>> actorNodes, SimulatorFactory factory) {
             this.runNoun = runNoun;
             this.runArgument = runNoun + "s";
             this.levelArgument = levelArgument;

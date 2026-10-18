@@ -3,6 +3,10 @@ package com.jaffh.alkahestcore.dropscore.server.drops;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import net.minecraft.util.GsonHelper;
+import net.minecraft.world.level.storage.loot.LootDataId;
+import net.minecraft.world.level.storage.loot.LootDataManager;
+import net.minecraft.world.level.storage.loot.LootDataResolver;
+import net.minecraft.world.level.storage.loot.LootDataType;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.ValidationContext;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
@@ -11,6 +15,7 @@ import net.minecraft.world.level.storage.loot.functions.LootItemFunctions;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraft.world.level.storage.loot.predicates.LootItemRandomChanceCondition;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
@@ -20,12 +25,35 @@ import java.util.Map;
  * enchantment bonuses stacking with the drop's own bonus. It never skips a drop.
  */
 public final class LootFunctionChecker {
+    /** Stands in for the condition of a {@code reference} condition during validation. */
+    private static final LootItemCondition ANY_REFERENCED_CONDITION = LootItemRandomChanceCondition.randomChance(1.0F).build();
+
+    /** Stands in for the item modifier of a {@code reference} function during validation. */
+    private static final LootItemFunction ANY_REFERENCED_FUNCTION = LootDataManager.createComposite(new LootItemFunction[0]);
+
     /**
-     * Stands in for {@code reference} conditions and {@code set_loot_table} tables during validation. They are
-     * resolved by vanilla when the drop happens and cannot be looked up while dropscore files load, so they are
+     * Resolves {@code reference} conditions and functions and {@code set_loot_table} tables during validation. They
+     * are resolved by vanilla when the drop happens and cannot be looked up while dropscore files load, so they are
      * not reported as unknown.
      */
-    private static final LootItemCondition ANY_REFERENCED_CONDITION = LootItemRandomChanceCondition.randomChance(1.0F).build();
+    private static final LootDataResolver REFERENCE_STAND_INS = new LootDataResolver() {
+        /**
+         * Returns a stand-in for any referenced element.
+         *
+         * @param id  Id and type of the referenced element. Never null.
+         * @param <T> Element type.
+         * @return A condition that always passes, an item modifier that does nothing or the empty loot table.
+         */
+        @Nullable
+        @Override
+        @SuppressWarnings("unchecked")
+        public <T> T getElement(LootDataId<T> id) {
+            if (id.type() == LootDataType.PREDICATE) return (T) ANY_REFERENCED_CONDITION;
+            if (id.type() == LootDataType.MODIFIER) return (T) ANY_REFERENCED_FUNCTION;
+            if (id.type() == LootDataType.TABLE) return (T) LootTable.EMPTY;
+            return null;
+        }
+    };
 
     private final DropFileFormat format;
 
@@ -71,8 +99,7 @@ public final class LootFunctionChecker {
      * @param functionCtx Context of the function. Never null.
      */
     private void warnMissingParams(LootItemFunction function, ParseContext functionCtx) {
-        ValidationContext validation = new ValidationContext(format.lootParams(),
-                id -> ANY_REFERENCED_CONDITION, id -> LootTable.EMPTY);
+        ValidationContext validation = new ValidationContext(format.lootParams(), REFERENCE_STAND_INS);
         function.validate(validation);
         for (Map.Entry<String, String> problem : validation.getProblems().entries()) {
             functionCtx.atSuffix(problem.getKey()).warn(problem.getValue() + " (" + format.filesName()
