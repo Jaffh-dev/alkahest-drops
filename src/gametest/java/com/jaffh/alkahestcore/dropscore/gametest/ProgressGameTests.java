@@ -12,7 +12,6 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
@@ -296,7 +295,7 @@ public class ProgressGameTests {
                 .withLevel(helper.getLevel())
                 .withSuppressedOutput();
         if (player != null) source = source.withEntity(player);
-        return helper.getLevel().getServer().getCommands().performCommand(source, command);
+        return helper.getLevel().getServer().getCommands().performPrefixedCommand(source, command);
     }
 
     /**
@@ -489,7 +488,7 @@ public class ProgressGameTests {
      */
     private static void hitOnce(Mob mob, Player player) {
         mob.invulnerableTime = 0;
-        mob.hurt(DamageSource.playerAttack(player), 1.0F);
+        mob.hurt(mob.damageSources().playerAttack(player), 1.0F);
     }
 
     /**

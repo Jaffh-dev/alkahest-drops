@@ -14,6 +14,8 @@ import com.jaffh.alkahestcore.dropscore.server.drops.json.CountJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.DropBehaviorJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.DropEntryJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.EnchantBonusJson;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 
 import javax.annotation.Nullable;
@@ -81,33 +83,53 @@ public final class DropEntryParser {
                     + behavior.type().name().toLowerCase(Locale.ROOT) + "'");
         }
 
+        Item item = isExperience ? null : DropValues.resolveItem(itemCtx.require(drop.item), itemCtx);
+        CompoundTag nbt = isExperience ? null : DropValues.parseNbt(drop.nbt, ctx.at("nbt"));
+        double chance = parseChance(drop.chance, bonusJson, ctx.at("chance"));
+        DropCount count = parseCount(drop.count, bonusJson, ctx.at("count"));
         return new DropEntry(
-                isExperience ? null : DropValues.resolveItem(itemCtx.require(drop.item), itemCtx),
-                isExperience ? null : DropValues.parseNbt(drop.nbt, ctx.at("nbt")),
-                parseChance(drop.chance, bonusJson, ctx.at("chance")),
-                parseCount(drop.count, bonusJson, ctx.at("count")),
+                item,
+                nbt,
+                chance,
+                count,
                 behavior,
                 bonus,
                 DropValues.parseConditions(drop.conditions, ctx.at("conditions")),
                 isExperience ? List.of() : parseFunctions(drop, bonusJson != null, ctx),
-                parseTracking(drop, isExperience, index, ctx)
+                parseTracking(drop, isExperience, canMiss(chance, count, behavior), index, ctx)
         );
     }
 
     /**
+     * Tells whether a roll of a drop can give nothing, which pity counts as a miss. Only the plain case is known to
+     * never miss: a chance of 1 and a uniform count of at least 1. Roll-based and scaled counts may still roll 0.
+     *
+     * @param chance   Base chance of the drop, between 0 and 1.
+     * @param count    Count range of the drop. Never null.
+     * @param behavior Count algorithm of the drop. Never null.
+     * @return False only when every roll drops something.
+     */
+    private static boolean canMiss(double chance, DropCount count, DropBehavior behavior) {
+        return chance < 1.0 || behavior.type() != DropBehaviorType.UNIFORM || count.min() < 1;
+    }
+
+    /**
      * Resolves {@code pity}, {@code first_kill} ({@code first_break} in block files) and {@code per_player}. Pity
-     * must be at least 1 and is ignored, with a warning, on a one-time drop; the other format's one-time key is
+     * must be at least 1 and is ignored, with a warning, on a one-time drop; it gets a warning on a drop that can never
+     * miss, where it has no effect; the other format's one-time key is
      * ignored with a warning; {@code per_player} is ignored, with a warning, in block files and on experience drops,
      * which cannot be locked to a player.
      *
      * @param drop         Gson DTO of the drop. Never null.
      * @param isExperience Whether the drop gives experience.
+     * @param canMiss      Whether a roll of the drop can give nothing, the misses pity counts.
      * @param index        Position of the drop in {@code drops}, the progress key when it has no {@code id}.
      * @param ctx          Context of the drop. Never null.
      * @return The per-player settings.
      * @throws DropDataException If {@code pity} is below 1 or {@code id} is invalid.
      */
-    private DropTracking parseTracking(DropEntryJson drop, boolean isExperience, int index, ParseContext ctx) throws DropDataException {
+    private DropTracking parseTracking(DropEntryJson drop, boolean isExperience, boolean canMiss, int index, ParseContext ctx)
+            throws DropDataException {
         String id = parseId(drop.id, ctx.at("id"));
         boolean isFirstDrop = Boolean.TRUE.equals(format.firstDropOf(drop));
         DropFileFormat other = format.other();
@@ -124,6 +146,10 @@ public final class DropEntryParser {
                 pityCtx.warn("is ignored with '" + format.firstDropKey() + "', which always drops the first time");
             } else {
                 pity = drop.pity;
+                if (!canMiss) {
+                    pityCtx.warn("has no effect: with chance 1 and a count of at least 1 the drop never misses, "
+                            + "and pity only counts misses");
+                }
             }
         }
         if (isPerPlayer && !format.canRollPerPlayer()) {

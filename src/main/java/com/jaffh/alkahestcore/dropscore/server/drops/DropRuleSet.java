@@ -1,7 +1,6 @@
 package com.jaffh.alkahestcore.dropscore.server.drops;
 
 import net.minecraft.tags.TagKey;
-import net.minecraftforge.registries.IForgeRegistryEntry;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,7 +19,7 @@ import java.util.function.Consumer;
  *
  * @param <T> Registry entry type, such as {@code EntityType<?>} or {@code Block}.
  */
-public final class DropRuleSet<T extends IForgeRegistryEntry<T>> {
+public final class DropRuleSet<T> {
     private final TargetMatcher<T> matcher;
     private final Map<T, RuleGroup> exactRules;
     private final Map<String, RuleGroup> namespaceRules;
@@ -53,7 +52,7 @@ public final class DropRuleSet<T extends IForgeRegistryEntry<T>> {
      * @param <T>     Registry entry type.
      * @return The empty rule set.
      */
-    public static <T extends IForgeRegistryEntry<T>> DropRuleSet<T> empty(TargetMatcher<T> matcher) {
+    public static <T> DropRuleSet<T> empty(TargetMatcher<T> matcher) {
         return new Builder<>(matcher).build();
     }
 
@@ -142,7 +141,7 @@ public final class DropRuleSet<T extends IForgeRegistryEntry<T>> {
      *
      * @param <T> Registry entry type.
      */
-    public static final class Builder<T extends IForgeRegistryEntry<T>> {
+    public static final class Builder<T> {
         private final TargetMatcher<T> matcher;
         private final Map<T, RuleGroup> exactRules = new IdentityHashMap<>();
         private final Map<String, RuleGroup> namespaceRules = new LinkedHashMap<>();

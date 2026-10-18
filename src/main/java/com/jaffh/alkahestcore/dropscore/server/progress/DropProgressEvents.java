@@ -39,7 +39,7 @@ public final class DropProgressEvents {
      */
     public static void onAttachCapabilities(AttachCapabilitiesEvent<Entity> event) {
         Entity entity = event.getObject();
-        if (!RealPlayers.isReal(entity) || entity.level.isClientSide) return;
+        if (!RealPlayers.isReal(entity) || entity.level().isClientSide) return;
 
         DropProgressProvider provider = new DropProgressProvider();
         event.addCapability(CAPABILITY_ID, provider);
@@ -55,7 +55,7 @@ public final class DropProgressEvents {
         Player original = event.getOriginal();
         original.reviveCaps();
         DropProgress oldProgress = DropProgress.of(original);
-        DropProgress newProgress = DropProgress.of(event.getPlayer());
+        DropProgress newProgress = DropProgress.of(event.getEntity());
         if (oldProgress != null && newProgress != null) newProgress.copyFrom(oldProgress);
         original.invalidateCaps();
     }

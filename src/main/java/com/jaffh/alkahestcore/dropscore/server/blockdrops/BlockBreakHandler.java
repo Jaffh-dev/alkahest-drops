@@ -11,10 +11,11 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.event.world.BlockEvent;
+import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
@@ -39,7 +40,7 @@ public class BlockBreakHandler {
      */
     @SubscribeEvent(priority = EventPriority.LOW)
     public void onBlockBreak(BlockEvent.BreakEvent event) {
-        if (!(event.getWorld() instanceof ServerLevel level)) return;
+        if (!(event.getLevel() instanceof ServerLevel level)) return;
 
         BlockState state = event.getState();
         DropTable table = BlockDropManager.getTable(state.getBlock());
@@ -62,7 +63,7 @@ public class BlockBreakHandler {
      */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onBlockBreakWithoutLootTable(BlockEvent.BreakEvent event) {
-        if (!(event.getWorld() instanceof ServerLevel level)) return;
+        if (!(event.getLevel() instanceof ServerLevel level)) return;
 
         BlockState state = event.getState();
         Block block = state.getBlock();
@@ -109,23 +110,33 @@ public class BlockBreakHandler {
      * @return A loot context with the block state, block entity, origin, tool and player.
      */
     private static LootContext createLootContext(ServerLevel level, BlockPos pos, BlockState state, Player player, ItemStack tool) {
-        return lootContextBuilder(level, pos, state, player, tool).create(LootContextParamSets.BLOCK);
+        return toLootContext(lootParamsBuilder(level, pos, state, player, tool));
     }
 
     /**
-     * Starts the loot context of a block break, shared with the simulation, which may add an explosion radius.
+     * Creates the block loot context of finished loot parameters, rolling with the level's random source as a block
+     * loot table without a random sequence does.
+     *
+     * @param params Parameters of the break. Never null.
+     * @return The loot context.
+     */
+    static LootContext toLootContext(LootParams.Builder params) {
+        return new LootContext.Builder(params.create(LootContextParamSets.BLOCK)).create(null);
+    }
+
+    /**
+     * Starts the loot parameters of a block break, shared with the simulation, which may add an explosion radius.
      *
      * @param level  Level of the block. Never null.
      * @param pos    Position of the block. Never null.
      * @param state  State of the block. Never null.
      * @param player Player breaking the block, or null for a break without a player (simulations only).
      * @param tool   Tool breaking the block, {@link ItemStack#EMPTY} for none. Never null.
-     * @return A builder with the block state, block entity, origin, tool and player, to create with
-     *         {@link LootContextParamSets#BLOCK}.
+     * @return A builder with the block state, block entity, origin, tool and player, to turn into a context with
+     *         {@link #toLootContext}.
      */
-    static LootContext.Builder lootContextBuilder(ServerLevel level, BlockPos pos, BlockState state, @Nullable Player player, ItemStack tool) {
-        return new LootContext.Builder(level)
-                .withRandom(level.getRandom())
+    static LootParams.Builder lootParamsBuilder(ServerLevel level, BlockPos pos, BlockState state, @Nullable Player player, ItemStack tool) {
+        return new LootParams.Builder(level)
                 .withParameter(LootContextParams.BLOCK_STATE, state)
                 .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(pos))
                 .withParameter(LootContextParams.TOOL, tool)

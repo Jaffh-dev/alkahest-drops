@@ -31,7 +31,7 @@ public final class LootingOverride {
      * @param event Looting level event of a dying or simulated mob.
      */
     public void onLootingLevel(LootingLevelEvent event) {
-        if (target != null && event.getEntityLiving() == target) {
+        if (target != null && event.getEntity() == target) {
             event.setLootingLevel(lootingLevel);
         }
     }

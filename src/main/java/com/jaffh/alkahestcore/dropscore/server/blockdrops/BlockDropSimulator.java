@@ -16,14 +16,16 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -34,7 +36,7 @@ import java.util.Map;
  * A tool that cannot harvest the block drops nothing, as in survival. Creative mode is ignored.
  */
 public final class BlockDropSimulator implements IDropSimulator {
-    /** Radius of a TNT explosion; {@code survives_explosion} keeps a drop with a chance of 1 / radius. */
+    /** Radius of a TNT explosion; with drop decay on, {@code survives_explosion} keeps a drop with a chance of 1 / radius. */
     private static final float TNT_EXPLOSION_RADIUS = 4.0F;
 
     private final ServerLevel level;
@@ -59,14 +61,14 @@ public final class BlockDropSimulator implements IDropSimulator {
      */
     private BlockDropSimulator(SimulationSetup setup, BlockState state, @Nullable Player player, ItemStack tool) {
         this.level = setup.level();
-        this.pos = new BlockPos(setup.origin());
+        this.pos = BlockPos.containing(setup.origin());
         this.state = state;
         this.actor = setup.actor();
         this.player = player;
         this.tool = tool;
         this.lootTable = state.getBlock().getLootTable() == BuiltInLootTables.EMPTY
                 ? null
-                : level.getServer().getLootTables().get(state.getBlock().getLootTable());
+                : level.getServer().getLootData().getLootTable(state.getBlock().getLootTable());
         this.table = BlockDropManager.getTable(state.getBlock());
         this.canHarvest = actor instanceof SimulationActor.Explosion || canHarvest(player, tool);
     }
@@ -161,12 +163,21 @@ public final class BlockDropSimulator implements IDropSimulator {
     public SimulatedDrop simulateOnce() {
         if (!canHarvest) return SimulatedDrop.NOTHING;
 
-        LootContext.Builder builder = BlockBreakHandler.lootContextBuilder(level, pos, state, player, tool);
-        if (actor instanceof SimulationActor.Explosion) {
-            builder.withParameter(LootContextParams.EXPLOSION_RADIUS, TNT_EXPLOSION_RADIUS);
+        LootParams.Builder params = BlockBreakHandler.lootParamsBuilder(level, pos, state, player, tool);
+        if (actor instanceof SimulationActor.Explosion && hasTntDropDecay()) {
+            params.withParameter(LootContextParams.EXPLOSION_RADIUS, TNT_EXPLOSION_RADIUS);
         }
-        LootContext context = builder.create(LootContextParamSets.BLOCK);
+        LootContext context = BlockBreakHandler.toLootContext(params);
         return TrackedDropRecorder.INSTANCE.recordRoll(() -> rollItems(context), () -> rollExperience(context));
+    }
+
+    /**
+     * Tells whether TNT destroys some of the drops it frees, as the {@code tntExplosionDropDecay} game rule decides.
+     *
+     * @return True when a TNT explosion keeps each drop with a chance of 1 / radius.
+     */
+    private boolean hasTntDropDecay() {
+        return level.getGameRules().getBoolean(GameRules.RULE_TNT_EXPLOSION_DROP_DECAY);
     }
 
     /**
@@ -177,7 +188,11 @@ public final class BlockDropSimulator implements IDropSimulator {
      * @return The dropped stacks.
      */
     private List<ItemStack> rollItems(LootContext context) {
-        if (lootTable != null) return lootTable.getRandomItems(context);
+        if (lootTable != null) {
+            List<ItemStack> items = new ArrayList<>();
+            lootTable.getRandomItems(context, items::add);
+            return items;
+        }
         if (player == null || table.dropFiles().isEmpty()) return List.of();
         return BlockDropApplier.apply(table, List.of(), context);
     }
@@ -192,7 +207,7 @@ public final class BlockDropSimulator implements IDropSimulator {
         if (player == null) return 0;
         int fortuneLevel = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.BLOCK_FORTUNE, tool);
         int silkTouchLevel = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.SILK_TOUCH, tool);
-        int experience = state.getExpDrop(level, pos, fortuneLevel, silkTouchLevel);
+        int experience = state.getExpDrop(level, level.getRandom(), pos, fortuneLevel, silkTouchLevel);
         if (!table.affectsExperience()) return experience;
         return table.applyExperience(experience, context, BlockDropApplier.rollContextOf(context));
     }
@@ -214,7 +229,9 @@ public final class BlockDropSimulator implements IDropSimulator {
      */
     @Override
     public String describeSetup() {
-        if (actor instanceof SimulationActor.Explosion) return "TNT explosion (no tool, no experience)";
+        if (actor instanceof SimulationActor.Explosion) {
+            return "TNT explosion (no tool, no experience, drop decay " + (hasTntDropDecay() ? "on" : "off") + ")";
+        }
 
         StringBuilder text = new StringBuilder();
         if (player != null) {

@@ -2,7 +2,7 @@ package com.jaffh.alkahestcore.dropscore.common;
 
 import com.jaffh.alkahestcore.AlkahestCore;
 import com.jaffh.alkahestcore.dropscore.server.drops.RealPlayerCondition;
-import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.storage.loot.predicates.LootItemConditionType;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
@@ -13,7 +13,7 @@ import net.minecraftforge.registries.RegistryObject;
  */
 public final class DropscoreLootConditions {
     private static final DeferredRegister<LootItemConditionType> CONDITION_TYPES =
-            DeferredRegister.create(Registry.LOOT_ITEM_REGISTRY, AlkahestCore.ID);
+            DeferredRegister.create(Registries.LOOT_CONDITION_TYPE, AlkahestCore.ID);
 
     /** {@code <modId>:killed_by_real_player}: a real player, not a machine's fake player, killed the mob. */
     public static final RegistryObject<LootItemConditionType> KILLED_BY_REAL_PLAYER = CONDITION_TYPES.register(

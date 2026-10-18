@@ -8,7 +8,7 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.Block;
@@ -29,7 +29,7 @@ import java.util.function.Predicate;
  */
 record TargetLookup(ResourceLocation id, @Nullable EntityType<?> entity, @Nullable Block block) {
     private static final DynamicCommandExceptionType UNKNOWN_TARGET = new DynamicCommandExceptionType(
-            id -> new TextComponent("Unknown entity or block: " + id));
+            id -> Component.literal("Unknown entity or block: " + id));
 
     /**
      * Finds the mob and the block of an id.
@@ -39,7 +39,7 @@ record TargetLookup(ResourceLocation id, @Nullable EntityType<?> entity, @Nullab
      * @throws CommandSyntaxException If no mob or block has this id.
      */
     static TargetLookup of(ResourceLocation id) throws CommandSyntaxException {
-        EntityType<?> entity = ForgeRegistries.ENTITIES.containsKey(id) ? ForgeRegistries.ENTITIES.getValue(id) : null;
+        EntityType<?> entity = ForgeRegistries.ENTITY_TYPES.containsKey(id) ? ForgeRegistries.ENTITY_TYPES.getValue(id) : null;
         Block block = ForgeRegistries.BLOCKS.containsKey(id) ? ForgeRegistries.BLOCKS.getValue(id) : null;
         if (entity == null && block == null) throw UNKNOWN_TARGET.create(id);
         return new TargetLookup(id, entity, block);
@@ -63,11 +63,11 @@ record TargetLookup(ResourceLocation id, @Nullable EntityType<?> entity, @Nullab
      */
     private static Set<ResourceLocation> idsWithTable(Predicate<DropTable> tableTest) {
         Set<ResourceLocation> ids = new TreeSet<>();
-        for (EntityType<?> type : ForgeRegistries.ENTITIES.getValues()) {
-            if (tableTest.test(MobDropManager.getTable(type))) ids.add(type.getRegistryName());
+        for (EntityType<?> type : ForgeRegistries.ENTITY_TYPES.getValues()) {
+            if (tableTest.test(MobDropManager.getTable(type))) ids.add(ForgeRegistries.ENTITY_TYPES.getKey(type));
         }
         for (Block block : ForgeRegistries.BLOCKS.getValues()) {
-            if (tableTest.test(BlockDropManager.getTable(block))) ids.add(block.getRegistryName());
+            if (tableTest.test(BlockDropManager.getTable(block))) ids.add(ForgeRegistries.BLOCKS.getKey(block));
         }
         return ids;
     }

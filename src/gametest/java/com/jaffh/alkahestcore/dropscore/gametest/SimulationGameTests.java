@@ -20,9 +20,11 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -275,22 +277,67 @@ public class SimulationGameTests {
     }
 
     /**
-     * A TNT explosion has no tool and no player: the vanilla dirt drop survives only 1 time in 4, while the
-     * unconditional dropscore drop is always there.
+     * A TNT explosion with drop decay on ({@code tntExplosionDropDecay}) has no tool and no player: the vanilla dirt
+     * drop survives only 1 time in 4, while the unconditional dropscore drop is always there.
      *
      * @param helper Helper of the test.
      */
     @GameTest(template = DropTestKit.ARENA)
     public static void simulateBlockByExplosion(GameTestHelper helper) {
-        SimulationSetup setup = setup(helper, new SimulationActor.Explosion(), Set.of(), OptionalInt.empty());
-        DropSimulation simulation = DropSimulation.run(BlockDropSimulator.create(Blocks.DIRT.defaultBlockState(), setup),
-                EXPLOSION_RUNS, SimulationFilter.ALL, false);
+        DropSimulation simulation = simulateDirtExplosions(helper, true);
         assertTotal(simulation, Items.NAUTILUS_SHELL, EXPLOSION_RUNS);
-        long dirt = simulation.itemResults().stream().filter(result -> result.item() == Items.DIRT)
-                .mapToLong(DropSimulation.ItemResult::total).sum();
+        long dirt = totalOf(simulation, Items.DIRT);
         DropTestKit.check(dirt > 0 && dirt < EXPLOSION_RUNS, "expected some dirt to be destroyed, got " + dirt);
         DropTestKit.check(simulation.experience() == 0, "expected no experience from an explosion");
         helper.succeed();
+    }
+
+    /**
+     * A TNT explosion with drop decay off, the 1.20.1 default, keeps every vanilla dirt drop, and the dropscore drop
+     * is still always there.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void simulateBlockByExplosionWithoutDecay(GameTestHelper helper) {
+        DropSimulation simulation = simulateDirtExplosions(helper, false);
+        assertTotal(simulation, Items.NAUTILUS_SHELL, EXPLOSION_RUNS);
+        assertTotal(simulation, Items.DIRT, EXPLOSION_RUNS);
+        DropTestKit.check(simulation.experience() == 0, "expected no experience from an explosion");
+        helper.succeed();
+    }
+
+    /**
+     * Simulates TNT explosions of dirt with the {@code tntExplosionDropDecay} game rule set for the run, then restores
+     * the rule. The run is synchronous, so no other test sees the changed rule.
+     *
+     * @param helper    Helper of the test. Never null.
+     * @param dropDecay Value of the game rule during the run.
+     * @return The counts of the runs.
+     */
+    private static DropSimulation simulateDirtExplosions(GameTestHelper helper, boolean dropDecay) {
+        GameRules.BooleanValue rule = helper.getLevel().getGameRules().getRule(GameRules.RULE_TNT_EXPLOSION_DROP_DECAY);
+        boolean previous = rule.get();
+        rule.set(dropDecay, helper.getLevel().getServer());
+        try {
+            SimulationSetup setup = setup(helper, new SimulationActor.Explosion(), Set.of(), OptionalInt.empty());
+            return DropSimulation.run(BlockDropSimulator.create(Blocks.DIRT.defaultBlockState(), setup),
+                    EXPLOSION_RUNS, SimulationFilter.ALL, false);
+        } finally {
+            rule.set(previous, helper.getLevel().getServer());
+        }
+    }
+
+    /**
+     * Sums the simulated count of one item over all its result lines.
+     *
+     * @param simulation Counts of the runs. Never null.
+     * @param item       Item to sum. Never null.
+     * @return The total count.
+     */
+    private static long totalOf(DropSimulation simulation, Item item) {
+        return simulation.itemResults().stream().filter(result -> result.item() == item)
+                .mapToLong(DropSimulation.ItemResult::total).sum();
     }
 
     /**
@@ -599,7 +646,7 @@ public class SimulationGameTests {
                 .withLevel(helper.getLevel())
                 .withPosition(DropTestKit.arenaCenter(helper))
                 .withSuppressedOutput();
-        return helper.getLevel().getServer().getCommands().performCommand(source, command);
+        return helper.getLevel().getServer().getCommands().performPrefixedCommand(source, command);
     }
 
     /**
@@ -610,8 +657,7 @@ public class SimulationGameTests {
      * @param expected   Expected summed count.
      */
     private static void assertTotal(DropSimulation simulation, Item item, long expected) {
-        List<DropSimulation.ItemResult> results = simulation.itemResults();
-        long actual = results.stream().filter(result -> result.item() == item).mapToLong(DropSimulation.ItemResult::total).sum();
-        DropTestKit.check(actual == expected, "expected " + expected + " " + item.getRegistryName() + ", got " + actual);
+        long actual = totalOf(simulation, item);
+        DropTestKit.check(actual == expected, "expected " + expected + " " + ForgeRegistries.ITEMS.getKey(item) + ", got " + actual);
     }
 }

@@ -9,6 +9,9 @@
     { "id": "Bad Id", "item": "minecraft:stick", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" }, "pity": 3 },
     { "id": "dup", "item": "minecraft:stick", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" }, "pity": 3 },
     { "id": "dup", "item": "minecraft:stick", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" }, "pity": 4 },
-    { "id": "unused", "item": "minecraft:stick", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" } }
+    { "id": "unused", "item": "minecraft:stick", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" } },
+    { "item": "minecraft:stick", "chance": 1.0, "count": { "min": 1, "max": 2 }, "drop_behavior": { "type": "uniform" }, "pity": 3 },
+    { "item": "minecraft:stick", "chance": 1.0, "count": { "min": 0, "max": 1 }, "drop_behavior": { "type": "uniform" }, "pity": 3 },
+    { "item": "minecraft:stick", "chance": 0.5, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" }, "pity": 3 }
   ]
 }

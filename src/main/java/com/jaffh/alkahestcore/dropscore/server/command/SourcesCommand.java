@@ -8,11 +8,13 @@ import com.jaffh.alkahestcore.dropscore.server.drops.RemovalEntry;
 import com.jaffh.alkahestcore.dropscore.server.drops.RemovalRule;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.ChatFormatting;
+import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.item.ItemArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,13 +35,14 @@ final class SourcesCommand {
     /**
      * Builds the {@code sources} node.
      *
+     * @param buildContext Registry access of the command arguments. Never null.
      * @return The node.
      */
-    static LiteralArgumentBuilder<CommandSourceStack> build() {
+    static LiteralArgumentBuilder<CommandSourceStack> build(CommandBuildContext buildContext) {
         return Commands.literal("sources")
                 .then(PagedOutput.withPages(Commands.literal("experience"),
                         (context, page) -> run(context.getSource(), Lookup.EXPERIENCE, page)))
-                .then(PagedOutput.withPages(Commands.argument("item", ItemArgument.item()),
+                .then(PagedOutput.withPages(Commands.argument("item", ItemArgument.item(buildContext)),
                         (context, page) -> run(context.getSource(), Lookup.ofItem(ItemArgument.getItem(context, "item").getItem()), page)));
     }
 
@@ -141,7 +144,7 @@ final class SourcesCommand {
          * @return The lookup.
          */
         static Lookup ofItem(Item item) {
-            return new Lookup(CommandText.itemName(item), String.valueOf(item.getRegistryName()),
+            return new Lookup(CommandText.itemName(item), String.valueOf(ForgeRegistries.ITEMS.getKey(item)),
                     entry -> entry.item() == item, entry -> entry.removes(item));
         }
     }
