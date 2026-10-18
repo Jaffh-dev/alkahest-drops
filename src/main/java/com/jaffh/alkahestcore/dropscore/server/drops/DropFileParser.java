@@ -12,8 +12,10 @@ import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Reads one dropscore file (mob or block, per {@link DropFileFormat}) into a {@link ParsedDropFile}, reporting
@@ -107,10 +109,15 @@ public final class DropFileParser {
     private ParsedDropFile parseDropFile(DropFileJson file, String target, List<LootItemCondition> globalConditions,
                                          ParseContext ctx) throws DropDataException {
         List<DropEntry> entries = new ArrayList<>(file.drops.size());
+        Set<String> progressKeys = new HashSet<>();
         boolean isEverySkipAnUnknownId = !file.drops.isEmpty();
         for (int i = 0; i < file.drops.size(); i++) {
             try {
-                entries.add(entryParser.parse(file.drops.get(i), ctx.at("drops", i)));
+                DropEntry entry = entryParser.parse(file.drops.get(i), ctx.at("drops", i), i);
+                if (!progressKeys.add(entry.tracking().key())) {
+                    throw ctx.at("drops", i).at("id").error("is already used by another drop of this file");
+                }
+                entries.add(entry);
             } catch (DropDataException e) {
                 DropIssue issue = e.toIssue("drop skipped");
                 log.report(issue);
@@ -118,7 +125,8 @@ public final class DropFileParser {
             }
         }
         if (entries.isEmpty()) throw noValidEntries("no valid drops", isEverySkipAnUnknownId, ctx);
-        return new ParsedDropFile.Drops(target, new DropFile(ctx.fileId(), globalConditions, entries));
+        boolean hasSkippedDrops = entries.size() < file.drops.size();
+        return new ParsedDropFile.Drops(target, new DropFile(ctx.fileId(), globalConditions, entries), hasSkippedDrops);
     }
 
     /**

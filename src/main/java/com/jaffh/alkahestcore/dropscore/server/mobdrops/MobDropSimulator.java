@@ -4,6 +4,7 @@ import com.jaffh.alkahestcore.dropscore.server.drops.DropTable;
 import com.jaffh.alkahestcore.dropscore.server.drops.IDropSimulator;
 import com.jaffh.alkahestcore.dropscore.server.drops.RollContext;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulatedDrop;
+import com.jaffh.alkahestcore.dropscore.server.drops.TrackedDropRecorder;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulationActor;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulationFlag;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulationSetup;
@@ -151,10 +152,20 @@ public final class MobDropSimulator implements IDropSimulator {
      */
     private SimulatedDrop rollKill() {
         LootContext context = MobDropInjector.createLootContext(level, mob, source);
-        RollContext rollContext = new RollContext(lootingLevel(), mob.getMaxHealth(), level.getRandom());
+        RollContext rollContext = new RollContext(lootingLevel(), mob.getMaxHealth(), level.getRandom(), MobDropInjector.playerOf(killer));
+        return TrackedDropRecorder.INSTANCE.recordRoll(() -> rollItems(context, rollContext), () -> rollExperience(context, rollContext));
+    }
+
+    /**
+     * Rolls the items of one kill: the loot table, then removals and dropscore drops.
+     *
+     * @param context     Loot context of the kill. Never null.
+     * @param rollContext Roll context of the kill. Never null.
+     * @return The dropped stacks.
+     */
+    private List<ItemStack> rollItems(LootContext context, RollContext rollContext) {
         List<ItemStack> items = lootTable.getRandomItems(context);
-        if (!table.isEmpty()) items = table.applyTo(items, context, rollContext);
-        return new SimulatedDrop(items, rollExperience(context, rollContext));
+        return table.isEmpty() ? items : table.applyTo(items, context, rollContext);
     }
 
     /**

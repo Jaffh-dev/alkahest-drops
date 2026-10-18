@@ -43,6 +43,17 @@ enum HelpTopic {
             HelpSection.examples(
                     example("/dropscore sources minecraft:rotten_flesh", "who adds or removes rotten flesh"),
                     example("/dropscore sources experience", "who adds or removes experience")))),
+    /** {@code /dropscore drops}. */
+    DROPS("Shows every drop and removal dropscore applies to a mob or block, from files that name it by id, mod:*, "
+            + "#tag or *.", List.of(
+            HelpSection.usage("/dropscore drops <entity | block> [page <n>]"),
+            HelpSection.arguments(
+                    argument("entity | block", "mob or block id, such as minecraft:zombie or minecraft:stone. An id that "
+                            + "names both, such as minecraft:tnt, shows both."),
+                    argument("page <n>", "another page of a long list; the arrows at the bottom run it for you.")),
+            HelpSection.examples(
+                    example("/dropscore drops minecraft:zombie", "everything dropscore does to zombie drops"),
+                    example("/dropscore drops minecraft:stone", "everything dropscore does to stone drops")))),
     /** {@code /dropscore simulate}. */
     SIMULATE("Rolls the loot table and the dropscore rules many times, without killing or breaking anything, "
             + "and reports what dropped.", List.of(
@@ -77,7 +88,24 @@ enum HelpTopic {
                     example("/dropscore simulate entity minecraft:zombie 1000", "1000 zombie kills by you"),
                     example("/dropscore simulate entity minecraft:cow 1000 3 only minecraft:beef", "beef with Looting III"),
                     example("/dropscore simulate block minecraft:diamond_ore 500 3 by none", "diamond ore with Fortune III"),
-                    example("/dropscore simulate entity minecraft:zombie drop no-text", "one silent kill, for functions"))));
+                    example("/dropscore simulate entity minecraft:zombie drop no-text", "one silent kill, for functions")))),
+    /** {@code /dropscore reset}. */
+    RESET("Resets drop progress, so first_kill and first_break drops drop again and pity counters start over.", List.of(
+            HelpSection.usage("/dropscore reset <player> [first | pity] [entities | blocks | <entity | block>]"),
+            HelpSection.arguments(
+                    argument("player", "whose progress: a name or a selector such as @s (you) or @a."),
+                    argument("first", "only first kills and first breaks."),
+                    argument("pity", "only pity counters. Both first and pity when missing."),
+                    argument("no target", "every drop."),
+                    argument("entities", "every mob drop."),
+                    argument("blocks", "every block drop."),
+                    argument("entity | block", "the drops that mob or block can give, such as minecraft:zombie. "
+                            + "Drops of tag, mod:* and * files are reset for every mob or block they match.")),
+            HelpSection.examples(
+                    example("/dropscore reset @s", "everything of yours"),
+                    example("/dropscore reset Steve first", "every first kill and first break of Steve"),
+                    example("/dropscore reset @a pity blocks", "the block pity counters of everyone"),
+                    example("/dropscore reset @s minecraft:horse", "your progress on horses"))));
 
     private final String summary;
     private final List<HelpSection> sections;

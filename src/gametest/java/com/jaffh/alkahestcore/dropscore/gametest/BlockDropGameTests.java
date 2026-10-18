@@ -326,6 +326,8 @@ public class BlockDropGameTests {
         DropTestKit.assertIssue(issues, "max_health_on_block", "drops[0].drop_behavior.type", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "unknown_block", "block", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "entity_key_in_block_file", "entity", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "per_player_on_block", "drops[0].per_player", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "per_player_on_block", "drops[1].first_kill", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "on_looting_in_block_file", "drops[0].on_looting", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "experience_with_item", "drops[0].experience", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "experience_with_nbt", "drops[0].nbt", DropIssue.Severity.WARNING);

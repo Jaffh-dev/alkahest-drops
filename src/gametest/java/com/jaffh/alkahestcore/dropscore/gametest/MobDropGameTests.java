@@ -339,6 +339,13 @@ public class MobDropGameTests {
         DropTestKit.assertIssue(issues, "function_warnings", "drops[1].functions[0]", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "function_warnings", "drops[2].functions[0]", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "function_warnings", "drops[4].functions[0]", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "tracking_issues", "drops[0].pity", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "tracking_issues", "drops[1].pity", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "tracking_issues", "drops[2].per_player", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "tracking_issues", "drops[3].first_break", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "tracking_issues", "drops[4].id", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "tracking_issues", "drops[6].id", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "tracking_issues", "drops[7].id", DropIssue.Severity.WARNING);
         DropTestKit.check(issues.stream().noneMatch(issue -> issue.field().startsWith("drops[3].functions")
                 && issue.fileId().getPath().equals("function_warnings")), "set_count with add must not warn");
         helper.succeed();

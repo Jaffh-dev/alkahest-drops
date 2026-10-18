@@ -5,6 +5,7 @@ import com.jaffh.alkahestcore.dropscore.common.drops.DropBehavior;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropBehaviorType;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropCount;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropEntry;
+import com.jaffh.alkahestcore.dropscore.common.drops.DropTracking;
 import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonus;
 import com.jaffh.alkahestcore.dropscore.common.drops.ScaleFormula;
 import com.jaffh.alkahestcore.dropscore.common.drops.ScaleFunction;
@@ -18,14 +19,19 @@ import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 /**
  * Validates one entry of {@code drops} and resolves it into a {@link DropEntry}. {@code item} (or
  * {@code "experience": true}), {@code chance}, {@code count} and {@code drop_behavior} are required; out-of-range
  * values are clamped with a warning when the intent is clear and rejected otherwise. {@code functions} are optional
- * vanilla loot functions.
+ * vanilla loot functions; {@code pity}, {@code first_kill} / {@code first_break} and {@code per_player} are
+ * optional per-player settings.
  */
 public final class DropEntryParser {
+    /** Characters a drop {@code id} may use, the same as a resource path. */
+    private static final Pattern ID_PATTERN = Pattern.compile("[a-z0-9_./-]+");
+
     private final DropFileFormat format;
     private final DropLimits limits;
     private final EnchantBonusParser bonusParser;
@@ -49,10 +55,11 @@ public final class DropEntryParser {
      *
      * @param element JSON value of the drop. Never null.
      * @param ctx     Context of the drop, such as {@code drops[2]}. Never null.
+     * @param index   Position of the drop in {@code drops}, part of its progress key. 0 or more.
      * @return The resolved drop.
      * @throws DropDataException If the drop is invalid (error) or its item is not registered (warning).
      */
-    public DropEntry parse(JsonElement element, ParseContext ctx) throws DropDataException {
+    public DropEntry parse(JsonElement element, ParseContext ctx, int index) throws DropDataException {
         DropEntryJson drop = DropValues.readObject(element, DropEntryJson.class, ctx);
         boolean isExperience = Boolean.TRUE.equals(drop.experience);
         if (isExperience && drop.item != null) {
@@ -82,8 +89,72 @@ public final class DropEntryParser {
                 behavior,
                 bonus,
                 DropValues.parseConditions(drop.conditions, ctx.at("conditions")),
-                isExperience ? List.of() : parseFunctions(drop, bonusJson != null, ctx)
+                isExperience ? List.of() : parseFunctions(drop, bonusJson != null, ctx),
+                parseTracking(drop, isExperience, index, ctx)
         );
+    }
+
+    /**
+     * Resolves {@code pity}, {@code first_kill} ({@code first_break} in block files) and {@code per_player}. Pity
+     * must be at least 1 and is ignored, with a warning, on a one-time drop; the other format's one-time key is
+     * ignored with a warning; {@code per_player} is ignored, with a warning, in block files and on experience drops,
+     * which cannot be locked to a player.
+     *
+     * @param drop         Gson DTO of the drop. Never null.
+     * @param isExperience Whether the drop gives experience.
+     * @param index        Position of the drop in {@code drops}, the progress key when it has no {@code id}.
+     * @param ctx          Context of the drop. Never null.
+     * @return The per-player settings.
+     * @throws DropDataException If {@code pity} is below 1 or {@code id} is invalid.
+     */
+    private DropTracking parseTracking(DropEntryJson drop, boolean isExperience, int index, ParseContext ctx) throws DropDataException {
+        String id = parseId(drop.id, ctx.at("id"));
+        boolean isFirstDrop = Boolean.TRUE.equals(format.firstDropOf(drop));
+        DropFileFormat other = format.other();
+        if (other.firstDropOf(drop) != null) {
+            ctx.at(other.firstDropKey()).warn("is a key of " + other.filesName() + " and is ignored; "
+                    + format.filesName() + " use '" + format.firstDropKey() + "'");
+        }
+        boolean isPerPlayer = Boolean.TRUE.equals(drop.isPerPlayer);
+        int pity = 0;
+        if (drop.pity != null) {
+            ParseContext pityCtx = ctx.at("pity");
+            pityCtx.requireAtLeast(drop.pity, 1);
+            if (isFirstDrop) {
+                pityCtx.warn("is ignored with '" + format.firstDropKey() + "', which always drops the first time");
+            } else {
+                pity = drop.pity;
+            }
+        }
+        if (isPerPlayer && !format.canRollPerPlayer()) {
+            ctx.at("per_player").warn("has no effect in " + format.filesName() + "; only the breaker gets the drop");
+            isPerPlayer = false;
+        } else if (isPerPlayer && isExperience) {
+            ctx.at("per_player").warn("is ignored by experience drops, which cannot be locked to a player");
+            isPerPlayer = false;
+        }
+        if (id != null && pity == 0 && !isFirstDrop) {
+            ctx.at("id").warn("has no effect without 'pity' or '" + format.firstDropKey() + "'");
+        }
+        return new DropTracking(format.progressKey(ctx.fileId(), id, index), pity, isFirstDrop, isPerPlayer);
+    }
+
+    /**
+     * Resolves {@code id}, which keeps a drop's pity and one-time progress when the file changes: lowercase letters,
+     * digits, {@code _}, {@code -}, {@code .} and {@code /}.
+     *
+     * @param id  Raw id, or null when missing.
+     * @param ctx Context of {@code id}. Never null.
+     * @return The id, or null when missing.
+     * @throws DropDataException If the id is empty or uses other characters.
+     */
+    @Nullable
+    private static String parseId(@Nullable String id, ParseContext ctx) throws DropDataException {
+        if (id == null) return null;
+        if (!ID_PATTERN.matcher(id).matches()) {
+            throw ctx.error("'" + id + "' must use only lowercase letters, digits, '_', '-', '.' and '/'");
+        }
+        return id;
     }
 
     /**

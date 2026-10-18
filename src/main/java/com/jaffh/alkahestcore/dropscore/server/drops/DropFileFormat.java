@@ -4,19 +4,24 @@ import com.jaffh.alkahestcore.dropscore.common.drops.DropBehaviorType;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.DropEntryJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.DropFileJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.EnchantBonusJson;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunctionType;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunctions;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSet;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 
 import javax.annotation.Nullable;
+import java.util.Locale;
 
 /**
  * Defines the keys that differ between mob drop files and block drop files, so one parser reads both.
  */
 public enum DropFileFormat {
-    /** Files in {@code data/<namespace>/mob_drops/}: target key {@code entity}, bonus key {@code on_looting}. */
-    MOB("mob drop files", "entity", "on_looting", DropBehaviorType.MAX_HEALTH) {
+    /**
+     * Files in {@code data/<namespace>/mob_drops/}: target key {@code entity}, bonus key {@code on_looting},
+     * one-time drop key {@code first_kill}.
+     */
+    MOB("mob drop files", "entity", "on_looting", "first_kill", DropBehaviorType.MAX_HEALTH) {
         @Nullable
         @Override
         public String targetOf(DropFileJson file) {
@@ -29,6 +34,12 @@ public enum DropFileFormat {
             return drop.onLooting;
         }
 
+        @Nullable
+        @Override
+        public Boolean firstDropOf(DropEntryJson drop) {
+            return drop.isFirstKill;
+        }
+
         @Override
         public LootContextParamSet lootParams() {
             return LootContextParamSets.ENTITY;
@@ -39,8 +50,11 @@ public enum DropFileFormat {
             return LootItemFunctions.LOOTING_ENCHANT;
         }
     },
-    /** Files in {@code data/<namespace>/block_drops/}: target key {@code block}, bonus key {@code on_fortune}. */
-    BLOCK("block drop files", "block", "on_fortune", DropBehaviorType.HARDNESS) {
+    /**
+     * Files in {@code data/<namespace>/block_drops/}: target key {@code block}, bonus key {@code on_fortune},
+     * one-time drop key {@code first_break}.
+     */
+    BLOCK("block drop files", "block", "on_fortune", "first_break", DropBehaviorType.HARDNESS) {
         @Nullable
         @Override
         public String targetOf(DropFileJson file) {
@@ -51,6 +65,12 @@ public enum DropFileFormat {
         @Override
         public EnchantBonusJson enchantBonusOf(DropEntryJson drop) {
             return drop.onFortune;
+        }
+
+        @Nullable
+        @Override
+        public Boolean firstDropOf(DropEntryJson drop) {
+            return drop.isFirstBreak;
         }
 
         @Override
@@ -67,6 +87,7 @@ public enum DropFileFormat {
     private final String filesName;
     private final String targetKey;
     private final String bonusKey;
+    private final String firstDropKey;
     private final DropBehaviorType scaleType;
 
     /**
@@ -75,12 +96,14 @@ public enum DropFileFormat {
      * @param filesName          Name of the files of this format in messages, such as {@code mob drop files}.
      * @param targetKey          JSON key of the file target.
      * @param bonusKey           JSON key of a drop's enchantment bonus.
+     * @param firstDropKey       JSON key of a drop that happens once per player.
      * @param scaleType          The only scaled behavior drops of this format may use.
      */
-    DropFileFormat(String filesName, String targetKey, String bonusKey, DropBehaviorType scaleType) {
+    DropFileFormat(String filesName, String targetKey, String bonusKey, String firstDropKey, DropBehaviorType scaleType) {
         this.filesName = filesName;
         this.targetKey = targetKey;
         this.bonusKey = bonusKey;
+        this.firstDropKey = firstDropKey;
         this.scaleType = scaleType;
     }
 
@@ -101,6 +124,15 @@ public enum DropFileFormat {
      */
     @Nullable
     public abstract EnchantBonusJson enchantBonusOf(DropEntryJson drop);
+
+    /**
+     * Returns whether a drop happens only once per player.
+     *
+     * @param drop Parsed drop. Never null.
+     * @return The value of the one-time drop key, or null when missing.
+     */
+    @Nullable
+    public abstract Boolean firstDropOf(DropEntryJson drop);
 
     /**
      * Returns the loot parameters the loot context of this format can hold, the same as the vanilla loot tables
@@ -154,11 +186,80 @@ public enum DropFileFormat {
     }
 
     /**
+     * Returns the JSON key of a drop that happens once per player.
+     *
+     * @return {@code first_kill} or {@code first_break}.
+     */
+    public String firstDropKey() {
+        return firstDropKey;
+    }
+
+    /**
+     * Returns the start of the progress keys of this format's drops, so the progress of mob and block files with
+     * the same id never mixes.
+     *
+     * @return {@code mob:} or {@code block:}.
+     */
+    public String progressKeyPrefix() {
+        return name().toLowerCase(Locale.ROOT) + ":";
+    }
+
+    /**
+     * Tells whether a progress key belongs to a drop of this format.
+     *
+     * @param key Progress key. Never null.
+     * @return True when the key starts with {@link #progressKeyPrefix()}.
+     */
+    public boolean ownsProgressKey(String key) {
+        return key.startsWith(progressKeyPrefix());
+    }
+
+    /**
+     * Builds the key under which the pity and one-time drop progress of a drop is stored for each player. A drop with
+     * an {@code id} keeps its key when drops are added, removed or reordered; without one, the key follows its
+     * position. The two forms use different separators, so they never collide.
+     *
+     * @param fileId Id of the drop file. Never null.
+     * @param id     The drop's {@code id}, or null when it has none.
+     * @param index  Position of the drop in {@code drops}, 0 or more.
+     * @return Such as {@code mob:test_mobs:sheep@rare_star} with an id, or {@code mob:test_mobs:sheep#0} without.
+     */
+    public String progressKey(ResourceLocation fileId, @Nullable String id, int index) {
+        return progressKeyPrefix() + fileId + (id != null ? "@" + id : "#" + index);
+    }
+
+    /**
+     * Reads the drop file id out of a progress key of this format.
+     *
+     * @param key Progress key built by {@link #progressKey}. Never null.
+     * @return The file id, or null when the key does not belong to this format or is malformed.
+     */
+    @Nullable
+    public ResourceLocation fileIdOfProgressKey(String key) {
+        if (!ownsProgressKey(key)) return null;
+        String rest = key.substring(progressKeyPrefix().length());
+        int idStart = rest.indexOf('@');
+        int indexStart = rest.indexOf('#');
+        int end = idStart < 0 ? indexStart : indexStart < 0 ? idStart : Math.min(idStart, indexStart);
+        return end > 0 ? ResourceLocation.tryParse(rest.substring(0, end)) : null;
+    }
+
+    /**
      * Returns the scaled behavior drops of this format may use; the other scaled behavior is an error.
      *
      * @return {@code max_health} for mob files, {@code hardness} for block files.
      */
     public DropBehaviorType scaleType() {
         return scaleType;
+    }
+
+    /**
+     * Tells whether drops of this format can roll once per attacking player ({@code per_player}). A block has
+     * only its breaker, so block files ignore the key.
+     *
+     * @return True for mob files.
+     */
+    public boolean canRollPerPlayer() {
+        return this == MOB;
     }
 }

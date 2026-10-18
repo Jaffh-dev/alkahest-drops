@@ -1,6 +1,7 @@
 package com.jaffh.alkahestcore.dropscore.gametest;
 
 import com.jaffh.alkahestcore.dropscore.server.drops.DropIssue;
+import com.jaffh.alkahestcore.dropscore.server.drops.SimulatedPlayer;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestAssertException;
@@ -105,7 +106,8 @@ final class DropTestKit {
 
     /**
      * Places a block at the arena center and breaks it like a survival player would: the break event, the loot
-     * table with the tool and player, and the experience. Uses a fake server player, since a mock player cannot break.
+     * table with the tool and player, and the experience. Uses a server player that counts as real, since a mock player
+     * cannot break.
      *
      * @param helper     Helper of the running test. Never null.
      * @param block      Block to place and break. Never null.
@@ -113,11 +115,45 @@ final class DropTestKit {
      * @param isSneaking Whether the player crouches, matching the {@code is_sneaking} entity flag.
      */
     static void breakBlock(GameTestHelper helper, Block block, ItemStack tool, boolean isSneaking) {
-        helper.setBlock(CENTER, block);
-        ServerPlayer player = new FakePlayer(helper.getLevel(), new GameProfile(UUID.randomUUID(), "dropscore_test"));
+        ServerPlayer player = fakePlayer(helper);
         player.setItemInHand(InteractionHand.MAIN_HAND, tool);
         if (isSneaking) player.setPose(Pose.CROUCHING);
+        breakBlock(helper, block, player);
+    }
+
+    /**
+     * Places a block at the arena center and breaks it with a given fake player, so several breaks share the
+     * player's drop progress.
+     *
+     * @param helper Helper of the running test. Never null.
+     * @param block  Block to place and break. Never null.
+     * @param player Fake player breaking the block, from {@link #fakePlayer}. Never null.
+     */
+    static void breakBlock(GameTestHelper helper, Block block, ServerPlayer player) {
+        helper.setBlock(CENTER, block);
         player.gameMode.destroyBlock(helper.absolutePos(CENTER));
+    }
+
+    /**
+     * Creates a player that can break blocks and counts as a real player with its own drop progress (the simulator's
+     * player type); it is not added to the level.
+     *
+     * @param helper Helper of the running test. Never null.
+     * @return The player.
+     */
+    static ServerPlayer fakePlayer(GameTestHelper helper) {
+        return new SimulatedPlayer(helper.getLevel(), new GameProfile(UUID.randomUUID(), "dropscore_test"));
+    }
+
+    /**
+     * Creates a plain fake player, as machine mods use to kill mobs and break blocks: it has no drop progress and fails
+     * the real-player conditions. It is not added to the level.
+     *
+     * @param helper Helper of the running test. Never null.
+     * @return The machine's fake player.
+     */
+    static ServerPlayer machinePlayer(GameTestHelper helper) {
+        return new FakePlayer(helper.getLevel(), new GameProfile(UUID.randomUUID(), "dropscore_machine"));
     }
 
     /**
@@ -165,10 +201,18 @@ final class DropTestKit {
      * @return The stacks of the item entities holding the item, in no order.
      */
     static List<ItemStack> droppedStacks(GameTestHelper helper, Item item) {
-        return helper.getLevel().getEntitiesOfClass(ItemEntity.class, arenaBounds(helper)).stream()
-                .map(ItemEntity::getItem)
-                .filter(stack -> stack.is(item))
-                .toList();
+        return droppedItems(helper, item).stream().map(ItemEntity::getItem).toList();
+    }
+
+    /**
+     * Returns every item entity of an item in the arena.
+     *
+     * @param helper Helper of the running test. Never null.
+     * @param item   Item to look for. Never null.
+     * @return The item entities, in no particular order.
+     */
+    static List<ItemEntity> droppedItems(GameTestHelper helper, Item item) {
+        return helper.getLevel().getEntitiesOfClass(ItemEntity.class, arenaBounds(helper), entity -> entity.getItem().is(item));
     }
 
     /**

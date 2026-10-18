@@ -57,6 +57,18 @@ public record DropFile(ResourceLocation fileId, List<LootItemCondition> globalCo
     }
 
     /**
+     * Tells whether this file has drops rolled once per attacking player.
+     *
+     * @return True when at least one drop is per player.
+     */
+    public boolean hasPerPlayerDrops() {
+        for (DropEntry entry : entries) {
+            if (entry.tracking().isPerPlayer()) return true;
+        }
+        return false;
+    }
+
+    /**
      * Returns a copy of this file with other drops.
      *
      * @param keptEntries Drops to keep. Never null.

@@ -25,10 +25,11 @@ public sealed interface ParsedDropFile {
     /**
      * A drop file.
      *
-     * @param target Raw target. Never null.
-     * @param file   Drops of the file. Never null.
+     * @param target          Raw target. Never null.
+     * @param file            Drops of the file. Never null.
+     * @param hasSkippedDrops Whether some drops of the file were skipped by an error or a warning.
      */
-    record Drops(String target, DropFile file) implements ParsedDropFile {
+    record Drops(String target, DropFile file, boolean hasSkippedDrops) implements ParsedDropFile {
         /**
          * Returns the id of the file.
          *

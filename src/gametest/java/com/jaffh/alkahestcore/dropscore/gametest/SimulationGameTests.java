@@ -69,6 +69,77 @@ public class SimulationGameTests {
     }
 
     /**
+     * A pity drop gets its own result line with its settings: pity 5 with chance 0 drops 4 dragon's breath in 20
+     * kills by the simulator's player; drops of other rules have no settings.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void simulatePityHasOwnLine(GameTestHelper helper) {
+        Player player = DropTestKit.playerHolding(helper, ItemStack.EMPTY);
+        DropSimulation simulation = simulateMob(helper, EntityType.RABBIT, player, OptionalInt.empty(), SimulationFilter.ALL);
+        DropSimulation.ItemResult breath = singleResult(simulation, Items.DRAGON_BREATH);
+        DropTestKit.check(breath.total() == RUNS / 5, "expected " + RUNS / 5 + " dragon's breath, got " + breath.total());
+        DropTestKit.check(breath.tracking() != null && breath.tracking().pity() == 5, "dragon's breath line has no pity 5");
+        DropTestKit.check(singleResult(simulation, Items.NAUTILUS_SHELL).tracking() == null, "untracked drop has settings");
+        helper.succeed();
+    }
+
+    /**
+     * Experience of a pity drop gets its own line: pity 5 with chance 0 gives 10 experience on 4 of 20 kills, apart
+     * from the vanilla experience of the llama.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void simulatePityExperienceHasOwnLine(GameTestHelper helper) {
+        Player player = DropTestKit.playerHolding(helper, ItemStack.EMPTY);
+        DropSimulation simulation = simulateMob(helper, EntityType.LLAMA, player, OptionalInt.empty(), SimulationFilter.ALL);
+        List<DropSimulation.ExperienceResult> tracked = simulation.experienceResults().stream()
+                .filter(result -> result.tracking() != null).toList();
+        DropTestKit.check(tracked.size() == 1, "expected 1 tracked experience line, got " + tracked.size());
+        DropTestKit.check(tracked.get(0).total() == 10L * RUNS / 5, "expected " + 10 * RUNS / 5 + " pity experience, got " + tracked.get(0).total());
+        DropTestKit.check(tracked.get(0).runsWithDrop() == RUNS / 5, "expected pity experience on " + RUNS / 5 + " kills");
+        long plain = simulation.experienceResults().stream().filter(result -> result.tracking() == null)
+                .mapToLong(DropSimulation.ExperienceResult::total).sum();
+        DropTestKit.check(plain + tracked.get(0).total() == simulation.experience(), "experience lines do not add up to the total");
+        DropTestKit.check(plain > 0, "expected the vanilla experience on its own line");
+        helper.succeed();
+    }
+
+    /**
+     * The simulator's player counts as a real player: {@code killed_by_real_player} and {@code broken_by_real_player}
+     * pass, while a simulation without a player fails them.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void simulatedPlayerIsReal(GameTestHelper helper) {
+        Player player = DropTestKit.playerHolding(helper, ItemStack.EMPTY);
+        assertTotal(simulateMob(helper, EntityType.DONKEY, player, OptionalInt.empty(), SimulationFilter.ALL), Items.DIAMOND_BLOCK, RUNS);
+        assertTotal(simulateMob(helper, EntityType.DONKEY, null, OptionalInt.empty(), SimulationFilter.ALL), Items.DIAMOND_BLOCK, 0);
+        IDropSimulator blockSimulator = BlockDropSimulator.create(Blocks.HAY_BLOCK.defaultBlockState(), setup(helper, player, OptionalInt.empty()));
+        assertTotal(DropSimulation.run(blockSimulator, RUNS, SimulationFilter.ALL, false), Items.DIAMOND_BLOCK, RUNS);
+        helper.succeed();
+    }
+
+    /**
+     * A first-break drop gets its own result line and drops once per simulation.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void simulateFirstBreakHasOwnLine(GameTestHelper helper) {
+        Player player = DropTestKit.playerHolding(helper, ItemStack.EMPTY);
+        IDropSimulator simulator = BlockDropSimulator.create(Blocks.MELON.defaultBlockState(), setup(helper, player, OptionalInt.empty()));
+        DropSimulation simulation = DropSimulation.run(simulator, RUNS, SimulationFilter.ALL, false);
+        DropSimulation.ItemResult totem = singleResult(simulation, Items.TOTEM_OF_UNDYING);
+        DropTestKit.check(totem.total() == 1, "expected 1 totem, got " + totem.total());
+        DropTestKit.check(totem.tracking() != null && totem.tracking().isFirstDrop(), "totem line is not a first drop");
+        helper.succeed();
+    }
+
+    /**
      * A pig killed by a player gives exactly 6 experience: vanilla and other namespaces' experience removed, then
      * 0.6 × max health added.
      *
@@ -401,14 +472,44 @@ public class SimulationGameTests {
     }
 
     /**
+     * {@code drops} lists every rule that applies to a mob through a tag, {@code minecraft:*} and {@code *}: the
+     * skeleton gets the prismarine of {@code #dstest_a:tagged}, the nautilus shell and the barrier.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void dropsListsRulesOfMob(GameTestHelper helper) {
+        int result = runCommand(helper, "dropscore drops minecraft:skeleton");
+        DropTestKit.check(result == 3, "expected 3 drops for the skeleton, got " + result);
+        helper.succeed();
+    }
+
+    /**
+     * {@code drops} also looks up blocks: the melon gets its first-break totem and the {@code minecraft:*} barrier.
+     * An id naming a mob and a block shows both (TNT: the mob {@code minecraft:*} shell and {@code *} barrier, the
+     * block {@code minecraft:*} barrier); an unknown id fails.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void dropsListsRulesOfBlock(GameTestHelper helper) {
+        int melon = runCommand(helper, "dropscore drops minecraft:melon");
+        DropTestKit.check(melon == 2, "expected 2 drops for the melon, got " + melon);
+        int tnt = runCommand(helper, "dropscore drops minecraft:tnt");
+        DropTestKit.check(tnt == 3, "expected 3 drops for TNT, got " + tnt);
+        DropTestKit.check(runCommand(helper, "dropscore drops minecraft:not_a_thing") == 0, "unknown id accepted");
+        helper.succeed();
+    }
+
+    /**
      * {@code help} lists every topic, and each topic has a page.
      *
      * @param helper Helper of the test.
      */
     @GameTest(template = DropTestKit.ARENA)
     public static void helpShowsEveryTopic(GameTestHelper helper) {
-        DropTestKit.check(runCommand(helper, "dropscore help") == 4, "expected 4 help topics");
-        for (String topic : List.of("files", "simulate", "sources", "validate")) {
+        DropTestKit.check(runCommand(helper, "dropscore help") == 6, "expected 6 help topics");
+        for (String topic : List.of("drops", "files", "reset", "simulate", "sources", "validate")) {
             DropTestKit.check(runCommand(helper, "dropscore help " + topic) > 0, "expected a help page for " + topic);
         }
         DropTestKit.check(runCommand(helper, "dropscore help simulate page 2") > 0, "expected a second simulate help page");
@@ -444,6 +545,19 @@ public class SimulationGameTests {
                                               OptionalInt looting, SimulationFilter filter) {
         IDropSimulator simulator = MobDropSimulator.create(type, setup(helper, player, looting));
         return DropSimulation.run(simulator, RUNS, filter, false);
+    }
+
+    /**
+     * Returns the only result line of an item, failing when there is none or more than one.
+     *
+     * @param simulation Counts of the runs. Never null.
+     * @param item       Item to look for. Never null.
+     * @return The result line.
+     */
+    private static DropSimulation.ItemResult singleResult(DropSimulation simulation, Item item) {
+        List<DropSimulation.ItemResult> results = simulation.itemResults().stream().filter(result -> result.item() == item).toList();
+        DropTestKit.check(results.size() == 1, "expected 1 line of " + item + ", got " + results.size());
+        return results.get(0);
     }
 
     /**

@@ -6,7 +6,6 @@ import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 
 import java.util.List;
-import java.util.Map;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
@@ -43,8 +42,9 @@ public final class TargetMatcher<T extends IForgeRegistryEntry<T>> {
     }
 
     /**
-     * Parses a raw target. {@code "mod:*"} is expanded here from the registry; tags are kept as keys because
-     * they are not bound yet while datapack files are read.
+     * Parses a raw target. {@code "mod:*"} is kept as its namespace and matched at lookup, so it costs the same for a
+     * namespace of ten entries or a thousand; tags are kept as keys because they are not bound yet while datapack files
+     * are read.
      *
      * @param raw Raw target. Never null.
      * @param ctx Context of the target key. Never null.
@@ -64,11 +64,11 @@ public final class TargetMatcher<T extends IForgeRegistryEntry<T>> {
     }
 
     /**
-     * Expands {@code "mod:*"} into every entry of the namespace that patterns may match.
+     * Parses {@code "mod:*"}, checking that patterns may match at least one entry of the namespace.
      *
      * @param namespace Namespace before {@code :*}. Never null.
      * @param ctx       Context of the target key. Never null.
-     * @return The entries of the namespace.
+     * @return The namespace target.
      * @throws DropDataException If the namespace is malformed (error) or has no entry (warning, mod not loaded).
      */
     private Target<T> parseNamespace(String namespace, ParseContext ctx) throws DropDataException {
@@ -77,13 +77,10 @@ public final class TargetMatcher<T extends IForgeRegistryEntry<T>> {
             throw ctx.error("'" + namespace + "' is not a valid namespace");
         }
 
-        List<T> values = registry.getEntries().stream()
-                .filter(entry -> entry.getKey().location().getNamespace().equals(namespace))
-                .map(Map.Entry::getValue)
-                .filter(canMatchPattern)
-                .toList();
-        if (values.isEmpty()) throw ctx.unknownId("no " + entryName + " is registered in namespace '" + namespace + "'");
-        return new Target.Values<>(values);
+        boolean hasEntry = registry.getEntries().stream()
+                .anyMatch(entry -> entry.getKey().location().getNamespace().equals(namespace) && canMatchPattern.test(entry.getValue()));
+        if (!hasEntry) throw ctx.unknownId("no " + entryName + " is registered in namespace '" + namespace + "'");
+        return new Target.Namespace<>(namespace);
     }
 
     /**
@@ -108,6 +105,32 @@ public final class TargetMatcher<T extends IForgeRegistryEntry<T>> {
     }
 
     /**
+     * Tells whether a parsed target matches an entry, the same way the rule set indexes files: exact ids by value,
+     * {@code mod:*}, {@code #tag} and {@code *} only for entries patterns may match. Tags must be bound.
+     *
+     * @param target Parsed target. Never null.
+     * @param value  Entry to check. Never null.
+     * @return True when files with this target apply to the entry.
+     */
+    public boolean matches(Target<T> target, T value) {
+        if (target instanceof Target.Values<T> values) return values.values().contains(value);
+        if (!canMatchPattern(value)) return false;
+        if (target instanceof Target.Namespace<T> namespace) return namespaceOf(value).equals(namespace.namespace());
+        if (target instanceof Target.Tagged<T> tagged) return isInTag(value, tagged.tag());
+        return true;
+    }
+
+    /**
+     * Returns the namespace of an entry's id, which {@code mod:*} targets match.
+     *
+     * @param value Registered entry. Never null.
+     * @return The namespace, such as {@code minecraft}.
+     */
+    public String namespaceOf(T value) {
+        return value.getRegistryName().getNamespace();
+    }
+
+    /**
      * Represents a parsed file target.
      *
      * @param <T> Registry entry type.
@@ -115,12 +138,21 @@ public final class TargetMatcher<T extends IForgeRegistryEntry<T>> {
     public sealed interface Target<T> {
 
         /**
-         * Targets a fixed set of entries: one id, or every entry of a namespace.
+         * Targets a fixed set of entries, from one id.
          *
          * @param values Targeted entries. Immutable, never null.
          * @param <T>    Registry entry type.
          */
         record Values<T>(List<T> values) implements Target<T> {
+        }
+
+        /**
+         * Targets every entry of a namespace that patterns may match ({@code mod:*}), checked when the drop happens.
+         *
+         * @param namespace Targeted namespace. Never null.
+         * @param <T>       Registry entry type.
+         */
+        record Namespace<T>(String namespace) implements Target<T> {
         }
 
         /**

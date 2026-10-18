@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "entity": "minecraft:llama",
+  "drops": [
+    { "experience": true, "chance": 0.0, "count": { "min": 10, "max": 10 }, "drop_behavior": { "type": "uniform" },
+      "on_looting": { "bonus_chance": { "bonus_chance_per_level": 0.01 } }, "pity": 5 }
+  ]
+}

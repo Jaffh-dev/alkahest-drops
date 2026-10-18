@@ -19,7 +19,7 @@ import java.util.TreeSet;
 
 /**
  * Registers {@code /dropscore} (permission level 2) with its debug subcommands: {@code validate}, {@code files},
- * {@code sources} and {@code simulate}, plus {@code help}.
+ * {@code sources}, {@code drops}, {@code simulate} and {@code reset}, plus {@code help}.
  */
 public final class DropscoreCommand {
     /** Modules whose files the commands read, mobs first. */
@@ -48,7 +48,9 @@ public final class DropscoreCommand {
                 .then(ValidateCommand.build())
                 .then(FilesCommand.build())
                 .then(SourcesCommand.build())
+                .then(DropsCommand.build())
                 .then(SimulateCommand.build())
+                .then(ResetCommand.build())
                 .then(HelpCommand.build()));
     }
 

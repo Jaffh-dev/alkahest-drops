@@ -2,10 +2,14 @@ package com.jaffh.alkahestcore;
 
 
 import com.jaffh.alkahestcore.dropscore.common.DropscoreConfig;
+import com.jaffh.alkahestcore.dropscore.common.DropscoreLootConditions;
 import com.jaffh.alkahestcore.dropscore.common.DropscoreLootModifiers;
 import com.jaffh.alkahestcore.dropscore.server.blockdrops.BlockBreakHandler;
 import com.jaffh.alkahestcore.dropscore.server.blockdrops.BlockDropManager;
 import com.jaffh.alkahestcore.dropscore.server.command.DropscoreCommand;
+import com.jaffh.alkahestcore.dropscore.server.progress.DropProgressEvents;
+import com.jaffh.alkahestcore.dropscore.server.progress.ProgressPruner;
+import com.jaffh.alkahestcore.dropscore.server.mobdrops.HitTracker;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.LootingOverride;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.MobDropInjector;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.MobDropManager;
@@ -13,6 +17,7 @@ import com.jaffh.alkahestcore.fluidscore.AlkahestConfig;
 import com.jaffh.alkahestcore.fluidscore.common.FluidManager;
 import com.jaffh.alkahestcore.fluidscore.common.jsonfluids.CustomFluidJsonLoader;
 import com.mojang.logging.LogUtils;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
@@ -29,7 +34,6 @@ import net.minecraftforge.fml.event.lifecycle.InterModProcessEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.slf4j.Logger;
 
-// The value here should match an entry in the META-INF/mods.toml file
 @Mod(AlkahestCore.ID)
 public class AlkahestCore
 {
@@ -52,11 +56,17 @@ public class AlkahestCore
         MinecraftForge.EVENT_BUS.register(new MobDropInjector());
         MinecraftForge.EVENT_BUS.addListener(MobDropManager.INSTANCE::onTagsUpdated);
         DropscoreLootModifiers.register(modEventBus, ID);
+        DropscoreLootConditions.register(modEventBus);
         modEventBus.addListener(BlockDropManager.INSTANCE::onConfigLoading);
         MinecraftForge.EVENT_BUS.register(new BlockBreakHandler());
         MinecraftForge.EVENT_BUS.addListener(BlockDropManager.INSTANCE::onTagsUpdated);
         MinecraftForge.EVENT_BUS.addListener(EventPriority.LOWEST, LootingOverride.INSTANCE::onLootingLevel);
         MinecraftForge.EVENT_BUS.addListener(DropscoreCommand::onRegisterCommands);
+        MinecraftForge.EVENT_BUS.register(new HitTracker());
+        modEventBus.addListener(DropProgressEvents::onRegisterCapabilities);
+        MinecraftForge.EVENT_BUS.addGenericListener(Entity.class, DropProgressEvents::onAttachCapabilities);
+        MinecraftForge.EVENT_BUS.addListener(DropProgressEvents::onPlayerClone);
+        MinecraftForge.EVENT_BUS.addListener(ProgressPruner::onDatapackSync);
 
         // Register the setup method for modloading
         modEventBus.addListener(this::setup);

@@ -6,7 +6,6 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.util.FakePlayer;
 
 import java.util.OptionalInt;
 import java.util.Set;
@@ -43,9 +42,10 @@ public record SimulationSetup(ServerLevel level, Vec3 origin, SimulationActor ac
     }
 
     /**
-     * Creates the fake player of an {@link SimulationActor.AsPlayer} actor: a copy of the template's name, equipment
-     * and position, or a blank player at the origin, crouching when {@link SimulationFlag#SNEAKING} is set. The fake
-     * player is never added to the level, so the real player is never changed.
+     * Creates the player of an {@link SimulationActor.AsPlayer} actor: a copy of the template's name, equipment and
+     * position, or a blank player at the origin, crouching when {@link SimulationFlag#SNEAKING} is set. It is a
+     * {@link SimulatedPlayer}, so it counts as a real player with its own drop progress; it is never added to the
+     * level, so the real player and their progress are never changed.
      *
      * @param actor Player actor. Never null.
      * @return The fake player.
@@ -53,7 +53,7 @@ public record SimulationSetup(ServerLevel level, Vec3 origin, SimulationActor ac
     public Player createPlayer(SimulationActor.AsPlayer actor) {
         Player template = actor.template();
         String name = template != null ? template.getGameProfile().getName() : BLANK_PLAYER_NAME;
-        FakePlayer player = new FakePlayer(level, new GameProfile(UUID.randomUUID(), name));
+        SimulatedPlayer player = new SimulatedPlayer(level, new GameProfile(UUID.randomUUID(), name));
         if (template != null) {
             for (EquipmentSlot slot : EquipmentSlot.values()) {
                 player.setItemSlot(slot, template.getItemBySlot(slot).copy());

@@ -1,10 +1,8 @@
 package com.jaffh.alkahestcore.dropscore.server.command;
 
-import com.jaffh.alkahestcore.dropscore.common.drops.DropBehaviorType;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropEntry;
 import com.jaffh.alkahestcore.dropscore.server.drops.DropFile;
 import com.jaffh.alkahestcore.dropscore.server.drops.DropManager;
-import com.jaffh.alkahestcore.dropscore.server.drops.ItemTarget;
 import com.jaffh.alkahestcore.dropscore.server.drops.ParsedDropFile;
 import com.jaffh.alkahestcore.dropscore.server.drops.RemovalEntry;
 import com.jaffh.alkahestcore.dropscore.server.drops.RemovalRule;
@@ -14,12 +12,10 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.item.ItemArgument;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.Item;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.function.Predicate;
 
 /**
@@ -101,8 +97,8 @@ final class SourcesCommand {
         for (DropEntry entry : file.entries()) {
             if (!lookup.matchesDrop().test(entry)) continue;
             boolean isConditional = file.hasGlobalConditions() || entry.hasConditions();
-            lines.add(fileLine("+ ", ChatFormatting.GREEN, drops, manager)
-                    .append(CommandText.text(": " + describeDrop(entry) + (isConditional ? ", conditional" : ""), ChatFormatting.WHITE)));
+            lines.add(RuleText.fileLine("+ ", ChatFormatting.GREEN, drops, manager)
+                    .append(CommandText.text(": " + RuleText.describeDrop(entry, manager.format(), isConditional), ChatFormatting.WHITE)));
         }
     }
 
@@ -119,58 +115,9 @@ final class SourcesCommand {
         for (RemovalEntry entry : rule.entries()) {
             if (!lookup.matchesRemoval().test(entry)) continue;
             boolean isConditional = rule.hasGlobalConditions() || entry.hasConditions();
-            lines.add(fileLine("- ", ChatFormatting.RED, removals, manager)
-                    .append(CommandText.text(": removes " + describeRemoval(entry) + (isConditional ? ", conditional" : ""), ChatFormatting.WHITE)));
+            lines.add(RuleText.fileLine("- ", ChatFormatting.RED, removals, manager)
+                    .append(CommandText.text(": removes " + RuleText.describeRemovalMatch(entry) + (isConditional ? ", conditional" : ""), ChatFormatting.WHITE)));
         }
-    }
-
-    /**
-     * Starts a result line with its sign, module, file id and target.
-     *
-     * @param sign    {@code "+ "} for drops, {@code "- "} for removals. Never null.
-     * @param color   Color of the sign. Never null.
-     * @param file    File of the line. Never null.
-     * @param manager Module of the file. Never null.
-     * @return Such as {@code "+ [mob] ns:zombie → minecraft:zombie"}: the module in gray, the file id in yellow and
-     *         the target in white.
-     */
-    private static MutableComponent fileLine(String sign, ChatFormatting color, ParsedDropFile file, DropManager<?> manager) {
-        return CommandText.text(sign, color)
-                .append(CommandText.text("[" + manager.kind() + "] ", ChatFormatting.GRAY))
-                .append(CommandText.fileId(file.fileId(), manager, ChatFormatting.YELLOW))
-                .append(CommandText.text(" → " + file.target(), ChatFormatting.WHITE));
-    }
-
-    /**
-     * Describes the amount, chance and behavior of a drop.
-     *
-     * @param entry Drop. Never null.
-     * @return Such as {@code "1–3 (5%)"}, {@code "3–7 XP (100%), max_health"} or {@code "1 (50%), functions"}.
-     */
-    private static String describeDrop(DropEntry entry) {
-        int min = entry.count().min();
-        int max = entry.count().max();
-        StringBuilder text = new StringBuilder(min == max ? String.valueOf(min) : min + "–" + max);
-        if (entry.isExperience()) text.append(" XP");
-        text.append(" (").append(CommandText.percent(entry.chance())).append(")");
-        DropBehaviorType type = entry.behavior().type();
-        if (type != DropBehaviorType.UNIFORM) text.append(", ").append(type.name().toLowerCase(Locale.ROOT));
-        if (entry.hasFunctions()) text.append(", functions");
-        return text.toString();
-    }
-
-    /**
-     * Describes how a removal entry names its target.
-     *
-     * @param entry Removal entry. Never null.
-     * @return Such as {@code "experience"}, {@code "by id"}, {@code "by #minecraft:logs"} or {@code "by *"}.
-     */
-    private static String describeRemoval(RemovalEntry entry) {
-        ItemTarget target = entry.target();
-        if (target == null) return "experience";
-        if (target instanceof ItemTarget.Tagged tagged) return "by #" + tagged.tag().location();
-        if (target instanceof ItemTarget.Any) return "by *";
-        return "by id";
     }
 
     /**

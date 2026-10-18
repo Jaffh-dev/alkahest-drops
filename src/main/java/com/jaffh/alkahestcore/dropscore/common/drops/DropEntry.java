@@ -22,6 +22,7 @@ import java.util.List;
  * @param conditions   Vanilla loot conditions that must all pass. Immutable, never null.
  * @param functions    Vanilla loot functions applied in order to every dropped stack, after {@code nbt}. Always
  *                     empty for experience. Immutable, never null.
+ * @param tracking     Per-player settings: pity, first kill and per-player rolls. Never null.
  */
 public record DropEntry(
         @Nullable Item item,
@@ -31,7 +32,8 @@ public record DropEntry(
         DropBehavior behavior,
         EnchantBonus enchantBonus,
         List<LootItemCondition> conditions,
-        List<LootItemFunction> functions
+        List<LootItemFunction> functions,
+        DropTracking tracking
 ) {
     /**
      * Creates a drop entry and stores immutable copies of the conditions and functions.

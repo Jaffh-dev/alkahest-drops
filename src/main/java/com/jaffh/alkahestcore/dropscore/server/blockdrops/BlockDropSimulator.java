@@ -3,6 +3,7 @@ package com.jaffh.alkahestcore.dropscore.server.blockdrops;
 import com.jaffh.alkahestcore.dropscore.server.drops.DropTable;
 import com.jaffh.alkahestcore.dropscore.server.drops.IDropSimulator;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulatedDrop;
+import com.jaffh.alkahestcore.dropscore.server.drops.TrackedDropRecorder;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulationActor;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulationFlag;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulationSetup;
@@ -158,14 +159,14 @@ public final class BlockDropSimulator implements IDropSimulator {
      */
     @Override
     public SimulatedDrop simulateOnce() {
-        if (!canHarvest) return new SimulatedDrop(List.of(), 0);
+        if (!canHarvest) return SimulatedDrop.NOTHING;
 
         LootContext.Builder builder = BlockBreakHandler.lootContextBuilder(level, pos, state, player, tool);
         if (actor instanceof SimulationActor.Explosion) {
             builder.withParameter(LootContextParams.EXPLOSION_RADIUS, TNT_EXPLOSION_RADIUS);
         }
         LootContext context = builder.create(LootContextParamSets.BLOCK);
-        return new SimulatedDrop(rollItems(context), rollExperience(context));
+        return TrackedDropRecorder.INSTANCE.recordRoll(() -> rollItems(context), () -> rollExperience(context));
     }
 
     /**

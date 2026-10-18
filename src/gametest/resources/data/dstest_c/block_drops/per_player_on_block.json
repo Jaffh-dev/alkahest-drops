@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "block": "minecraft:mossy_cobblestone",
+  "drops": [
+    { "item": "minecraft:stick", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" }, "per_player": true },
+    { "item": "minecraft:stick", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" }, "first_kill": true }
+  ]
+}

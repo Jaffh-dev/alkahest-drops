@@ -1,5 +1,6 @@
 package com.jaffh.alkahestcore.dropscore.server.command;
 
+import com.jaffh.alkahestcore.dropscore.common.drops.DropTracking;
 import com.jaffh.alkahestcore.dropscore.server.blockdrops.BlockDropSimulator;
 import com.jaffh.alkahestcore.dropscore.server.drops.IDropSimulator;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulationActor;
@@ -244,7 +245,7 @@ final class SimulateCommand {
     }
 
     /**
-     * Builds the report: the header lines, then one line per shown item and for the experience.
+     * Builds the report: the header lines, then one line per shown item and per experience line; pity and one-time drops get lines of their own.
      *
      * @param simulator  Simulator that ran. Never null.
      * @param simulation Counts of the runs. Never null.
@@ -269,12 +270,14 @@ final class SimulateCommand {
             lines.add(CommandText.text(what + " dropped in " + CommandText.count(runs, kind.runNoun) + ".", ChatFormatting.GRAY));
         }
         for (DropSimulation.ItemResult result : simulation.itemResults()) {
-            lines.add(resultLine(CommandText.itemName(result.item()), ChatFormatting.YELLOW,
-                    result.total(), result.runsWithDrop(), runs, kind));
+            Component line = resultLine(CommandText.itemName(result.item()), ChatFormatting.YELLOW,
+                    result.total(), result.runsWithDrop(), runs, kind);
+            lines.add(result.tracking() == null ? line : line.copy().append(trackingNote(result.tracking(), kind)));
         }
-        if (simulation.experience() > 0) {
-            lines.add(resultLine(CommandText.bold("Experience", ChatFormatting.GREEN), ChatFormatting.GREEN,
-                    simulation.experience(), simulation.runsWithExperience(), runs, kind));
+        for (DropSimulation.ExperienceResult result : simulation.experienceResults()) {
+            Component line = resultLine(CommandText.bold("Experience", ChatFormatting.GREEN), ChatFormatting.GREEN,
+                    result.total(), result.runsWithDrop(), runs, kind);
+            lines.add(result.tracking() == null ? line : line.copy().append(trackingNote(result.tracking(), kind)));
         }
         return new Report(intro, lines);
     }
@@ -300,6 +303,18 @@ final class SimulateCommand {
                 .append(CommandText.text(" per " + kind.runNoun + " in ", ChatFormatting.WHITE))
                 .append(CommandText.text(CommandText.percent((double) runsWithAny / runs), ChatFormatting.GRAY))
                 .append(CommandText.text(" of " + kind.runNoun + "s", ChatFormatting.WHITE));
+    }
+
+    /**
+     * Describes the pity or one-time drop a result line counts, in green.
+     *
+     * @param tracking Settings of the drop. Never null.
+     * @param kind     Mob or block simulation, which names the runs. Never null.
+     * @return Such as {@code " (pity 50 kills)"} or {@code " (first break)"}.
+     */
+    private static Component trackingNote(DropTracking tracking, Kind kind) {
+        String note = tracking.isFirstDrop() ? "first " + kind.runNoun : "pity " + CommandText.count(tracking.pity(), kind.runNoun);
+        return CommandText.text(" (" + note + ")", ChatFormatting.GREEN);
     }
 
     /**

@@ -23,6 +23,7 @@ import java.util.function.Consumer;
 public final class DropRuleSet<T extends IForgeRegistryEntry<T>> {
     private final TargetMatcher<T> matcher;
     private final Map<T, RuleGroup> exactRules;
+    private final Map<String, RuleGroup> namespaceRules;
     private final Map<TagKey<T>, RuleGroup> taggedRules;
     private final RuleGroup anyRules;
     private final Map<T, DropTable> tables = new ConcurrentHashMap<>();
@@ -31,13 +32,16 @@ public final class DropRuleSet<T extends IForgeRegistryEntry<T>> {
      * Creates a rule set from frozen groups.
      *
      * @param matcher     Matcher of the registry. Never null.
-     * @param exactRules  Groups of exact targets. Immutable, never null.
-     * @param taggedRules Groups of tag targets. Immutable, never null.
-     * @param anyRules    Group of {@code *} files. Never null.
+     * @param exactRules     Groups of exact targets. Immutable, never null.
+     * @param namespaceRules Groups of {@code mod:*} targets, by namespace. Immutable, never null.
+     * @param taggedRules    Groups of tag targets. Immutable, never null.
+     * @param anyRules       Group of {@code *} files. Never null.
      */
-    private DropRuleSet(TargetMatcher<T> matcher, Map<T, RuleGroup> exactRules, Map<TagKey<T>, RuleGroup> taggedRules, RuleGroup anyRules) {
+    private DropRuleSet(TargetMatcher<T> matcher, Map<T, RuleGroup> exactRules, Map<String, RuleGroup> namespaceRules,
+                        Map<TagKey<T>, RuleGroup> taggedRules, RuleGroup anyRules) {
         this.matcher = matcher;
         this.exactRules = exactRules;
+        this.namespaceRules = namespaceRules;
         this.taggedRules = taggedRules;
         this.anyRules = anyRules;
     }
@@ -71,7 +75,7 @@ public final class DropRuleSet<T extends IForgeRegistryEntry<T>> {
     }
 
     /**
-     * Builds the table of a target from its exact, tag and {@code *} files.
+     * Builds the table of a target from its exact, {@code mod:*}, tag and {@code *} files.
      *
      * @param value Target. Never null.
      * @return The table, {@link DropTable#EMPTY} when no file matches.
@@ -83,6 +87,8 @@ public final class DropRuleSet<T extends IForgeRegistryEntry<T>> {
         RuleGroup exact = exactRules.get(value);
         if (exact != null) exact.addTo(dropFiles, removals);
         if (matcher.canMatchPattern(value)) {
+            RuleGroup namespace = namespaceRules.get(matcher.namespaceOf(value));
+            if (namespace != null) namespace.addTo(dropFiles, removals);
             for (Map.Entry<TagKey<T>, RuleGroup> tagged : taggedRules.entrySet()) {
                 if (matcher.isInTag(value, tagged.getKey())) tagged.getValue().addTo(dropFiles, removals);
             }
@@ -139,6 +145,7 @@ public final class DropRuleSet<T extends IForgeRegistryEntry<T>> {
     public static final class Builder<T extends IForgeRegistryEntry<T>> {
         private final TargetMatcher<T> matcher;
         private final Map<T, RuleGroup> exactRules = new IdentityHashMap<>();
+        private final Map<String, RuleGroup> namespaceRules = new LinkedHashMap<>();
         private final Map<TagKey<T>, RuleGroup> taggedRules = new LinkedHashMap<>();
         private final RuleGroup anyRules = RuleGroup.mutable();
 
@@ -186,6 +193,8 @@ public final class DropRuleSet<T extends IForgeRegistryEntry<T>> {
                 for (T value : values.values()) {
                     action.accept(exactRules.computeIfAbsent(value, key -> RuleGroup.mutable()));
                 }
+            } else if (target instanceof TargetMatcher.Target.Namespace<T> namespace) {
+                action.accept(namespaceRules.computeIfAbsent(namespace.namespace(), key -> RuleGroup.mutable()));
             } else if (target instanceof TargetMatcher.Target.Tagged<T> tagged) {
                 action.accept(taggedRules.computeIfAbsent(tagged.tag(), key -> RuleGroup.mutable()));
             } else {
@@ -201,11 +210,14 @@ public final class DropRuleSet<T extends IForgeRegistryEntry<T>> {
         public DropRuleSet<T> build() {
             Map<T, RuleGroup> exact = new IdentityHashMap<>();
             exactRules.forEach((value, group) -> exact.put(value, group.freeze()));
+            Map<String, RuleGroup> namespaces = new LinkedHashMap<>();
+            namespaceRules.forEach((namespace, group) -> namespaces.put(namespace, group.freeze()));
             Map<TagKey<T>, RuleGroup> tagged = new LinkedHashMap<>();
             taggedRules.forEach((tag, group) -> tagged.put(tag, group.freeze()));
             return new DropRuleSet<>(
                     matcher,
                     Collections.unmodifiableMap(exact),
+                    Collections.unmodifiableMap(namespaces),
                     Collections.unmodifiableMap(tagged),
                     anyRules.freeze()
             );

@@ -3,7 +3,9 @@ package com.jaffh.alkahestcore.dropscore.server.drops;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropBehavior;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropCount;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropEntry;
+import com.jaffh.alkahestcore.dropscore.common.drops.DropTracking;
 import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonus;
+import com.jaffh.alkahestcore.dropscore.server.progress.DropProgress;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
@@ -11,7 +13,8 @@ import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 import javax.annotation.Nullable;
 
 /**
- * Rolls single drops, shared by mob and block drops. Conditions are tested by the caller.
+ * Rolls single drops, shared by mob and block drops, updating the player's pity and one-time drop progress.
+ * Conditions are tested by the caller.
  */
 public final class DropRoller {
 
@@ -52,19 +55,84 @@ public final class DropRoller {
     }
 
     /**
-     * Rolls the count of one drop: chance first, then the count with the enchantment bonuses applied. For an
-     * experience drop the count is the amount of experience.
+     * Rolls the count of one drop, with the player's progress: a one-time drop happens once per player, ignoring
+     * its chance; a pity drop is forced on the miss that reaches its pity, and any drop resets its misses. Without a
+     * player, pity is ignored and one-time drops never happen. For an experience drop the count is the amount of
+     * experience.
      *
      * @param entry   Drop to roll. Never null.
-     * @param context Enchantment level, scale value and random source of the roll. Never null.
+     * @param context Enchantment level, scale value, random source and player of the roll. Never null.
      * @return The rolled count, 0 when the drop fails.
      */
     public static int rollCount(DropEntry entry, RollContext context) {
+        DropTracking tracking = entry.tracking();
+        if (!tracking.needsProgress()) return rollChanceAndCount(entry, context);
+
+        DropProgress progress = context.progress();
+        if (tracking.isFirstDrop()) {
+            return progress != null && progress.claimFirstDrop(tracking.key()) ? rollForcedCount(entry, context) : 0;
+        }
+        if (progress == null) return rollChanceAndCount(entry, context);
+        return rollWithPity(entry, context, progress);
+    }
+
+    /**
+     * Rolls a pity drop: a miss is counted, unless it is the miss that reaches the pity, which forces the drop.
+     *
+     * @param entry    Drop with pity. Never null.
+     * @param context  Roll context. Never null.
+     * @param progress Progress of the roll's player. Never null.
+     * @return The rolled count, 0 on a counted miss.
+     */
+    private static int rollWithPity(DropEntry entry, RollContext context, DropProgress progress) {
+        String key = entry.tracking().key();
+        int count = rollChanceAndCount(entry, context);
+        if (count > 0) {
+            progress.resetMisses(key);
+            return count;
+        }
+        if (progress.missesOf(key) + 1 >= entry.tracking().pity()) {
+            progress.resetMisses(key);
+            return rollForcedCount(entry, context);
+        }
+        progress.recordMiss(key);
+        return 0;
+    }
+
+    /**
+     * Rolls the count of a drop that must happen: the chance is skipped and the count is at least 1.
+     *
+     * @param entry   Drop to roll. Never null.
+     * @param context Roll context. Never null.
+     * @return The rolled count, 1 or more.
+     */
+    private static int rollForcedCount(DropEntry entry, RollContext context) {
+        return Math.max(1, rollCountOnly(entry, context));
+    }
+
+    /**
+     * Rolls the chance of a drop, then its count.
+     *
+     * @param entry   Drop to roll. Never null.
+     * @param context Roll context. Never null.
+     * @return The rolled count, 0 when the chance fails.
+     */
+    private static int rollChanceAndCount(DropEntry entry, RollContext context) {
+        double chance = entry.enchantBonus().chance().applyTo(entry.chance(), context.enchantLevel());
+        if (context.random().nextDouble() >= chance) return 0;
+        return rollCountOnly(entry, context);
+    }
+
+    /**
+     * Rolls the count of a drop with the enchantment bonuses applied, without its chance.
+     *
+     * @param entry   Drop to roll. Never null.
+     * @param context Roll context. Never null.
+     * @return The rolled count, 0 or more.
+     */
+    private static int rollCountOnly(DropEntry entry, RollContext context) {
         EnchantBonus bonus = entry.enchantBonus();
         int level = context.enchantLevel();
-        double chance = bonus.chance().applyTo(entry.chance(), level);
-        if (context.random().nextDouble() >= chance) return 0;
-
         DropCount range = entry.count().withBonus(bonus.count(), level);
         DropBehavior behavior = entry.behavior().withBonus(bonus.roll(), level);
         return behavior.type().rollCount(range, behavior, context.scaleValue(), context.random());
