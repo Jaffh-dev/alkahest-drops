@@ -1,5 +1,6 @@
 package com.jaffh.alkahestcore.dropscore.server.command;
 
+import com.jaffh.alkahestcore.dropscore.common.drops.DropNumbers;
 import com.jaffh.alkahestcore.dropscore.server.drops.DropManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.ClickEvent;
@@ -11,7 +12,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.Locale;
 
 /**
  * Builds the chat text shared by the {@code /dropscore} commands: clickable file ids and items, and numbers.
@@ -146,8 +146,7 @@ final class CommandText {
      * @return Such as {@code "1.5"} or {@code "3"}.
      */
     static String number(double value) {
-        String formatted = String.format(Locale.ROOT, "%.2f", value);
-        return formatted.replaceAll("\\.?0+$", "");
+        return DropNumbers.number(value);
     }
 
     /**
@@ -157,7 +156,7 @@ final class CommandText {
      * @return Such as {@code "12.5%"}.
      */
     static String percent(double ratio) {
-        return number(ratio * 100.0) + "%";
+        return DropNumbers.percent(ratio);
     }
 
     /**
