@@ -179,8 +179,8 @@ final class ResetCommand {
         static Selection ofTarget(ResourceLocation id) throws CommandSyntaxException {
             TargetLookup lookup = TargetLookup.of(id);
             Set<String> keys = new HashSet<>();
-            if (lookup.entity() != null) keys.addAll(MobDropManager.getTable(lookup.entity()).progressKeys());
-            if (lookup.block() != null) keys.addAll(BlockDropManager.getTable(lookup.block()).progressKeys());
+            if (lookup.entity() != null) keys.addAll(MobDropManager.INSTANCE.triggerTablesOf(lookup.entity()).progressKeys());
+            if (lookup.block() != null) keys.addAll(BlockDropManager.INSTANCE.triggerTablesOf(lookup.block()).progressKeys());
             return new Selection(CommandText.text(id.toString()), keys::contains);
         }
     }

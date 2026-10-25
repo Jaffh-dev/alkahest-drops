@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropEntry;
+import com.jaffh.alkahestcore.dropscore.common.drops.DropTrigger;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.DropFileJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.RemovalEntryJson;
 import com.mojang.logging.LogUtils;
@@ -11,6 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import org.slf4j.Logger;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -107,6 +109,7 @@ public final class DropFileParser {
      */
     private ParsedDropFile parseDropFile(DropFileJson file, String target, List<LootItemCondition> globalConditions,
                                          ParseContext ctx) throws DropDataException {
+        if (file.on != null) ctx.at("on").warn("trigger_on_drop_file");
         List<DropEntry> entries = new ArrayList<>(file.drops.size());
         Set<String> progressKeys = new HashSet<>();
         boolean isEverySkipAnUnknownId = !file.drops.isEmpty();
@@ -141,6 +144,7 @@ public final class DropFileParser {
     private ParsedDropFile parseRemovalFile(DropFileJson file, String target, List<LootItemCondition> globalConditions,
                                             ParseContext ctx) throws DropDataException {
         JsonArray removals = file.removals;
+        DropTrigger trigger = parseFileTrigger(file.on, ctx);
         List<RemovalEntry> entries = new ArrayList<>(removals.size());
         boolean isEverySkipAnUnknownId = !removals.isEmpty();
         for (int i = 0; i < removals.size(); i++) {
@@ -153,7 +157,22 @@ public final class DropFileParser {
             }
         }
         if (entries.isEmpty()) throw noValidEntries("no_valid_removals", isEverySkipAnUnknownId, ctx);
-        return new ParsedDropFile.Removals(target, new RemovalRule(ctx.fileId(), globalConditions, entries));
+        return new ParsedDropFile.Removals(target, new RemovalRule(ctx.fileId(), globalConditions, entries, trigger));
+    }
+
+    /**
+     * Resolves the top-level {@code on} of a removal file: death when missing, an error in block files.
+     *
+     * @param on  Raw trigger id, or null when missing.
+     * @param ctx Context of the file root. Never null.
+     * @return The trigger whose drops the file removes.
+     * @throws DropDataException If {@code on} is set in a block file or unknown.
+     */
+    private DropTrigger parseFileTrigger(@Nullable String on, ParseContext ctx) throws DropDataException {
+        if (on == null) return DropTrigger.DEATH;
+        ParseContext onCtx = ctx.at("on");
+        if (!format.canUseTriggers()) throw onCtx.error("trigger_in_block_file");
+        return DropTrigger.fromId(on).orElseThrow(() -> onCtx.error("unknown_trigger", on));
     }
 
     /**

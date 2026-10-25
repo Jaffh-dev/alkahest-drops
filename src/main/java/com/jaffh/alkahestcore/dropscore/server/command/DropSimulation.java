@@ -66,6 +66,7 @@ public final class DropSimulation {
      */
     private void record(SimulatedDrop drop) {
         runCount++;
+        if (drop.items().isEmpty() && drop.experience() <= 0) return;
         Set<TallyKey> keysOfRun = new HashSet<>();
         for (SimulatedStack simulated : drop.items()) {
             ItemStack stack = simulated.stack();

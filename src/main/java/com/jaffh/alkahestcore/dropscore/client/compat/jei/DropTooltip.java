@@ -5,8 +5,10 @@ import com.jaffh.alkahestcore.dropscore.common.drops.DropCount;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropNumbers;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropTracking;
 import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonus;
+import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonusEntry;
 import com.jaffh.alkahestcore.dropscore.common.drops.SyncedCondition;
 import com.jaffh.alkahestcore.dropscore.common.drops.SyncedDrop;
+import com.jaffh.alkahestcore.dropscore.common.drops.TriggerSettings;
 import mezz.jei.api.gui.builder.ITooltipBuilder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -17,6 +19,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraftforge.fml.ModContainer;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.forgespi.language.IModInfo;
 
@@ -24,18 +27,21 @@ import java.util.Locale;
 
 /**
  * Builds the tooltip of one drop. The short view says what the drop is: the chance bar, the count with its behavior,
- * the rolls, whether it has a Looting/Fortune bonus or conditions, and its per-player settings. Holding Shift replaces
- * it with the details: how the behavior works, the bonus per level and every condition. A removal file that may
+ * the rolls, whether it has an enchantment bonus or conditions, and its per-player settings. Holding Shift replaces
+ * it with the details: how the behavior works, the bonus per level of each enchantment and every condition. A removal file that may
  * remove the drop shows as a condition ("Not sneaking"). Both views end with the mod or datapack that added the drop.
  */
 final class DropTooltip {
     private static final ItemStack CONDITIONS_ICON = new ItemStack(Items.BARRIER);
+    /** Enchantment bonus: an enchanted book, which shows the glint. */
+    private static final ItemStack BONUS_ICON = new ItemStack(Items.ENCHANTED_BOOK);
     /** Pity: the drop comes with time. */
     private static final ItemStack PITY_ICON = new ItemStack(Items.CLOCK);
     /** One-time drop: there is only one dragon egg (drawn on a challenge frame, it is too dark for the tooltip). */
     private static final ItemStack FIRST_DROP_ICON = new ItemStack(Items.DRAGON_EGG);
     private static final String SKULL_OWNER_TAG = "SkullOwner";
     private static final String INDENT = "  ";
+    private static final String BONUS_LINE_INDENT = INDENT + INDENT;
 
     /**
      * Prevents instantiation of this utility class.
@@ -62,6 +68,33 @@ final class DropTooltip {
     }
 
     /**
+     * Creates text that names the action of a drop: the module's own wording on death or break ("kills",
+     * "breaks"), else the trigger's ("shears", "hits").
+     *
+     * @param drop   Drop. Never null.
+     * @param format Wording of the drop's module. Never null.
+     * @param key    Key without the module or trigger suffix, such as {@code pity}. Never null.
+     * @param args   Values of the key's placeholders. Never null.
+     * @return The text.
+     */
+    private static MutableComponent actionText(SyncedDrop drop, DropDisplayFormat format, String key, Object... args) {
+        if (drop.trigger().isDeath()) return format.moduleText(key, args);
+        return DropDisplayFormat.text(key + "." + drop.trigger().trigger().id(), args);
+    }
+
+    /**
+     * Formats a number of ticks as seconds, or minutes from one minute up.
+     *
+     * @param ticks Ticks, 1 or more.
+     * @return Such as "1.5 s" or "5 min".
+     */
+    private static MutableComponent durationOf(int ticks) {
+        double seconds = ticks / 20.0;
+        if (seconds < 60) return DropDisplayFormat.text("time.seconds", DropNumbers.number(seconds));
+        return DropDisplayFormat.text("time.minutes", DropNumbers.number(seconds / 60));
+    }
+
+    /**
      * Adds the short view.
      *
      * @param tooltip Tooltip being built. Never null.
@@ -79,18 +112,22 @@ final class DropTooltip {
             tooltip.add(DropDisplayFormat.text("rolls", Component.literal(String.valueOf(behavior.rolls())).withStyle(ChatFormatting.WHITE))
                     .withStyle(ChatFormatting.GRAY));
         }
+        TriggerSettings trigger = drop.trigger();
+        if (trigger.ticks() > 0) {
+            tooltip.add(DropDisplayFormat.text("ticks." + trigger.trigger().ticksKey(), durationOf(trigger.ticks()).withStyle(ChatFormatting.WHITE))
+                    .withStyle(ChatFormatting.GRAY));
+        }
         if (hasBonus(drop)) {
-            tooltip.add(new IconLine(format.bonusIcon(),
-                    DropDisplayFormat.text("has_bonus", format.bonusEnchantmentName()).withStyle(ChatFormatting.AQUA)));
+            tooltip.add(new IconLine(BONUS_ICON, DropDisplayFormat.text("has_bonus").withStyle(ChatFormatting.AQUA)));
         }
         if (hasConditions(drop)) {
             tooltip.add(new IconLine(CONDITIONS_ICON, DropDisplayFormat.text("has_conditions").withStyle(ChatFormatting.DARK_RED)));
         }
         if (tracking.hasPity() && !tracking.isFirstDrop()) {
-            tooltip.add(new IconLine(PITY_ICON, format.moduleText("pity", tracking.pity()).withStyle(ChatFormatting.GREEN)));
+            tooltip.add(new IconLine(PITY_ICON, actionText(drop, format, "pity", tracking.pity()).withStyle(ChatFormatting.GREEN)));
         }
         if (tracking.isFirstDrop()) {
-            tooltip.add(new IconLine(FIRST_DROP_ICON, format.moduleText("first_drop").withStyle(ChatFormatting.LIGHT_PURPLE), true));
+            tooltip.add(new IconLine(FIRST_DROP_ICON, actionText(drop, format, "first_drop").withStyle(ChatFormatting.LIGHT_PURPLE), true));
         }
         if (tracking.isPerPlayer()) {
             tooltip.add(new IconLine(viewerHead(), DropDisplayFormat.text("per_player").withStyle(ChatFormatting.YELLOW)));
@@ -108,9 +145,13 @@ final class DropTooltip {
     private static void addDetails(ITooltipBuilder tooltip, SyncedDrop drop, DropDisplayFormat format) {
         tooltip.add(behaviorDescription(drop.behavior(), drop.count()).withStyle(ChatFormatting.GRAY));
         if (hasBonus(drop)) {
-            tooltip.add(new IconLine(format.bonusIcon(),
-                    DropDisplayFormat.text("bonus_header", format.bonusEnchantmentName()).withStyle(ChatFormatting.AQUA)));
-            addBonusLines(tooltip, drop);
+            tooltip.add(new IconLine(BONUS_ICON, DropDisplayFormat.text("bonus_header").withStyle(ChatFormatting.AQUA)));
+            for (EnchantBonusEntry entry : drop.enchantBonuses().entries()) {
+                if (!hasBonus(drop, entry.bonus())) continue;
+                tooltip.add(Component.literal(INDENT).append(Component.translatable(entry.enchantment().getDescriptionId()))
+                        .withStyle(ChatFormatting.GRAY));
+                addBonusLines(tooltip, drop, entry.bonus());
+            }
         }
         if (hasConditions(drop)) {
             tooltip.add(new IconLine(CONDITIONS_ICON, DropDisplayFormat.text("conditions_header").withStyle(ChatFormatting.DARK_RED)));
@@ -123,15 +164,15 @@ final class DropTooltip {
     }
 
     /**
-     * Adds the per-level bonus lines that apply: chance, count (its min), and for roll-based drops rolls, roll chance
-     * and increment. Caps are not shown (the header says values may be capped).
+     * Adds the per-level bonus lines of one enchantment that apply: chance, count (its min), and for roll-based drops
+     * rolls, roll chance and increment. Caps are not shown (the header says values may be capped).
      *
      * @param tooltip Tooltip being built. Never null.
      * @param drop    Drop with a bonus. Never null.
+     * @param bonus   Bonus of one enchantment of the drop. Never null.
      */
-    private static void addBonusLines(ITooltipBuilder tooltip, SyncedDrop drop) {
-        EnchantBonus bonus = drop.enchantBonus();
-        if (hasChanceBonus(drop)) tooltip.add(bonusLine("bonus.chance", DropNumbers.percent(bonus.chance().bonusPerLevel())));
+    private static void addBonusLines(ITooltipBuilder tooltip, SyncedDrop drop, EnchantBonus bonus) {
+        if (hasChanceBonus(drop, bonus)) tooltip.add(bonusLine("bonus.chance", DropNumbers.percent(bonus.chance().bonusPerLevel())));
         EnchantBonus.CountBonus count = bonus.count();
         if (count.bonusMinPerLevel() > 0 || count.bonusMaxPerLevel() > 0) {
             tooltip.add(countBonusLine(count));
@@ -160,7 +201,7 @@ final class DropTooltip {
     }
 
     /**
-     * Builds one indented bonus line, such as "Chance: +10% per level": the label in aqua, the value in white, the
+     * Builds one bonus line, indented below its enchantment, such as "Chance: +10% per level": the label in aqua, the value in white, the
      * rest in gray.
      *
      * @param key   Translation key of the label, such as {@code bonus.chance} ("Chance:"). Never null.
@@ -181,7 +222,7 @@ final class DropTooltip {
     private static Component bonusLine(String key, MutableComponent value) {
         MutableComponent perLevel = DropDisplayFormat.text("bonus.per_level", value.withStyle(ChatFormatting.WHITE))
                 .withStyle(ChatFormatting.GRAY);
-        return Component.literal(INDENT)
+        return Component.literal(BONUS_LINE_INDENT)
                 .append(DropDisplayFormat.text(key).withStyle(ChatFormatting.AQUA))
                 .append(" ")
                 .append(perLevel);
@@ -223,34 +264,45 @@ final class DropTooltip {
             case UNIFORM -> DropDisplayFormat.text(key, count.min(), count.max());
             case FIXED_ROLLS, CHAINED_ROLLS -> DropDisplayFormat.text(key, count.min(), behavior.rolls(),
                     DropNumbers.percent(behavior.chancePerRoll()), behavior.incrementValue(), count.max());
-            case MAX_HEALTH, HARDNESS -> DropDisplayFormat.text(key,
+            case MAX_HEALTH, HARDNESS, DAMAGE_TAKEN -> DropDisplayFormat.text(key,
                     DropDisplayFormat.text("growth." + lower(behavior.scaleFormula().function())), count.min(), count.max());
         };
     }
 
     /**
-     * Tells whether the bonus enchantment changes anything about a drop.
+     * Tells whether any enchantment changes anything about a drop.
      *
      * @param drop Drop. Never null.
-     * @return True when its chance, count or (for roll-based drops) rolls grow with the enchantment level.
+     * @return True when some enchantment bonus shows at least one line.
      */
     private static boolean hasBonus(SyncedDrop drop) {
-        EnchantBonus bonus = drop.enchantBonus();
+        return drop.enchantBonuses().entries().stream().anyMatch(entry -> hasBonus(drop, entry.bonus()));
+    }
+
+    /**
+     * Tells whether one enchantment changes anything about a drop.
+     *
+     * @param drop  Drop. Never null.
+     * @param bonus Bonus of one enchantment of the drop. Never null.
+     * @return True when its chance, count or (for roll-based drops) rolls grow with the enchantment level.
+     */
+    private static boolean hasBonus(SyncedDrop drop, EnchantBonus bonus) {
         EnchantBonus.CountBonus count = bonus.count();
         EnchantBonus.RollBonus roll = bonus.roll();
         boolean hasRollBonus = roll.bonusRollsPerLevel() > 0 || roll.bonusRollChancePerLevel() > 0 || roll.bonusIncrementPerLevel() > 0;
-        return hasChanceBonus(drop) || count.bonusMinPerLevel() > 0 || count.bonusMaxPerLevel() > 0
+        return hasChanceBonus(drop, bonus) || count.bonusMinPerLevel() > 0 || count.bonusMaxPerLevel() > 0
                 || (hasRollBonus && drop.behavior().type().needsRollSettings());
     }
 
     /**
-     * Tells whether the bonus enchantment raises a drop's chance; one-time drops ignore their chance.
+     * Tells whether one enchantment raises a drop's chance; one-time drops ignore their chance.
      *
-     * @param drop Drop. Never null.
+     * @param drop  Drop. Never null.
+     * @param bonus Bonus of one enchantment of the drop. Never null.
      * @return True when the chance grows with the enchantment level.
      */
-    private static boolean hasChanceBonus(SyncedDrop drop) {
-        return drop.enchantBonus().chance().bonusPerLevel() > 0 && !drop.tracking().isFirstDrop();
+    private static boolean hasChanceBonus(SyncedDrop drop, EnchantBonus bonus) {
+        return bonus.chance().bonusPerLevel() > 0 && !drop.tracking().isFirstDrop();
     }
 
     /**
@@ -286,7 +338,7 @@ final class DropTooltip {
      */
     private static String modNameOf(String namespace) {
         return ModList.get().getModContainerById(namespace)
-                .map(container -> container.getModInfo())
+                .map(ModContainer::getModInfo)
                 .map(IModInfo::getDisplayName)
                 .orElse(namespace);
     }

@@ -8,6 +8,7 @@ import com.jaffh.alkahestcore.dropscore.server.mobdrops.HitTracker;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.LootingOverride;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.MobDropInjector;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.MobDropManager;
+import com.jaffh.alkahestcore.dropscore.server.mobdrops.TriggerDropInjector;
 import com.jaffh.alkahestcore.dropscore.server.progress.DropProgressEvents;
 import com.jaffh.alkahestcore.dropscore.server.progress.ProgressPruner;
 import com.jaffh.alkahestcore.dropscore.server.sync.DropRulesSender;
@@ -43,6 +44,7 @@ public final class DropscoreServerEvents {
 
         forgeEventBus.addListener(DropscoreServerEvents::onAddReloadListener);
         forgeEventBus.register(new MobDropInjector());
+        forgeEventBus.register(new TriggerDropInjector());
         forgeEventBus.addListener(MobDropManager.INSTANCE::onTagsUpdated);
         forgeEventBus.register(new BlockBreakHandler());
         forgeEventBus.addListener(BlockDropManager.INSTANCE::onTagsUpdated);

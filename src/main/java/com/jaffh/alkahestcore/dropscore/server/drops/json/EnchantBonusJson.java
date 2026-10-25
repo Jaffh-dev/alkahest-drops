@@ -3,7 +3,7 @@ package com.jaffh.alkahestcore.dropscore.server.drops.json;
 import com.google.gson.annotations.SerializedName;
 
 /**
- * Gson DTO of {@code on_looting} (mob files) or {@code on_fortune} (block files). Every field is null when its key is missing.
+ * Gson DTO of {@code on_enchant}, the bonus of one {@code enchant_bonus} entry. Every field is null when its key is missing.
  */
 public class EnchantBonusJson {
     @SerializedName("bonus_chance")

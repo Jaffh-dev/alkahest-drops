@@ -2,6 +2,7 @@ package com.jaffh.alkahestcore.dropscore.gametest;
 
 import com.jaffh.alkahestcore.AlkahestCore;
 import com.jaffh.alkahestcore.dropscore.server.drops.DropTable;
+import com.jaffh.alkahestcore.dropscore.server.drops.EnchantLevels;
 import com.jaffh.alkahestcore.dropscore.server.drops.RollContext;
 import com.jaffh.alkahestcore.dropscore.server.drops.RolledDrop;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.HitTracker;
@@ -511,6 +512,6 @@ public class ProgressGameTests {
      * @return The roll context.
      */
     private static RollContext rollOf(GameTestHelper helper, Player player) {
-        return new RollContext(0, 30.0F, helper.getLevel().getRandom(), player);
+        return new RollContext(EnchantLevels.NONE, 30.0F, helper.getLevel().getRandom(), player);
     }
 }

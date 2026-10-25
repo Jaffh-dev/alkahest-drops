@@ -262,3 +262,11 @@ tasks.withType(JavaCompile).configureEach {
 tasks.matching { it.name == 'runGameTestServer' || (it.name == 'runClient' && project.hasProperty('withGameTests')) }.configureEach {
     dependsOn 'gametestClasses'
 }
+
+// Every GameTest run starts from a fresh world: entities a run leaves behind (dropped items, mobs) could otherwise
+// survive the next run's arena clearing and be counted by its tests.
+tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+    doFirst {
+        delete file('run-gametest/world')
+    }
+}

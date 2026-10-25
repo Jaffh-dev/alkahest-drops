@@ -6,7 +6,10 @@ import com.google.gson.JsonObject;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropBehavior;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropCount;
 import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonus;
+import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonusEntry;
+import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonuses;
 import com.jaffh.alkahestcore.dropscore.common.drops.SyncedDrop;
+import com.jaffh.alkahestcore.dropscore.common.drops.TriggerSettings;
 import com.jaffh.alkahestcore.dropscore.common.drops.SyncedDropSource;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.Holder;
@@ -17,17 +20,21 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.storage.loot.Deserializers;
 import net.minecraft.world.level.storage.loot.LootDataResolver;
 import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraftforge.registries.ForgeRegistries;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
- * Turns a loot table into the drops JEI shows: one entry per item, with its chance, count range, Looting or Fortune
- * bonus and other conditions. The table is serialized back to JSON with vanilla's own serializer,
+ * Turns a loot table into the drops JEI shows: one entry per item, with its chance, count range, enchantment
+ * bonuses and other conditions. The table is serialized back to JSON with vanilla's own serializer,
  * so datapack changes and modded entry types are read the same way, without access to private fields.
  * <p>
  * The chance of an entry is its share of the pool's weights, times the random chance conditions, over the pool's
@@ -46,19 +53,16 @@ final class LootTableAnalyzer {
     private static final ResourceLocation SEQUENCE = new ResourceLocation("sequence");
 
     private final LootDataResolver lootData;
-    private final ResourceLocation bonusEnchantment;
     private final ConditionDescriber conditionDescriber;
 
     /**
      * Creates an analyzer for one module.
      *
      * @param lootData           Loot tables of the server. Never null.
-     * @param bonusEnchantment   Id of the module's bonus enchantment ({@code looting} or {@code fortune}). Never null.
      * @param conditionDescriber Describes the conditions of the module. Never null.
      */
-    LootTableAnalyzer(LootDataResolver lootData, ResourceLocation bonusEnchantment, ConditionDescriber conditionDescriber) {
+    LootTableAnalyzer(LootDataResolver lootData, ConditionDescriber conditionDescriber) {
         this.lootData = lootData;
-        this.bonusEnchantment = bonusEnchantment;
         this.conditionDescriber = conditionDescriber;
     }
 
@@ -110,7 +114,7 @@ final class LootTableAnalyzer {
      */
     private void addPool(JsonObject pool, List<JsonElement> tableFunctions, double factor, int depth, Output output) {
         LootNumberRange rolls = LootNumberRange.of(pool.get("rolls"), 1);
-        LootConditionSummary poolConditions = LootConditionSummary.of(LootJson.array(pool, "conditions"), bonusEnchantment);
+        LootConditionSummary poolConditions = LootConditionSummary.of(LootJson.array(pool, "conditions"));
         List<JsonElement> outerFunctions = new ArrayList<>(LootJson.array(pool, "functions"));
         outerFunctions.addAll(tableFunctions);
 
@@ -123,7 +127,7 @@ final class LootTableAnalyzer {
         for (Choice choice : choices) {
             for (Leaf leaf : choice.leaves()) {
                 double pick = leaf.weight() / (totalWeight - choice.weight() + leaf.weight());
-                LootConditionSummary conditions = poolConditions.and(LootConditionSummary.of(leaf.conditions(), bonusEnchantment));
+                LootConditionSummary conditions = poolConditions.and(LootConditionSummary.of(leaf.conditions()));
                 double chance = factor * rolls.chanceOfAtLeastOne(pick * conditions.factor());
                 if (leaf.tableId() != null) {
                     addTable(leaf.tableId(), chance, depth + 1, output);
@@ -131,20 +135,42 @@ final class LootTableAnalyzer {
                 }
                 List<JsonElement> functions = new ArrayList<>(leaf.functions());
                 functions.addAll(outerFunctions);
-                LootCountSummary count = LootCountSummary.of(functions, bonusEnchantment);
-                double bonusScale = factor * pick;
-                EnchantBonus bonus = new EnchantBonus(
-                        new EnchantBonus.ChanceBonus(conditions.bonusPerLevel() * bonusScale, conditions.bonusCap() * bonusScale),
-                        EnchantBonus.RollBonus.NONE,
-                        count.bonus());
+                LootCountSummary count = LootCountSummary.of(functions);
+                EnchantBonuses bonus = bonusesOf(conditions, count, factor * pick);
                 DropCount range = new DropCount(count.count().min(), count.count().max() * Math.max(1, rolls.maxInt()));
                 ConditionDescriber.Description described = conditionDescriber.describeJson(conditions.others());
                 for (Item item : leaf.items()) {
                     output.drops().add(new SyncedDrop(new ItemStack(item), Math.min(1.0, chance), range, DropBehavior.UNIFORM,
-                            bonus, SyncedDrop.UNTRACKED, described.conditions(), described.hasHidden(), output.source()));
+                            bonus, SyncedDrop.UNTRACKED, described.conditions(), described.hasHidden(), output.source(),
+                            TriggerSettings.DEATH));
                 }
             }
         }
+    }
+
+    /**
+     * Builds the enchantment bonuses of one entry from its random chances and count functions, one entry per
+     * registered enchantment they scale with.
+     *
+     * @param conditions  Summary of the entry's and pool's conditions. Never null.
+     * @param count       Summary of the entry's functions. Never null.
+     * @param chanceScale Factor of the chance bonus: the chance the table is rolled times the entry's pick chance.
+     * @return The bonuses, chance bonuses first.
+     */
+    private static EnchantBonuses bonusesOf(LootConditionSummary conditions, LootCountSummary count, double chanceScale) {
+        Set<ResourceLocation> ids = new LinkedHashSet<>(conditions.bonuses().keySet());
+        ids.addAll(count.bonuses().keySet());
+        List<EnchantBonusEntry> entries = new ArrayList<>(ids.size());
+        for (ResourceLocation id : ids) {
+            Enchantment enchantment = ForgeRegistries.ENCHANTMENTS.getValue(id);
+            if (enchantment == null) continue;
+            EnchantBonus.ChanceBonus chance = conditions.bonuses().get(id);
+            EnchantBonus.ChanceBonus scaledChance = chance == null ? EnchantBonus.ChanceBonus.NONE
+                    : new EnchantBonus.ChanceBonus(chance.bonusPerLevel() * chanceScale, chance.maxBonus() * chanceScale);
+            entries.add(new EnchantBonusEntry(enchantment, new EnchantBonus(scaledChance, EnchantBonus.RollBonus.NONE,
+                    count.bonuses().getOrDefault(id, EnchantBonus.CountBonus.NONE))));
+        }
+        return entries.isEmpty() ? EnchantBonuses.NONE : new EnchantBonuses(entries);
     }
 
     /**

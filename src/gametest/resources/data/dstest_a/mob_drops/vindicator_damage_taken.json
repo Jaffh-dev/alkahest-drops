@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "entity": "minecraft:vindicator",
+  "drops": [
+    { "item": "minecraft:gold_ingot", "chance": 1.0, "count": { "min": 0, "max": 64 }, "on": "hit",
+      "drop_behavior": { "type": "damage_taken", "function": "linear", "multiplier": 1, "divisor": 1 } }
+  ]
+}

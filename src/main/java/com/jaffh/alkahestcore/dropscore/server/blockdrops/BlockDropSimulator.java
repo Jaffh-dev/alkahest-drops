@@ -59,7 +59,7 @@ public final class BlockDropSimulator implements IDropSimulator {
      * @param setup  Level, position and actor of the simulation. Never null.
      * @param state  Broken block state. Never null.
      * @param player Breaking player, or null for nobody or an explosion.
-     * @param tool   Tool of every break, with the forced Fortune level applied; empty for an explosion. Never null.
+     * @param tool   Tool of every break, with the forced enchantments applied; empty for an explosion. Never null.
      */
     private BlockDropSimulator(SimulationSetup setup, BlockState state, @Nullable Player player, ItemStack tool) {
         this.level = setup.level();
@@ -79,19 +79,19 @@ public final class BlockDropSimulator implements IDropSimulator {
      * Creates a simulator for a block state.
      *
      * @param state Block state to break. Never null.
-     * @param setup Level, position, actor, flags and forced Fortune of the simulation. Never null.
+     * @param setup Level, position, actor, flags and forced enchantments of the simulation. Never null.
      * @return The simulator.
      * @throws InvalidSimulationException If the setup does not fit a block break: an entity actor, {@code burning},
-     *                                  {@code sneaking} without a player, or Fortune without a tool.
+     *                                  {@code sneaking} without a player, or enchantments without a tool.
      */
     public static BlockDropSimulator create(BlockState state, SimulationSetup setup) {
         SimulationActor actor = getActor(setup);
 
         Player player = actor instanceof SimulationActor.AsPlayer asPlayer ? setup.createPlayer(asPlayer) : null;
         ItemStack tool = toolOf(actor, player);
-        if (setup.enchantLevel().isPresent()) {
-            if (tool.isEmpty()) throw new InvalidSimulationException(IDropSimulator.setupText("fortune_without_tool"));
-            setFortune(tool, setup.enchantLevel().getAsInt());
+        if (!setup.enchantments().isEmpty()) {
+            if (tool.isEmpty()) throw new InvalidSimulationException(IDropSimulator.setupText("enchant_without_tool"));
+            applyEnchantments(tool, setup.enchantments());
         }
         return new BlockDropSimulator(setup, state, player, tool);
     }
@@ -116,7 +116,7 @@ public final class BlockDropSimulator implements IDropSimulator {
 
     /**
      * Returns the tool of the actor. A player's tool is the fake player's own main-hand stack, so equipment
-     * conditions see the same Fortune as the loot context.
+     * conditions see the same enchantments as the loot context.
      *
      * @param actor  Actor of the simulation. Never null.
      * @param player Fake player of a player actor, or null.
@@ -129,18 +129,21 @@ public final class BlockDropSimulator implements IDropSimulator {
     }
 
     /**
-     * Sets the Fortune level of a tool, replacing the one it has.
+     * Puts the forced enchantments on a tool, replacing the levels it has, so vanilla {@code apply_bonus},
+     * {@code match_tool} and the block's experience read them too.
      *
-     * @param tool         Tool to enchant. Never null, not empty.
-     * @param fortuneLevel Level to set; 0 removes Fortune.
+     * @param tool   Tool to enchant. Never null, not empty.
+     * @param forced Levels to set; a level of 0 removes the enchantment. Never null.
      */
-    private static void setFortune(ItemStack tool, int fortuneLevel) {
+    private static void applyEnchantments(ItemStack tool, Map<Enchantment, Integer> forced) {
         Map<Enchantment, Integer> enchantments = EnchantmentHelper.getEnchantments(tool);
-        if (fortuneLevel > 0) {
-            enchantments.put(Enchantments.BLOCK_FORTUNE, fortuneLevel);
-        } else {
-            enchantments.remove(Enchantments.BLOCK_FORTUNE);
-        }
+        forced.forEach((enchantment, level) -> {
+            if (level > 0) {
+                enchantments.put(enchantment, level);
+            } else {
+                enchantments.remove(enchantment);
+            }
+        });
         EnchantmentHelper.setEnchantments(enchantments, tool);
     }
 
@@ -215,19 +218,25 @@ public final class BlockDropSimulator implements IDropSimulator {
     }
 
     /**
-     * Returns the name of the simulated block.
+     * Names one run: a block break.
      *
-     * @return The translated block name.
+     * @return {@code break}.
      */
+    @Override
+    public String runNoun() {
+        return "break";
+    }
+
     @Override
     public Component targetName() {
         return state.getBlock().getName();
     }
 
     /**
-     * Describes the breaker, the tool and the Fortune level, and warns when the tool cannot harvest the block.
+     * Describes the breaker, the tool and its enchantments, and warns when the tool cannot harvest the block.
      *
-     * @return Such as {@code "player: Dev, sneaking, tool: Diamond Pickaxe, Fortune 3"} or {@code "TNT explosion"}.
+     * @return Such as {@code "player: Dev, sneaking, tool: Diamond Pickaxe, enchantments: Fortune 3"} or
+     *         {@code "TNT explosion"}.
      */
     @Override
     public Component describeSetup() {
@@ -244,8 +253,7 @@ public final class BlockDropSimulator implements IDropSimulator {
         }
         Component toolName = tool.isEmpty() ? IDropSimulator.setupText("empty_hand") : tool.getHoverName();
         text.append(", ").append(IDropSimulator.setupText("tool", toolName))
-                .append(", ").append(IDropSimulator.setupText("fortune",
-                        EnchantmentHelper.getItemEnchantmentLevel(Enchantments.BLOCK_FORTUNE, tool)));
+                .append(", ").append(IDropSimulator.enchantmentsText(EnchantmentHelper.getEnchantments(tool)));
         if (!canHarvest) text.append(", ").append(IDropSimulator.setupText("cannot_harvest"));
         return text;
     }

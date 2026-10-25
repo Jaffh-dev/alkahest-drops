@@ -182,6 +182,25 @@ public class MobDropGameTests {
     }
 
     /**
+     * The bonuses of different enchantments add up: 1 echo shard, + 1 per Looting level and + 2 per Sharpness level,
+     * so 9 with Looting II and Sharpness III on the killer's sword.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void enchantBonusesAddUp(GameTestHelper helper) {
+        ItemStack sword = new ItemStack(Items.DIAMOND_SWORD);
+        sword.enchant(Enchantments.MOB_LOOTING, 2);
+        sword.enchant(Enchantments.SHARPNESS, 3);
+        Player player = DropTestKit.playerHolding(helper, sword);
+        DropTestKit.killByPlayer(DropTestKit.spawnMob(helper, EntityType.EVOKER), player);
+        helper.runAfterDelay(1, () -> {
+            DropTestKit.assertItemCount(helper, Items.ECHO_SHARD, 9);
+            helper.succeed();
+        });
+    }
+
+    /**
      * A removal file with an experience entry and an experience drop of the same namespace set the experience:
      * 4 + 2 per Looting level, so 10 with Looting III, and none of the chicken's vanilla experience.
      *
@@ -328,7 +347,16 @@ public class MobDropGameTests {
         DropTestKit.assertIssue(issues, "bad_max_health", "drops[1].drop_behavior.function", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "bad_max_health", "drops[2].drop_behavior.rolls", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "block_key_in_mob_file", "block", DropIssue.Severity.ERROR);
-        DropTestKit.assertIssue(issues, "on_fortune_in_mob_file", "drops[0].on_fortune", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "enchant_bonus_issues", "drops[0].enchant_bonus", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "enchant_bonus_issues", "drops[1].enchant_bonus", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "enchant_bonus_issues", "drops[2].enchant_bonus[0].enchant", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "enchant_bonus_issues", "drops[3].enchant_bonus[0].on_enchant", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "enchant_bonus_issues", "drops[4].enchant_bonus[1].enchant", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "enchant_bonus_issues", "drops[5].enchant_bonus[0].enchant", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "enchant_bonus_issues", "drops[6].chance", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "enchant_bonus_issues", "drops[7].enchant_bonus", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "enchant_bonus_issues", "drops[8].enchant_bonus[0].on_enchant.bonus_roll",
+                DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "hardness_on_mob", "drops[0].drop_behavior.type", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "hardness_on_mob", "", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "no_entries", "", DropIssue.Severity.ERROR);

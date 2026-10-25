@@ -2,23 +2,26 @@ package com.jaffh.alkahestcore.dropscore.server.sync;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonus;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Summarizes the loot conditions of a pool or entry: random chances become a chance factor and an enchantment bonus,
  * every other condition is kept as JSON for {@link ConditionDescriber}.
  *
- * @param factor        Product of the random chances (0–1).
- * @param bonusPerLevel Chance added per level of the bonus enchantment, before the other factors.
- * @param bonusCap      Highest chance the bonus can add, before the other factors.
- * @param others        Conditions that are not random chances, in order. Immutable, never null.
+ * @param factor  Product of the random chances (0–1).
+ * @param bonuses Chance bonus of each enchantment, by enchantment id: the chance added per level and the highest
+ *                chance it can add, both before the other factors. Immutable, never null.
+ * @param others  Conditions that are not random chances, in order. Immutable, never null.
  */
-record LootConditionSummary(double factor, double bonusPerLevel, double bonusCap, List<JsonElement> others) {
+record LootConditionSummary(double factor, Map<ResourceLocation, EnchantBonus.ChanceBonus> bonuses, List<JsonElement> others) {
     /** No conditions. */
-    static final LootConditionSummary NONE = new LootConditionSummary(1.0, 0.0, 0.0, List.of());
+    static final LootConditionSummary NONE = new LootConditionSummary(1.0, Map.of(), List.of());
 
     private static final ResourceLocation RANDOM_CHANCE = new ResourceLocation("random_chance");
     private static final ResourceLocation RANDOM_CHANCE_WITH_LOOTING = new ResourceLocation("random_chance_with_looting");
@@ -30,14 +33,12 @@ record LootConditionSummary(double factor, double bonusPerLevel, double bonusCap
     /**
      * Summarizes serialized conditions.
      *
-     * @param conditions       Serialized conditions. Never null.
-     * @param bonusEnchantment Id of the module's bonus enchantment ({@code looting} or {@code fortune}). Never null.
+     * @param conditions Serialized conditions. Never null.
      * @return The summary.
      */
-    static LootConditionSummary of(List<JsonElement> conditions, ResourceLocation bonusEnchantment) {
+    static LootConditionSummary of(List<JsonElement> conditions) {
         double factor = 1.0;
-        double bonusPerLevel = 0.0;
-        double bonusCap = 0.0;
+        Map<ResourceLocation, EnchantBonus.ChanceBonus> bonuses = new LinkedHashMap<>();
         List<JsonElement> others = new ArrayList<>();
         for (JsonElement element : conditions) {
             if (!element.isJsonObject()) continue;
@@ -48,36 +49,50 @@ record LootConditionSummary(double factor, double bonusPerLevel, double bonusCap
                 factor *= LootJson.number(condition, "chance", 1.0);
             } else if (type.equals(RANDOM_CHANCE_WITH_LOOTING)) {
                 factor *= LootJson.number(condition, "chance", 1.0);
-                if (bonusEnchantment.equals(LOOTING)) {
-                    bonusPerLevel += LootJson.number(condition, "looting_multiplier", 0.0);
-                    bonusCap = 1.0;
-                }
+                addBonus(bonuses, LOOTING, LootJson.number(condition, "looting_multiplier", 0.0), 1.0);
             } else if (type.equals(TABLE_BONUS)) {
                 List<JsonElement> chances = LootJson.array(condition, "chances");
                 double first = chances.isEmpty() ? 1.0 : chances.get(0).getAsDouble();
                 factor *= first;
-                if (chances.size() > 1 && bonusEnchantment.equals(LootJson.id(condition, "enchantment"))) {
+                ResourceLocation enchantment = LootJson.id(condition, "enchantment");
+                if (chances.size() > 1 && enchantment != null) {
                     double last = chances.get(chances.size() - 1).getAsDouble();
-                    bonusPerLevel += (last - first) / (chances.size() - 1);
-                    bonusCap += last - first;
+                    addBonus(bonuses, enchantment, (last - first) / (chances.size() - 1), last - first);
                 }
             } else {
                 others.add(condition);
             }
         }
-        return new LootConditionSummary(factor, bonusPerLevel, bonusCap, List.copyOf(others));
+        return new LootConditionSummary(factor, Map.copyOf(bonuses), List.copyOf(others));
+    }
+
+    /**
+     * Adds a chance bonus of one enchantment to the bonuses found so far: per-level chances and caps add up, the cap
+     * staying at most 1.
+     *
+     * @param bonuses     Bonuses by enchantment id. Never null.
+     * @param enchantment Id of the enchantment. Never null.
+     * @param perLevel    Chance added per level.
+     * @param cap         Highest chance it can add.
+     */
+    private static void addBonus(Map<ResourceLocation, EnchantBonus.ChanceBonus> bonuses, ResourceLocation enchantment,
+                                 double perLevel, double cap) {
+        if (perLevel <= 0) return;
+        bonuses.merge(enchantment, new EnchantBonus.ChanceBonus(perLevel, cap), (first, second) -> new EnchantBonus.ChanceBonus(
+                first.bonusPerLevel() + second.bonusPerLevel(), Math.min(1.0, first.maxBonus() + second.maxBonus())));
     }
 
     /**
      * Combines two summaries, such as a pool's and one of its entries'.
      *
      * @param other Summary to add. Never null.
-     * @return The combined summary: factors multiplied, bonuses added, other conditions joined.
+     * @return The combined summary: factors multiplied, bonuses of the same enchantment added, other conditions joined.
      */
     LootConditionSummary and(LootConditionSummary other) {
         List<JsonElement> merged = new ArrayList<>(others);
         merged.addAll(other.others);
-        return new LootConditionSummary(factor * other.factor, bonusPerLevel + other.bonusPerLevel,
-                Math.min(1.0, bonusCap + other.bonusCap), List.copyOf(merged));
+        Map<ResourceLocation, EnchantBonus.ChanceBonus> mergedBonuses = new LinkedHashMap<>(bonuses);
+        other.bonuses.forEach((enchantment, bonus) -> addBonus(mergedBonuses, enchantment, bonus.bonusPerLevel(), bonus.maxBonus()));
+        return new LootConditionSummary(factor * other.factor, Map.copyOf(mergedBonuses), List.copyOf(merged));
     }
 }

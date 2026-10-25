@@ -4,6 +4,8 @@ import com.jaffh.alkahestcore.dropscore.common.drops.DropBehaviorType;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropEntry;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropNumbers;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropTracking;
+import com.jaffh.alkahestcore.dropscore.common.drops.DropTrigger;
+import com.jaffh.alkahestcore.dropscore.common.drops.TriggerSettings;
 import com.jaffh.alkahestcore.dropscore.server.drops.DropFileFormat;
 import com.jaffh.alkahestcore.dropscore.server.drops.DropManager;
 import com.jaffh.alkahestcore.dropscore.server.drops.ItemTarget;
@@ -50,7 +52,7 @@ final class RuleText {
      * @param format        Format of the drop's file, which names its one-time drops. Never null.
      * @param isConditional Whether the file or the drop has conditions.
      * @return Such as "1–3 (5%)", "3–7 XP (100%), max_health" or
-     *         "1 (50%), functions, pity 20, per player, conditional", in the player's language.
+     *         "1 (50%), functions, pity 20, per player, on shear, conditional", in the player's language.
      */
     static MutableComponent describeDrop(DropEntry entry, DropFileFormat format, boolean isConditional) {
         MutableComponent text = CommandText.text(DropNumbers.range(entry.count()));
@@ -63,8 +65,34 @@ final class RuleText {
         if (tracking.hasPity()) text.append(", ").append(CommandText.lang("rule.pity", tracking.pity()));
         if (tracking.isFirstDrop()) text.append(", ").append(CommandText.lang("rule." + format.firstDropKey()));
         if (tracking.isPerPlayer()) text.append(", ").append(CommandText.lang("rule.per_player"));
+        if (!entry.trigger().isDeath()) text.append(", ").append(trigger(entry.trigger()));
         if (isConditional) text.append(", ").append(conditional());
         return text;
+    }
+
+    /**
+     * Names the trigger of a drop with its tick setting.
+     *
+     * @param settings Trigger settings of the drop. Never null.
+     * @return Such as "on shear", "on hit, cooldown 20 ticks" or "periodic, every 6000 ticks".
+     */
+    static MutableComponent trigger(TriggerSettings settings) {
+        MutableComponent text = CommandText.lang("rule.trigger." + settings.trigger().id());
+        if (settings.ticks() > 0) {
+            text.append(", ").append(CommandText.lang("rule.ticks." + settings.trigger().ticksKey(), settings.ticks()));
+        }
+        return text;
+    }
+
+    /**
+     * Returns the trigger note of a removal line.
+     *
+     * @param trigger Trigger whose drops the removal file removes. Never null.
+     * @return Such as ", on shear", or empty text for death.
+     */
+    static MutableComponent removalTrigger(DropTrigger trigger) {
+        if (trigger == DropTrigger.DEATH) return CommandText.text("");
+        return CommandText.text(", ", ChatFormatting.WHITE).append(CommandText.lang("rule.trigger." + trigger.id()));
     }
 
     /**

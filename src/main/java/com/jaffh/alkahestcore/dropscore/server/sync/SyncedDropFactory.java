@@ -1,6 +1,7 @@
 package com.jaffh.alkahestcore.dropscore.server.sync;
 
 import com.jaffh.alkahestcore.dropscore.common.drops.DropCount;
+import com.jaffh.alkahestcore.dropscore.common.drops.DropTrigger;
 import com.jaffh.alkahestcore.dropscore.common.drops.SyncedDrop;
 import com.jaffh.alkahestcore.dropscore.common.drops.SyncedDropRules;
 import com.jaffh.alkahestcore.dropscore.common.drops.SyncedTarget;
@@ -32,8 +33,6 @@ import java.util.function.IntSupplier;
  */
 public final class SyncedDropFactory {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final ResourceLocation LOOTING = new ResourceLocation("looting");
-    private static final ResourceLocation FORTUNE = new ResourceLocation("fortune");
     /** Experience samples per target; vanilla rolls mob and ore experience at random. */
     private static final int EXPERIENCE_SAMPLES = 32;
 
@@ -60,14 +59,17 @@ public final class SyncedDropFactory {
      * @return The mob targets, in registry order.
      */
     private static List<SyncedTarget> mobsOf(MinecraftServer server) {
-        TargetDropsBuilder builder = builderOf(server, LOOTING, false);
+        TargetDropsBuilder builder = builderOf(server, false);
         ServerLevel level = server.overworld();
         List<SyncedTarget> targets = new ArrayList<>();
         for (EntityType<?> type : ForgeRegistries.ENTITY_TYPES.getValues()) {
             if (type == EntityType.PLAYER || !DefaultAttributes.hasSupplier(type)) continue;
             ResourceLocation id = ForgeRegistries.ENTITY_TYPES.getKey(type);
-            List<SyncedDrop> drops = builder.build(id, type.getDefaultLootTable(), MobDropManager.getTable(type),
-                    mobExperienceOf(type, level));
+            List<SyncedDrop> drops = new ArrayList<>(builder.build(id, type.getDefaultLootTable(), MobDropManager.getTable(type),
+                    mobExperienceOf(type, level)));
+            for (DropTrigger trigger : DropTrigger.values()) {
+                if (trigger != DropTrigger.DEATH) drops.addAll(builder.buildTriggered(MobDropManager.getTable(type, trigger)));
+            }
             if (!drops.isEmpty()) targets.add(new SyncedTarget(id, drops));
         }
         return targets;
@@ -80,7 +82,7 @@ public final class SyncedDropFactory {
      * @return The block targets, in registry order.
      */
     private static List<SyncedTarget> blocksOf(MinecraftServer server) {
-        TargetDropsBuilder builder = builderOf(server, FORTUNE, true);
+        TargetDropsBuilder builder = builderOf(server, true);
         ServerLevel level = server.overworld();
         List<SyncedTarget> targets = new ArrayList<>();
         for (Block block : ForgeRegistries.BLOCKS.getValues()) {
@@ -96,14 +98,13 @@ public final class SyncedDropFactory {
     /**
      * Creates the target builder of one module.
      *
-     * @param server           Running server. Never null.
-     * @param bonusEnchantment Id of the module's bonus enchantment. Never null.
-     * @param isBlock          Whether the module is block drops.
+     * @param server  Running server. Never null.
+     * @param isBlock Whether the module is block drops.
      * @return The builder.
      */
-    private static TargetDropsBuilder builderOf(MinecraftServer server, ResourceLocation bonusEnchantment, boolean isBlock) {
+    private static TargetDropsBuilder builderOf(MinecraftServer server, boolean isBlock) {
         ConditionDescriber describer = new ConditionDescriber(isBlock);
-        return new TargetDropsBuilder(new LootTableAnalyzer(server.getLootData(), bonusEnchantment, describer), describer);
+        return new TargetDropsBuilder(new LootTableAnalyzer(server.getLootData(), describer), describer);
     }
 
     /**

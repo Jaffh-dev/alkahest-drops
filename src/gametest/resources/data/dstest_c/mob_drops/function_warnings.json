@@ -8,7 +8,7 @@
     { "item": "minecraft:stick", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" }, "functions": [ { "function": "minecraft:set_count", "count": 2 } ] },
     { "item": "minecraft:stick", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" }, "functions": [ { "function": "minecraft:set_count", "count": 2, "add": true } ] },
     { "item": "minecraft:stick", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" },
-      "on_looting": { "bonus_count": { "bonus_max_per_level": 1 } },
+      "enchant_bonus": [ { "enchant": "minecraft:looting", "on_enchant": { "bonus_count": { "bonus_max_per_level": 1 } } } ],
       "functions": [ { "function": "minecraft:looting_enchant", "count": { "min": 0, "max": 1 } } ] }
   ]
 }

@@ -55,6 +55,23 @@ public enum DropBehaviorType {
         public int rollCount(DropCount range, DropBehavior behavior, float scaleValue, RandomSource random) {
             return behavior.scaleFormula().countFor(scaleValue, range);
         }
+    },
+    /**
+     * Count from the damage the mob took from a hit, after armor, Resistance and absorption and capped at the health
+     * it had, with the {@code max_health} formula; mob hit drops only. No damage drops nothing, whatever
+     * {@code count.min} is.
+     */
+    DAMAGE_TAKEN(false, true) {
+        @Override
+        public int rollCount(DropCount range, DropBehavior behavior, float scaleValue, RandomSource random) {
+            if (scaleValue <= 0) return 0;
+            return behavior.scaleFormula().countFor(scaleValue, range);
+        }
+
+        @Override
+        public boolean readsDamageTaken() {
+            return true;
+        }
     };
 
     private final boolean needsRollSettings;
@@ -90,14 +107,14 @@ public enum DropBehaviorType {
     }
 
     /**
-     * Rolls the item count of one drop.
+     * Tells whether this type reads the damage taken instead of the max health or hardness.
      *
-     * @param range      Count range with any enchantment bonus already applied. Never null.
-     * @param behavior   Roll settings with any enchantment bonus already applied. Never null.
-     * @param scaleValue Max health of the dying mob or hardness of the broken block.
-     * @param random     Random source of the level.
-     * @return The rolled count, between {@code range.min()} and {@code range.max()} when min ≤ max.
+     * @return True for {@link #DAMAGE_TAKEN}.
      */
+    public boolean readsDamageTaken() {
+        return false;
+    }
+
     public abstract int rollCount(DropCount range, DropBehavior behavior, float scaleValue, RandomSource random);
 
     /**

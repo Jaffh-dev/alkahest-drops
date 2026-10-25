@@ -3,10 +3,12 @@ package com.jaffh.alkahestcore.dropscore.client.compat.jei;
 import com.jaffh.alkahestcore.AlkahestCore;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropBehavior;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropCount;
-import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonus;
+import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonuses;
 import com.jaffh.alkahestcore.dropscore.common.drops.SyncedDrop;
 import com.jaffh.alkahestcore.dropscore.common.drops.SyncedDropSource;
 import com.jaffh.alkahestcore.dropscore.common.drops.SyncedTarget;
+import com.jaffh.alkahestcore.dropscore.common.drops.DropTrigger;
+import com.jaffh.alkahestcore.dropscore.common.drops.TriggerSettings;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -54,6 +56,28 @@ public class JeiRecipeGameTests {
     }
 
     /**
+     * Each trigger of a target gets its own pages, death first whatever the drop order, with the trigger in the id.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = ARENA)
+    public static void triggersGetTheirOwnPages(GameTestHelper helper) {
+        ResourceLocation stoneId = new ResourceLocation("stone");
+        List<SyncedDrop> drops = new ArrayList<>();
+        drops.add(drop(new TriggerSettings(DropTrigger.SHEAR, 0)));
+        drops.addAll(drops(2));
+        drops.add(drop(new TriggerSettings(DropTrigger.PERIODIC, 100)));
+
+        List<DropRecipe<Block>> recipes = DropRecipe.allOf(List.of(new SyncedTarget(stoneId, drops)), ForgeRegistries.BLOCKS, 10);
+        check(recipes.size() == 3, "expected 3 recipes, got " + recipes.size());
+        check(recipes.get(0).trigger() == DropTrigger.DEATH && recipes.get(0).drops().size() == 2, "death page first");
+        check(recipes.get(0).id().equals(stoneId), "death page id");
+        check(recipes.get(1).id().equals(new ResourceLocation("stone/shear")), "shear page id " + recipes.get(1).id());
+        check(recipes.get(2).trigger() == DropTrigger.PERIODIC, "periodic page last");
+        helper.succeed();
+    }
+
+    /**
      * Grid cells map to positions and back, and points outside the cells map to no cell.
      *
      * @param helper Helper of the test.
@@ -76,12 +100,20 @@ public class JeiRecipeGameTests {
      */
     private static List<SyncedDrop> drops(int count) {
         List<SyncedDrop> drops = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            drops.add(new SyncedDrop(new ItemStack(Items.DIAMOND), 1.0, new DropCount(1, 1), DropBehavior.UNIFORM,
-                    EnchantBonus.NONE, SyncedDrop.UNTRACKED, List.of(), false,
-                    SyncedDropSource.lootTable(new ResourceLocation("blocks/stone"))));
-        }
+        for (int i = 0; i < count; i++) drops.add(drop(TriggerSettings.DEATH));
         return drops;
+    }
+
+    /**
+     * Creates one simple diamond drop.
+     *
+     * @param trigger Trigger of the drop. Never null.
+     * @return The drop.
+     */
+    private static SyncedDrop drop(TriggerSettings trigger) {
+        return new SyncedDrop(new ItemStack(Items.DIAMOND), 1.0, new DropCount(1, 1), DropBehavior.UNIFORM,
+                EnchantBonuses.NONE, SyncedDrop.UNTRACKED, List.of(), false,
+                SyncedDropSource.lootTable(new ResourceLocation("blocks/stone")), trigger);
     }
 
     /**

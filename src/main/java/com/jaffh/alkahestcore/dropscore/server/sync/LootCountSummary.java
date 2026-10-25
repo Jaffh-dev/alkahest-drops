@@ -6,16 +6,20 @@ import com.jaffh.alkahestcore.dropscore.common.drops.DropCount;
 import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonus;
 import net.minecraft.resources.ResourceLocation;
 
+import javax.annotation.Nullable;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Summarizes the loot functions applied to one entry: the functions that set or raise the count become a count range
  * and a count bonus; the others do not change what JEI shows.
  *
- * @param count Count range of one pick. Never null.
- * @param bonus Count bonus per level of the module's bonus enchantment. Never null.
+ * @param count   Count range of one pick. Never null.
+ * @param bonuses Count bonus per level of each enchantment a function scales with, by enchantment id. Immutable,
+ *                never null.
  */
-record LootCountSummary(DropCount count, EnchantBonus.CountBonus bonus) {
+record LootCountSummary(DropCount count, Map<ResourceLocation, EnchantBonus.CountBonus> bonuses) {
     private static final ResourceLocation SET_COUNT = new ResourceLocation("set_count");
     private static final ResourceLocation LOOTING_ENCHANT = new ResourceLocation("looting_enchant");
     private static final ResourceLocation APPLY_BONUS = new ResourceLocation("apply_bonus");
@@ -27,16 +31,13 @@ record LootCountSummary(DropCount count, EnchantBonus.CountBonus bonus) {
     /**
      * Summarizes serialized functions, applied in order to a count of 1.
      *
-     * @param functions        Serialized functions: the entry's, then the pool's, then the table's. Never null.
-     * @param bonusEnchantment Id of the module's bonus enchantment ({@code looting} or {@code fortune}). Never null.
+     * @param functions Serialized functions: the entry's, then the pool's, then the table's. Never null.
      * @return The summary.
      */
-    static LootCountSummary of(List<JsonElement> functions, ResourceLocation bonusEnchantment) {
+    static LootCountSummary of(List<JsonElement> functions) {
         int min = 1;
         int max = 1;
-        int bonusMin = 0;
-        int bonusMax = 0;
-        int bonusCap = Integer.MAX_VALUE;
+        Map<ResourceLocation, EnchantBonus.CountBonus> bonuses = new LinkedHashMap<>();
         for (JsonElement element : functions) {
             if (!element.isJsonObject()) continue;
             JsonObject function = element.getAsJsonObject();
@@ -47,17 +48,16 @@ record LootCountSummary(DropCount count, EnchantBonus.CountBonus bonus) {
                 boolean isAdded = LootJson.bool(function, "add", false);
                 min = isAdded ? min + range.minInt() : range.minInt();
                 max = isAdded ? max + range.maxInt() : range.maxInt();
-            } else if (type.equals(LOOTING_ENCHANT) && bonusEnchantment.equals(LOOTING)) {
+            } else if (type.equals(LOOTING_ENCHANT)) {
                 LootNumberRange range = LootNumberRange.of(function.get("count"), 0);
-                bonusMin = (int) Math.round(range.min());
-                bonusMax = (int) Math.round(range.max());
                 int limit = (int) LootJson.number(function, "limit", 0);
-                if (limit > 0) bonusCap = limit;
-            } else if (type.equals(APPLY_BONUS) && isUniformBonus(function, bonusEnchantment)) {
+                int cap = limit > 0 ? limit : Integer.MAX_VALUE;
+                putBonus(bonuses, LOOTING, (int) Math.round(range.min()), (int) Math.round(range.max()), cap);
+            } else if (type.equals(APPLY_BONUS) && isUniformBonus(function)) {
                 JsonElement parameters = function.get("parameters");
                 double multiplier = parameters != null && parameters.isJsonObject()
                         ? LootJson.number(parameters.getAsJsonObject(), "bonusMultiplier", 1) : 1;
-                bonusMax = (int) Math.round(multiplier);
+                putBonus(bonuses, LootJson.id(function, "enchantment"), 0, (int) Math.round(multiplier), Integer.MAX_VALUE);
             } else if (type.equals(LIMIT_COUNT)) {
                 int[] limited = limit(function.get("limit"), min, max);
                 min = limited[0];
@@ -66,23 +66,37 @@ record LootCountSummary(DropCount count, EnchantBonus.CountBonus bonus) {
         }
         min = Math.max(0, min);
         max = Math.max(min, max);
-        EnchantBonus.CountBonus bonus = bonusMin == 0 && bonusMax == 0
-                ? EnchantBonus.CountBonus.NONE
-                : new EnchantBonus.CountBonus(bonusMin, bonusMax, bonusCap, bonusCap);
-        return new LootCountSummary(new DropCount(min, max), bonus);
+        return new LootCountSummary(new DropCount(min, max), Map.copyOf(bonuses));
     }
 
     /**
-     * Tells whether an {@code apply_bonus} function adds a uniform count per level of the module's enchantment, the
-     * only formula that maps to a count bonus ({@code ore_drops} and {@code binomial_with_bonus_count} do not).
+     * Stores the count bonus of one enchantment, replacing an earlier one of the same enchantment.
      *
-     * @param function         Serialized function. Never null.
-     * @param bonusEnchantment Id of the module's bonus enchantment. Never null.
-     * @return True for {@code uniform_bonus_count} with the module's enchantment.
+     * @param bonuses     Bonuses found so far, by enchantment id. Never null.
+     * @param enchantment Id of the enchantment, or null when the function names none.
+     * @param minPerLevel Min added per level.
+     * @param maxPerLevel Max added per level.
+     * @param cap         Cap of both totals.
      */
-    private static boolean isUniformBonus(JsonObject function, ResourceLocation bonusEnchantment) {
-        return bonusEnchantment.equals(LootJson.id(function, "enchantment"))
-                && UNIFORM_BONUS_COUNT.equals(LootJson.id(function, "formula"));
+    private static void putBonus(Map<ResourceLocation, EnchantBonus.CountBonus> bonuses, @Nullable ResourceLocation enchantment,
+                                 int minPerLevel, int maxPerLevel, int cap) {
+        if (enchantment == null) return;
+        if (minPerLevel == 0 && maxPerLevel == 0) {
+            bonuses.remove(enchantment);
+            return;
+        }
+        bonuses.put(enchantment, new EnchantBonus.CountBonus(minPerLevel, maxPerLevel, cap, cap));
+    }
+
+    /**
+     * Tells whether an {@code apply_bonus} function adds a uniform count per level of its enchantment, the only
+     * formula that maps to a count bonus ({@code ore_drops} and {@code binomial_with_bonus_count} do not).
+     *
+     * @param function Serialized function. Never null.
+     * @return True for {@code uniform_bonus_count}.
+     */
+    private static boolean isUniformBonus(JsonObject function) {
+        return UNIFORM_BONUS_COUNT.equals(LootJson.id(function, "formula"));
     }
 
     /**

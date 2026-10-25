@@ -2,6 +2,7 @@ package com.jaffh.alkahestcore.dropscore.server.mobdrops;
 
 import com.jaffh.alkahestcore.dropscore.server.drops.DropTable;
 import com.jaffh.alkahestcore.dropscore.server.drops.RemovalRule;
+import com.jaffh.alkahestcore.dropscore.server.drops.EnchantLevels;
 import com.jaffh.alkahestcore.dropscore.server.drops.RollContext;
 import com.jaffh.alkahestcore.dropscore.server.drops.RolledDrop;
 import net.minecraft.server.level.ServerLevel;
@@ -11,7 +12,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
@@ -75,7 +76,8 @@ public class MobDropInjector {
         event.getDrops().removeIf(drop -> table.removesEventDrop(drop.getItem().getItem(), activeRemovals));
 
         Entity killer = event.getSource().getEntity();
-        RollContext rollContext = new RollContext(event.getLootingLevel(), entity.getMaxHealth(), level.getRandom(), playerOf(killer));
+        RollContext rollContext = new RollContext(killLevelsOf(killer, event.getLootingLevel()), entity.getMaxHealth(),
+                level.getRandom(), playerOf(killer));
         List<RollContext> attackerRolls = table.hasPerPlayerDrops()
                 ? attackerRollsOf(entity, level, killer, event.getLootingLevel())
                 : List.of();
@@ -88,7 +90,7 @@ public class MobDropInjector {
 
     /**
      * Builds the roll context of every online player who damaged the mob, for its per-player drops. The killer
-     * keeps the Looting level of the kill; the other players use the Looting of their main hand.
+     * keeps the enchantment levels of the kill; the other players use the enchantments of their main hand.
      *
      * @param entity        Dying mob. Never null.
      * @param level         Level of the mob. Never null.
@@ -99,10 +101,23 @@ public class MobDropInjector {
     private static List<RollContext> attackerRollsOf(LivingEntity entity, ServerLevel level, @Nullable Entity killer, int killerLooting) {
         List<RollContext> rolls = new ArrayList<>();
         for (ServerPlayer player : HitTracker.onlineAttackersOf(entity, level.getServer(), killer)) {
-            int looting = player == killer ? killerLooting : EnchantmentHelper.getMobLooting(player);
-            rolls.add(new RollContext(looting, entity.getMaxHealth(), level.getRandom(), player));
+            EnchantLevels levels = player == killer ? killLevelsOf(killer, killerLooting) : EnchantLevels.ofItem(player.getMainHandItem());
+            rolls.add(new RollContext(levels, entity.getMaxHealth(), level.getRandom(), player));
         }
         return rolls;
+    }
+
+    /**
+     * Returns the enchantment levels of a kill: the killer's main hand, with the Looting level of the kill, which
+     * mods may change through {@code LootingLevelEvent}.
+     *
+     * @param killer       Entity that killed the mob, or null.
+     * @param lootingLevel Looting level of the kill, 0 or more.
+     * @return The levels; only Looting without a living killer.
+     */
+    static EnchantLevels killLevelsOf(@Nullable Entity killer, int lootingLevel) {
+        EnchantLevels levels = killer instanceof LivingEntity living ? EnchantLevels.ofItem(living.getMainHandItem()) : EnchantLevels.NONE;
+        return levels.withOverride(Enchantments.MOB_LOOTING, lootingLevel);
     }
 
     /**
@@ -136,7 +151,8 @@ public class MobDropInjector {
         DamageSource source = deathSourceOf(entity);
         LootContext context = table.needsLootContext() ? createLootContext(level, entity, source) : null;
         int lootingLevel = ForgeHooks.getLootingLevel(entity, source.getEntity(), source);
-        RollContext rollContext = new RollContext(lootingLevel, entity.getMaxHealth(), level.getRandom(), playerOf(source.getEntity()));
+        RollContext rollContext = new RollContext(killLevelsOf(source.getEntity(), lootingLevel), entity.getMaxHealth(),
+                level.getRandom(), playerOf(source.getEntity()));
         event.setDroppedExperience(table.applyExperience(event.getDroppedExperience(), context, rollContext));
     }
 

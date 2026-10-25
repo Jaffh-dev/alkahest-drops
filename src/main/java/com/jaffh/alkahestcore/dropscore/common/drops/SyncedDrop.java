@@ -14,24 +14,27 @@ import java.util.List;
  * @param chance              Chance (0–1) that the drop happens.
  * @param count               Count range (amount of experience for an experience drop). Never null.
  * @param behavior            How the count is rolled. Never null.
- * @param enchantBonus        Per-level bonuses from Looting or Fortune. Never null.
+ * @param enchantBonuses      Per-level bonuses of each enchantment. Never null.
  * @param tracking            Pity, one-time drop and per-player settings. Never null.
  * @param conditions          Conditions the drop needs, including the negated conditions of removal files that may
  *                            remove it. Immutable, never null.
  * @param hasHiddenConditions Whether the drop has conditions (or conditional removals) that are not in
  *                            {@code conditions}.
  * @param source              Where the drop comes from. Never null.
+ * @param trigger             What makes the drop happen; death for loot tables, vanilla experience and blocks.
+ *                            Never null.
  */
 public record SyncedDrop(
         ItemStack stack,
         double chance,
         DropCount count,
         DropBehavior behavior,
-        EnchantBonus enchantBonus,
+        EnchantBonuses enchantBonuses,
         DropTracking tracking,
         List<SyncedCondition> conditions,
         boolean hasHiddenConditions,
-        SyncedDropSource source
+        SyncedDropSource source,
+        TriggerSettings trigger
 ) {
     /** Settings of a drop that is not a dropscore drop: no pity, no one-time or per-player roll. */
     public static final DropTracking UNTRACKED = new DropTracking("", 0, false, false);
@@ -72,7 +75,7 @@ public record SyncedDrop(
         if (added.isEmpty() && !isHidden) return this;
         List<SyncedCondition> merged = new ArrayList<>(conditions);
         merged.addAll(added);
-        return new SyncedDrop(stack, chance, count, behavior, enchantBonus, tracking, merged,
-                hasHiddenConditions || isHidden, source);
+        return new SyncedDrop(stack, chance, count, behavior, enchantBonuses, tracking, merged,
+                hasHiddenConditions || isHidden, source, trigger);
     }
 }

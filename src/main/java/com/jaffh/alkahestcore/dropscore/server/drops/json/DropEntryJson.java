@@ -6,9 +6,10 @@ import com.google.gson.annotations.SerializedName;
 
 /**
  * Gson DTO of one entry in {@code drops}. Every field is null when its key is missing.
- * Mob files read {@code on_looting} and {@code first_kill}, block files read {@code on_fortune} and
- * {@code first_break}. An experience drop sets
- * {@code experience} to true instead of {@code item}.
+ * {@code enchant_bonus} is a list of {@link EnchantBonusEntryJson}, read by hand so a bad entry is reported at its
+ * own path. Mob files read {@code first_kill}, block files read {@code first_break}. An experience drop sets
+ * {@code experience} to true instead of {@code item}. {@code on} picks the trigger (mob files only), with its tick
+ * setting {@code interval} (periodic) or {@code cooldown} (hit).
  */
 public class DropEntryJson {
     public String id;
@@ -21,11 +22,8 @@ public class DropEntryJson {
     @SerializedName("drop_behavior")
     public DropBehaviorJson dropBehavior;
 
-    @SerializedName("on_looting")
-    public EnchantBonusJson onLooting;
-
-    @SerializedName("on_fortune")
-    public EnchantBonusJson onFortune;
+    @SerializedName("enchant_bonus")
+    public JsonElement enchantBonus;
 
     public JsonArray conditions;
     public JsonArray functions;
@@ -39,4 +37,8 @@ public class DropEntryJson {
 
     @SerializedName("per_player")
     public Boolean isPerPlayer;
+
+    public String on;
+    public Integer interval;
+    public Integer cooldown;
 }
