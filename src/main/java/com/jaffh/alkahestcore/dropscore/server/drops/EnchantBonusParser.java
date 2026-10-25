@@ -1,17 +1,29 @@
 package com.jaffh.alkahestcore.dropscore.server.drops;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonus;
+import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonusEntry;
+import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonuses;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.BonusChanceJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.BonusCountJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.BonusRollJson;
+import com.jaffh.alkahestcore.dropscore.server.drops.json.EnchantBonusEntryJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.EnchantBonusJson;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
- * Validates the enchantment bonus of a drop ({@code on_looting} or {@code on_fortune}) and resolves it into an
- * {@link EnchantBonus}. Every {@code max_*} key is optional but needs its per-level key; a missing one means
- * no cap other than the config limit.
+ * Validates the {@code enchant_bonus} list of a drop and resolves it into {@link EnchantBonuses}: each entry names an
+ * enchantment ({@code enchant}) and its bonus ({@code on_enchant}). Inside a bonus, every {@code max_*} key is optional
+ * but needs its per-level key; a missing one means no cap other than the config limit.
  */
 public final class EnchantBonusParser {
     private static final ChanceBonusSpec DROP_CHANCE =
@@ -37,10 +49,48 @@ public final class EnchantBonusParser {
     }
 
     /**
-     * Resolves the enchantment bonus of a drop.
+     * Resolves the {@code enchant_bonus} list of a drop. An entry whose enchantment is not registered (an optional mod
+     * that is not installed) is skipped with a warning; the drop still loads.
+     *
+     * @param element    JSON value of {@code enchant_bonus}, or null when the key is missing.
+     * @param readsRolls Whether the drop's behavior reads roll settings; a {@code bonus_roll} is ignored otherwise.
+     * @param typeId     Raw behavior type of the drop, for the {@code bonus_roll} warning. Never null.
+     * @param ctx        Context of {@code enchant_bonus}. Never null.
+     * @return {@link EnchantBonuses#NONE} when missing, otherwise one entry per registered enchantment, in file order.
+     * @throws DropDataException If the value is not a non-empty array, an entry is invalid or an enchantment repeats.
+     */
+    public EnchantBonuses parseList(@Nullable JsonElement element, boolean readsRolls, String typeId, ParseContext ctx)
+            throws DropDataException {
+        if (element == null) return EnchantBonuses.NONE;
+        if (!element.isJsonArray()) throw ctx.error("not_array");
+        JsonArray array = element.getAsJsonArray();
+        if (array.isEmpty()) throw ctx.error("empty_enchant_bonus");
+        List<EnchantBonusEntry> entries = new ArrayList<>(array.size());
+        Set<ResourceLocation> seen = new HashSet<>();
+        for (int i = 0; i < array.size(); i++) {
+            ParseContext entryCtx = ctx.atSuffix("[" + i + "]");
+            EnchantBonusEntryJson json = DropValues.readObject(array.get(i), EnchantBonusEntryJson.class, entryCtx);
+            ParseContext enchantCtx = entryCtx.at("enchant");
+            ResourceLocation id = DropValues.parseId(enchantCtx.require(json.enchant), enchantCtx);
+            if (!seen.add(id)) throw enchantCtx.error("duplicate_enchantment", id);
+            ParseContext bonusCtx = entryCtx.at("on_enchant");
+            EnchantBonus bonus = parse(bonusCtx.require(json.onEnchant), bonusCtx);
+            if (!readsRolls && json.onEnchant.bonusRoll != null) bonusCtx.at("bonus_roll").warn("bonus_roll_unused", typeId);
+            Enchantment enchantment = ForgeRegistries.ENCHANTMENTS.getValue(id);
+            if (enchantment == null || !ForgeRegistries.ENCHANTMENTS.containsKey(id)) {
+                ctx.log().report(enchantCtx.unknownId("unknown_enchantment", id).toIssue("entry"));
+                continue;
+            }
+            entries.add(new EnchantBonusEntry(enchantment, bonus));
+        }
+        return entries.isEmpty() ? EnchantBonuses.NONE : new EnchantBonuses(entries);
+    }
+
+    /**
+     * Resolves one {@code on_enchant} bonus.
      *
      * @param json Gson DTO, or null when the key is missing.
-     * @param ctx  Context of the bonus key. Never null.
+     * @param ctx  Context of {@code on_enchant}. Never null.
      * @return {@link EnchantBonus#NONE} when missing; each missing part becomes its {@code NONE} constant.
      * @throws DropDataException If the bonus is empty or a value is invalid.
      */

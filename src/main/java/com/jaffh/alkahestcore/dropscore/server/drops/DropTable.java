@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -45,6 +46,9 @@ public record DropTable(
 ) {
     /** A table that does nothing. */
     public static final DropTable EMPTY = new DropTable(List.of(), Set.of(), List.of(), List.of(), List.of(), false, false, false);
+
+    /** Lets every drop roll. */
+    private static final Predicate<DropEntry> EVERY_DROP = entry -> true;
 
     /**
      * Builds the table of one target from every rule that matches it.
@@ -260,14 +264,44 @@ public record DropTable(
      */
     public List<RolledDrop> rollDrops(List<RemovalRule> activeRemovals, @Nullable LootContext lootContext,
                                       RollContext rollContext, List<RollContext> attackerRolls) {
+        return rollDrops(activeRemovals, new RollInput(lootContext, rollContext, EVERY_DROP), attackerRolls);
+    }
+
+    /**
+     * Rolls the drops of a trigger other than death: removals of the same trigger, then every due item drop and
+     * experience drop, all with the shared roll.
+     *
+     * @param lootContext Loot context, non-null whenever {@link #needsLootContext()} is true.
+     * @param rollContext Enchantment level, scale value, random source and player of the drop. Never null.
+     * @param isDue       Tells whether a drop may roll now (interval and cooldown). Never null.
+     * @return The rolled stacks and experience.
+     */
+    public TriggeredDrops rollTriggered(@Nullable LootContext lootContext, RollContext rollContext, Predicate<DropEntry> isDue) {
+        List<RemovalRule> activeRemovals = collectActiveRemovals(lootContext);
+        RollInput input = new RollInput(lootContext, rollContext, isDue);
+        List<ItemStack> items = rollDrops(activeRemovals, input, List.of()).stream().map(RolledDrop::stack).toList();
+        return new TriggeredDrops(items, applyExperience(0, input));
+    }
+
+    /**
+     * Rolls the item drops that pass the filter of a roll input.
+     *
+     * @param activeRemovals Removals returned by {@link #collectActiveRemovals}. Never null.
+     * @param input          Loot context, shared roll context and drop filter. Never null.
+     * @param attackerRolls  Roll context of every attacking player. Never null.
+     * @return The rolled stacks, none of them empty.
+     */
+    private List<RolledDrop> rollDrops(List<RemovalRule> activeRemovals, RollInput input, List<RollContext> attackerRolls) {
         if (dropFiles.isEmpty()) return List.of();
+        LootContext lootContext = input.lootContext();
+        RollContext rollContext = input.rollContext();
 
         List<RolledDrop> drops = new ArrayList<>();
         for (DropFile file : dropFiles) {
             if (file.hasGlobalConditions() && !LootConditions.testAll(file.globalConditions(), lootContext)) continue;
 
             for (DropEntry entry : file.entries()) {
-                if (entry.isExperience()) continue;
+                if (entry.isExperience() || !input.isDue().test(entry)) continue;
                 if (isDropRemoved(file.fileId(), entry.item(), activeRemovals)) continue;
                 if (entry.hasConditions() && !LootConditions.testAll(entry.conditions(), lootContext)) continue;
 
@@ -327,6 +361,19 @@ public record DropTable(
      * @return The experience to drop, 0 or more.
      */
     public int applyExperience(int experience, @Nullable LootContext lootContext, RollContext rollContext) {
+        return applyExperience(experience, new RollInput(lootContext, rollContext, EVERY_DROP));
+    }
+
+    /**
+     * Computes the experience of a drop, rolling only the experience drops that pass the filter of a roll input.
+     *
+     * @param experience Experience of the event (vanilla and other mods).
+     * @param input      Loot context, roll context and drop filter. Never null.
+     * @return The experience to drop, 0 or more.
+     */
+    private int applyExperience(int experience, RollInput input) {
+        LootContext lootContext = input.lootContext();
+        RollContext rollContext = input.rollContext();
         List<RemovalRule> activeRemovals = new ArrayList<>();
         for (RemovalRule removal : experienceRemovals) {
             if (isExperienceRemovalActive(removal, lootContext)) activeRemovals.add(removal);
@@ -340,7 +387,7 @@ public record DropTable(
             if (file.hasGlobalConditions() && !LootConditions.testAll(file.globalConditions(), lootContext)) continue;
 
             for (DropEntry entry : file.entries()) {
-                if (!entry.isExperience()) continue;
+                if (!entry.isExperience() || !input.isDue().test(entry)) continue;
                 if (entry.hasConditions() && !LootConditions.testAll(entry.conditions(), lootContext)) continue;
                 int amount = DropRoller.rollCount(entry, rollContext);
                 if (amount > 0 && entry.tracking().needsProgress()) {
@@ -381,5 +428,15 @@ public record DropTable(
             if (removal.shouldRemoveExperienceOf(dropFileId)) return true;
         }
         return false;
+    }
+
+    /**
+     * Groups what one roll of the table reads.
+     *
+     * @param lootContext Loot context, non-null whenever {@link #needsLootContext()} is true.
+     * @param rollContext Shared roll context. Never null.
+     * @param isDue       Tells whether a drop may roll. Never null.
+     */
+    private record RollInput(@Nullable LootContext lootContext, RollContext rollContext, Predicate<DropEntry> isDue) {
     }
 }

@@ -37,14 +37,14 @@ public final class DropscoreConfig {
                         " Changes apply on the next /reload.")
                 .push("limits");
         MAX_ROLLS = builder
-                .comment(" Highest rolls of a roll-based drop_behavior, and of its Looting/Fortune roll bonus.",
+                .comment(" Highest rolls of a roll-based drop_behavior, and of its enchantment roll bonus.",
                         " Rolls run on every kill or block break, so high values cost server time.")
                 .defineInRange("max_rolls", DEFAULT_LIMIT, 1, UPPER_BOUND);
         MAX_COUNT = builder
-                .comment(" Highest count.min/count.max of a drop, and of its Looting/Fortune count bonus.")
+                .comment(" Highest count.min/count.max of a drop, and of its enchantment count bonus.")
                 .defineInRange("max_count", DEFAULT_LIMIT, 1, UPPER_BOUND);
         MAX_INCREMENT = builder
-                .comment(" Highest increment_value of a roll-based drop_behavior, and of its Looting/Fortune increment bonus.")
+                .comment(" Highest increment_value of a roll-based drop_behavior, and of its enchantment increment bonus.")
                 .defineInRange("max_increment", DEFAULT_LIMIT, 1, UPPER_BOUND);
         builder.pop();
         SPEC = builder.build();

@@ -57,15 +57,16 @@ enum HelpTopic {
     /** {@code /dropscore simulate}. */
     SIMULATE(List.of(
             HelpSection.usage(
-                    "/dropscore simulate entity <entity> [kills] [looting] [by <player | none | <killer>>] [sneaking] "
+                    "/dropscore simulate entity <entity> [on <trigger>] [kills] [enchant <enchantments>] [by <player | none | <killer>>] [sneaking] "
                             + "[burning] [only <experience | <filter>>] [drop [no-text]]",
-                    "/dropscore simulate block <block> [breaks] [fortune] [by <player | none | explosion>] [sneaking] "
+                    "/dropscore simulate block <block> [breaks] [enchant <enchantments>] [by <player | none | explosion>] [sneaking] "
                             + "[only <experience | <filter>>] [drop [no-text]]"),
             HelpSection.arguments(
                     argument("entity <entity>", "simulate.arg.entity"),
                     argument("block <block>", "simulate.arg.block"),
+                    argument("on <trigger>", "simulate.arg.on"),
                     argument("kills / breaks", "simulate.arg.runs"),
-                    argument("looting / fortune", "simulate.arg.level"),
+                    argument("enchant <enchantments>", "simulate.arg.enchant"),
                     argument("by player", "simulate.arg.by_player"),
                     argument("by none", "simulate.arg.by_none"),
                     argument("by <killer>", "simulate.arg.by_killer"),
@@ -79,8 +80,9 @@ enum HelpTopic {
                     argument("page <n>", "simulate.arg.page")),
             HelpSection.examples(
                     example("/dropscore simulate entity minecraft:zombie 1000", "simulate.example.zombie"),
-                    example("/dropscore simulate entity minecraft:cow 1000 3 only minecraft:beef", "simulate.example.cow"),
-                    example("/dropscore simulate block minecraft:diamond_ore 500 3 by none", "simulate.example.diamond_ore"),
+                    example("/dropscore simulate entity minecraft:cow 1000 enchant [{id:\"minecraft:looting\",lvl:3}] only minecraft:beef", "simulate.example.cow"),
+                    example("/dropscore simulate entity minecraft:sheep on shear 100", "simulate.example.shear"),
+                    example("/dropscore simulate block minecraft:diamond_ore 500 enchant [{id:\"minecraft:fortune\",lvl:3}] by none", "simulate.example.diamond_ore"),
                     example("/dropscore simulate entity minecraft:zombie drop no-text", "simulate.example.silent")))),
     /** {@code /dropscore reset}. */
     RESET(List.of(

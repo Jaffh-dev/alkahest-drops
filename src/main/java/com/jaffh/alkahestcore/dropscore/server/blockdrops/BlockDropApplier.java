@@ -1,12 +1,11 @@
 package com.jaffh.alkahestcore.dropscore.server.blockdrops;
 
 import com.jaffh.alkahestcore.dropscore.server.drops.DropTable;
+import com.jaffh.alkahestcore.dropscore.server.drops.EnchantLevels;
 import com.jaffh.alkahestcore.dropscore.server.drops.RollContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
@@ -41,17 +40,17 @@ final class BlockDropApplier {
     }
 
     /**
-     * Builds the roll context of a block: the Fortune level of the tool, the block's hardness and the breaking player.
+     * Builds the roll context of a block: the enchantments of the tool, the block's hardness and the breaking player.
      *
      * @param context Loot context of the block, with a block state and an origin. Never null.
-     * @return The roll context; Fortune is 0 when there is no tool (explosions, pistons) or no Fortune, and the
-     *         player is null without a breaking player.
+     * @return The roll context; no enchantment without a tool (explosions, pistons), and the player is null without
+     *         a breaking player.
      */
     static RollContext rollContextOf(LootContext context) {
         ItemStack tool = context.getParamOrNull(LootContextParams.TOOL);
-        int fortuneLevel = tool != null ? EnchantmentHelper.getItemEnchantmentLevel(Enchantments.BLOCK_FORTUNE, tool) : 0;
+        EnchantLevels levels = tool != null ? EnchantLevels.ofItem(tool) : EnchantLevels.NONE;
         Player player = context.getParamOrNull(LootContextParams.THIS_ENTITY) instanceof Player breaker ? breaker : null;
-        return new RollContext(fortuneLevel, hardnessOf(context), context.getRandom(), player);
+        return new RollContext(levels, hardnessOf(context), context.getRandom(), player);
     }
 
     /**

@@ -3,6 +3,6 @@
   "block": "minecraft:bricks",
   "drops": [
     { "experience": true, "chance": 1.0, "count": { "min": 5, "max": 5 }, "drop_behavior": { "type": "uniform" },
-      "on_fortune": { "bonus_count": { "bonus_min_per_level": 2, "bonus_max_per_level": 2 } } }
+      "enchant_bonus": [ { "enchant": "minecraft:fortune", "on_enchant": { "bonus_count": { "bonus_min_per_level": 2, "bonus_max_per_level": 2 } } } ] }
   ]
 }

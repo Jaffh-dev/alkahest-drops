@@ -1,7 +1,7 @@
 package com.jaffh.alkahestcore.dropscore.server.command;
 
 import com.jaffh.alkahestcore.dropscore.server.blockdrops.BlockDropManager;
-import com.jaffh.alkahestcore.dropscore.server.drops.DropTable;
+import com.jaffh.alkahestcore.dropscore.server.drops.TriggerTables;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.MobDropManager;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
@@ -45,28 +45,28 @@ record TargetLookup(ResourceLocation id, @Nullable EntityType<?> entity, @Nullab
     }
 
     /**
-     * Creates a suggestion provider of every mob and block whose drop table passes a test.
+     * Creates a suggestion provider of every mob and block whose drop tables pass a test.
      *
-     * @param tableTest Test of a drop table. Never null.
+     * @param tableTest Test of the tables of every trigger of a target. Never null.
      * @return The provider, suggesting the ids sorted.
      */
-    static SuggestionProvider<CommandSourceStack> suggestingTables(Predicate<DropTable> tableTest) {
+    static SuggestionProvider<CommandSourceStack> suggestingTables(Predicate<TriggerTables> tableTest) {
         return (context, builder) -> SharedSuggestionProvider.suggestResource(idsWithTable(tableTest), builder);
     }
 
     /**
-     * Collects the ids of every mob and block whose drop table passes a test.
+     * Collects the ids of every mob and block whose drop tables pass a test.
      *
-     * @param tableTest Test of a drop table. Never null.
+     * @param tableTest Test of the tables of every trigger of a target. Never null.
      * @return The ids, sorted.
      */
-    private static Set<ResourceLocation> idsWithTable(Predicate<DropTable> tableTest) {
+    private static Set<ResourceLocation> idsWithTable(Predicate<TriggerTables> tableTest) {
         Set<ResourceLocation> ids = new TreeSet<>();
         for (EntityType<?> type : ForgeRegistries.ENTITY_TYPES.getValues()) {
-            if (tableTest.test(MobDropManager.getTable(type))) ids.add(ForgeRegistries.ENTITY_TYPES.getKey(type));
+            if (tableTest.test(MobDropManager.INSTANCE.triggerTablesOf(type))) ids.add(ForgeRegistries.ENTITY_TYPES.getKey(type));
         }
         for (Block block : ForgeRegistries.BLOCKS.getValues()) {
-            if (tableTest.test(BlockDropManager.getTable(block))) ids.add(ForgeRegistries.BLOCKS.getKey(block));
+            if (tableTest.test(BlockDropManager.INSTANCE.triggerTablesOf(block))) ids.add(ForgeRegistries.BLOCKS.getKey(block));
         }
         return ids;
     }

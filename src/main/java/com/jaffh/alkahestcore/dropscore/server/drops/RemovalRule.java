@@ -1,5 +1,6 @@
 package com.jaffh.alkahestcore.dropscore.server.drops;
 
+import com.jaffh.alkahestcore.dropscore.common.drops.DropTrigger;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
@@ -7,15 +8,17 @@ import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import java.util.List;
 
 /**
- * Represents one removal file: entries it removes from a target's drops, gated by the file's global conditions.
- * It removes matching event drops (vanilla and other mods) and matching drops added by drop files of
- * other namespaces, never drops added by its own namespace.
+ * Represents one removal file: entries it removes from a target's drops of one trigger, gated by the file's global
+ * conditions. On death it removes matching event drops (vanilla and other mods); on every trigger it removes
+ * matching drops added by drop files of other namespaces, never drops added by its own namespace.
  *
  * @param fileId           Source file id. Never null.
  * @param globalConditions Conditions that gate every entry. Immutable, never null.
  * @param entries          Items or experience to remove, each with its local conditions. Immutable, never null.
+ * @param trigger          Trigger whose drops the rule removes, death by default. Never null.
  */
-public record RemovalRule(ResourceLocation fileId, List<LootItemCondition> globalConditions, List<RemovalEntry> entries) {
+public record RemovalRule(ResourceLocation fileId, List<LootItemCondition> globalConditions, List<RemovalEntry> entries,
+                          DropTrigger trigger) {
     /**
      * Creates a removal rule and stores immutable copies of its lists.
      */
@@ -54,7 +57,7 @@ public record RemovalRule(ResourceLocation fileId, List<LootItemCondition> globa
      * @return A new rule with the same file id and global conditions.
      */
     public RemovalRule withEntries(List<RemovalEntry> keptEntries) {
-        return new RemovalRule(fileId, globalConditions, keptEntries);
+        return new RemovalRule(fileId, globalConditions, keptEntries, trigger);
     }
 
     /**

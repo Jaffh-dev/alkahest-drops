@@ -1,0 +1,1 @@
+{ "version": 1, "block": "minecraft:stone", "on": "shear", "removals": ["minecraft:stick"] }

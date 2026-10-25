@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "entity": "minecraft:sheep",
+  "drops": [
+    { "item": "minecraft:string", "chance": 1.0, "count": { "min": 2, "max": 2 }, "drop_behavior": { "type": "uniform" }, "on": "shear" },
+    { "item": "minecraft:emerald", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" }, "on": "shear" }
+  ]
+}

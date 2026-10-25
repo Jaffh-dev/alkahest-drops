@@ -1,7 +1,7 @@
 package com.jaffh.alkahestcore.dropscore.common.drops;
 
 /**
- * Represents the per-level bonuses an enchantment (Looting for mobs) gives to one drop.
+ * Represents the per-level bonuses one enchantment gives to one drop (the {@code on_enchant} object).
  *
  * @param chance Bonus to the drop chance. Never null.
  * @param roll   Bonus to the rolls of roll-based behaviors. Never null.

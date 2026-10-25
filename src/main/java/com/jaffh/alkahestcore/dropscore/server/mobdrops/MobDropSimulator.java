@@ -1,6 +1,7 @@
 package com.jaffh.alkahestcore.dropscore.server.mobdrops;
 
 import com.jaffh.alkahestcore.dropscore.server.drops.DropTable;
+import com.jaffh.alkahestcore.dropscore.server.drops.EnchantLevels;
 import com.jaffh.alkahestcore.dropscore.server.drops.IDropSimulator;
 import com.jaffh.alkahestcore.dropscore.server.drops.InvalidSimulationException;
 import com.jaffh.alkahestcore.dropscore.server.drops.RollContext;
@@ -19,6 +20,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraftforge.common.ForgeHooks;
@@ -27,6 +30,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Simulates kills of one mob type with a mob that is never added to the level: the vanilla loot table (with loot
@@ -45,11 +49,13 @@ public final class MobDropSimulator implements IDropSimulator {
     private final LootTable lootTable;
     private final DropTable table;
     private final SimulationSetup setup;
+    /** Enchantment levels of every kill: the killer's weapon never changes during a simulation. */
+    private final EnchantLevels enchantLevels;
 
     /**
      * Creates a simulator from its resolved parts.
      *
-     * @param setup  Level, position, actor, flags and forced Looting of the simulation. Never null.
+     * @param setup  Level, position, actor, flags and forced enchantments of the simulation. Never null.
      * @param mob    Mob that is never added to the level. Never null.
      * @param killer Killer that is never added to the level, or null for no killer.
      */
@@ -61,21 +67,34 @@ public final class MobDropSimulator implements IDropSimulator {
         this.lootTable = level.getServer().getLootData().getLootTable(mob.getLootTable());
         this.table = MobDropManager.getTable(mob.getType());
         this.setup = setup;
+        this.enchantLevels = MobDropInjector.killLevelsOf(killer, lootingLevel()).withOverrides(setup.enchantments());
     }
 
     /**
      * Creates a simulator for a mob type.
      *
      * @param type  Mob type. Never null.
-     * @param setup Level, position, actor, flags and forced Looting of the simulation. Never null.
+     * @param setup Level, position, actor, flags and forced enchantments of the simulation. Never null.
      * @return The simulator.
      * @throws InvalidSimulationException If the type or the killer type is not a living entity, the actor is an
      *                                  explosion, or {@code sneaking} is set without a killer.
      */
     public static MobDropSimulator create(EntityType<?> type, SimulationSetup setup) {
+        return new MobDropSimulator(setup, createMob(type, setup), createKiller(setup));
+    }
+
+    /**
+     * Creates the simulated mob at the setup's position, on fire when the setup burns. It is never added to the level.
+     *
+     * @param type  Mob type. Never null.
+     * @param setup Setup of the simulation. Never null.
+     * @return The mob.
+     * @throws InvalidSimulationException If the type is not a living entity.
+     */
+    static LivingEntity createMob(EntityType<?> type, SimulationSetup setup) {
         LivingEntity mob = createLiving(type, setup, "no_drops");
         if (setup.has(SimulationFlag.BURNING)) mob.setRemainingFireTicks(BURNING_TICKS);
-        return new MobDropSimulator(setup, mob, createKiller(setup));
+        return mob;
     }
 
     /**
@@ -135,13 +154,14 @@ public final class MobDropSimulator implements IDropSimulator {
     }
 
     /**
-     * Rolls one kill with the Looting level forced when the setup gives one.
+     * Rolls one kill with the Looting level forced when the setup forces it, so vanilla {@code looting_enchant} reads
+     * it too.
      *
      * @return The items and experience of the kill.
      */
     @Override
     public SimulatedDrop simulateOnce() {
-        return LootingOverride.INSTANCE.runWith(mob, setup.enchantLevel(), this::rollKill);
+        return LootingOverride.INSTANCE.runWith(mob, setup.forcedLooting(), this::rollKill);
     }
 
     /**
@@ -151,7 +171,7 @@ public final class MobDropSimulator implements IDropSimulator {
      */
     private SimulatedDrop rollKill() {
         LootContext context = MobDropInjector.createLootContext(level, mob, source);
-        RollContext rollContext = new RollContext(lootingLevel(), mob.getMaxHealth(), level.getRandom(), MobDropInjector.playerOf(killer));
+        RollContext rollContext = new RollContext(enchantLevels, mob.getMaxHealth(), level.getRandom(), MobDropInjector.playerOf(killer));
         return TrackedDropRecorder.INSTANCE.recordRoll(() -> rollItems(context, rollContext), () -> rollExperience(context, rollContext));
     }
 
@@ -195,15 +215,26 @@ public final class MobDropSimulator implements IDropSimulator {
      *
      * @return The translated type name.
      */
+    /**
+     * Names one run: a kill.
+     *
+     * @return {@code kill}.
+     */
+    @Override
+    public String runNoun() {
+        return "kill";
+    }
+
     @Override
     public Component targetName() {
         return mob.getType().getDescription();
     }
 
     /**
-     * Describes the killer, the forced conditions and the Looting level.
+     * Describes the killer, the forced conditions and the enchantments the kill reads.
      *
-     * @return Such as {@code "killer: Dev, sneaking, Looting 3"} or {@code "killer: Wolf (no experience), Looting 0"}.
+     * @return Such as {@code "killer: Dev, sneaking, enchantments: Looting 3"} or
+     *         {@code "killer: Wolf (no experience), no enchantments"}.
      */
     @Override
     public Component describeSetup() {
@@ -216,7 +247,13 @@ public final class MobDropSimulator implements IDropSimulator {
             if (setup.has(SimulationFlag.SNEAKING)) text.append(", ").append(IDropSimulator.setupText("sneaking"));
         }
         if (setup.has(SimulationFlag.BURNING)) text.append(", ").append(IDropSimulator.setupText("burning"));
-        int looting = LootingOverride.INSTANCE.runWith(mob, setup.enchantLevel(), this::lootingLevel);
-        return text.append(", ").append(IDropSimulator.setupText("looting", looting));
+        Map<Enchantment, Integer> enchantments = setup.effectiveEnchantments(killer != null ? killer.getMainHandItem() : ItemStack.EMPTY);
+        int looting = LootingOverride.INSTANCE.runWith(mob, setup.forcedLooting(), this::lootingLevel);
+        if (looting > 0) {
+            enchantments.put(Enchantments.MOB_LOOTING, looting);
+        } else {
+            enchantments.remove(Enchantments.MOB_LOOTING);
+        }
+        return text.append(", ").append(IDropSimulator.enchantmentsText(enchantments));
     }
 }

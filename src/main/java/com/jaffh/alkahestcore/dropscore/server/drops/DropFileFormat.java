@@ -3,36 +3,30 @@ package com.jaffh.alkahestcore.dropscore.server.drops;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropBehaviorType;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.DropEntryJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.DropFileJson;
-import com.jaffh.alkahestcore.dropscore.server.drops.json.EnchantBonusJson;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.storage.loot.functions.LootItemFunctionType;
-import net.minecraft.world.level.storage.loot.functions.LootItemFunctions;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSet;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 
 import javax.annotation.Nullable;
+import java.util.EnumSet;
 import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Defines the keys that differ between mob drop files and block drop files, so one parser reads both.
  */
 public enum DropFileFormat {
     /**
-     * Files in {@code data/<namespace>/mob_drops/}: target key {@code entity}, bonus key {@code on_looting},
-     * one-time drop key {@code first_kill}.
+     * Files in {@code data/<namespace>/mob_drops/}: target key {@code entity}, one-time drop key
+     * {@code first_kill}.
      */
-    MOB("entity", "on_looting", "first_kill", DropBehaviorType.MAX_HEALTH) {
+    MOB("entity", "first_kill", EnumSet.of(DropBehaviorType.MAX_HEALTH, DropBehaviorType.DAMAGE_TAKEN)) {
         @Nullable
         @Override
         public String targetOf(DropFileJson file) {
             return file.entity;
-        }
-
-        @Nullable
-        @Override
-        public EnchantBonusJson enchantBonusOf(DropEntryJson drop) {
-            return drop.onLooting;
         }
 
         @Nullable
@@ -45,27 +39,16 @@ public enum DropFileFormat {
         public LootContextParamSet lootParams() {
             return LootContextParamSets.ENTITY;
         }
-
-        @Override
-        public LootItemFunctionType enchantBonusFunction() {
-            return LootItemFunctions.LOOTING_ENCHANT;
-        }
     },
     /**
-     * Files in {@code data/<namespace>/block_drops/}: target key {@code block}, bonus key {@code on_fortune},
-     * one-time drop key {@code first_break}.
+     * Files in {@code data/<namespace>/block_drops/}: target key {@code block}, one-time drop key
+     * {@code first_break}.
      */
-    BLOCK("block", "on_fortune", "first_break", DropBehaviorType.HARDNESS) {
+    BLOCK("block", "first_break", EnumSet.of(DropBehaviorType.HARDNESS)) {
         @Nullable
         @Override
         public String targetOf(DropFileJson file) {
             return file.block;
-        }
-
-        @Nullable
-        @Override
-        public EnchantBonusJson enchantBonusOf(DropEntryJson drop) {
-            return drop.onFortune;
         }
 
         @Nullable
@@ -78,31 +61,23 @@ public enum DropFileFormat {
         public LootContextParamSet lootParams() {
             return LootContextParamSets.BLOCK;
         }
-
-        @Override
-        public LootItemFunctionType enchantBonusFunction() {
-            return LootItemFunctions.APPLY_BONUS;
-        }
     };
 
     private final String targetKey;
-    private final String bonusKey;
     private final String firstDropKey;
-    private final DropBehaviorType scaleType;
+    private final Set<DropBehaviorType> scaleTypes;
 
     /**
      * Creates a file format.
      *
      * @param targetKey          JSON key of the file target.
-     * @param bonusKey           JSON key of a drop's enchantment bonus.
      * @param firstDropKey       JSON key of a drop that happens once per player.
-     * @param scaleType          The only scaled behavior drops of this format may use.
+     * @param scaleTypes         The scaled behaviors drops of this format may use.
      */
-    DropFileFormat(String targetKey, String bonusKey, String firstDropKey, DropBehaviorType scaleType) {
+    DropFileFormat(String targetKey, String firstDropKey, Set<DropBehaviorType> scaleTypes) {
         this.targetKey = targetKey;
-        this.bonusKey = bonusKey;
         this.firstDropKey = firstDropKey;
-        this.scaleType = scaleType;
+        this.scaleTypes = Set.copyOf(scaleTypes);
     }
 
     /**
@@ -113,15 +88,6 @@ public enum DropFileFormat {
      */
     @Nullable
     public abstract String targetOf(DropFileJson file);
-
-    /**
-     * Returns the enchantment bonus of a drop.
-     *
-     * @param drop Parsed drop. Never null.
-     * @return The value of the bonus key, or null when missing.
-     */
-    @Nullable
-    public abstract EnchantBonusJson enchantBonusOf(DropEntryJson drop);
 
     /**
      * Returns whether a drop happens only once per player.
@@ -139,13 +105,6 @@ public enum DropFileFormat {
      * @return {@code entity} parameters for mob files, {@code block} parameters for block files.
      */
     public abstract LootContextParamSet lootParams();
-
-    /**
-     * Returns the vanilla loot function that adds its own bonus for the enchantment of {@link #bonusKey()}.
-     *
-     * @return {@code looting_enchant} for mob files, {@code apply_bonus} for block files.
-     */
-    public abstract LootItemFunctionType enchantBonusFunction();
 
     /**
      * Returns the other format, whose keys are a likely mistake in files of this one.
@@ -172,15 +131,6 @@ public enum DropFileFormat {
      */
     public String targetKey() {
         return targetKey;
-    }
-
-    /**
-     * Returns the JSON key of a drop's enchantment bonus.
-     *
-     * @return {@code on_looting} or {@code on_fortune}.
-     */
-    public String bonusKey() {
-        return bonusKey;
     }
 
     /**
@@ -243,12 +193,23 @@ public enum DropFileFormat {
     }
 
     /**
-     * Returns the scaled behavior drops of this format may use; the other scaled behavior is an error.
+     * Tells whether drops of this format may use a scaled behavior; the others are an error.
      *
-     * @return {@code max_health} for mob files, {@code hardness} for block files.
+     * @param type Scaled behavior type. Never null.
+     * @return True for {@code max_health} and {@code damage_taken} in mob files, {@code hardness} in block files.
      */
-    public DropBehaviorType scaleType() {
-        return scaleType;
+    public boolean allowsScaleType(DropBehaviorType type) {
+        return scaleTypes.contains(type);
+    }
+
+    /**
+     * Lists the scaled behaviors of this format for messages.
+     *
+     * @return Such as {@code 'max_health', 'damage_taken'}.
+     */
+    public String scaleTypeNames() {
+        return scaleTypes.stream().sorted().map(type -> "'" + type.name().toLowerCase(Locale.ROOT) + "'")
+                .collect(Collectors.joining(", "));
     }
 
     /**
@@ -258,6 +219,16 @@ public enum DropFileFormat {
      * @return True for mob files.
      */
     public boolean canRollPerPlayer() {
+        return this == MOB;
+    }
+
+    /**
+     * Tells whether drops and removal files of this format may set {@code on}, the action that makes them drop. A
+     * block only drops when it breaks, so block files reject the key.
+     *
+     * @return True for mob files.
+     */
+    public boolean canUseTriggers() {
         return this == MOB;
     }
 }

@@ -3,6 +3,6 @@
   "entity": "minecraft:chicken",
   "drops": [
     { "experience": true, "chance": 1.0, "count": { "min": 4, "max": 4 }, "drop_behavior": { "type": "uniform" },
-      "on_looting": { "bonus_count": { "bonus_min_per_level": 2, "bonus_max_per_level": 2 } } }
+      "enchant_bonus": [ { "enchant": "minecraft:looting", "on_enchant": { "bonus_count": { "bonus_min_per_level": 2, "bonus_max_per_level": 2 } } } ] }
   ]
 }

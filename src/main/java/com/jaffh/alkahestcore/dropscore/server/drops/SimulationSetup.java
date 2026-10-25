@@ -5,8 +5,15 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.UUID;
@@ -18,17 +25,53 @@ import java.util.UUID;
  * @param origin       Position of the simulated mob or block. Never null.
  * @param actor        Who kills or breaks. Never null.
  * @param flags        Conditions forced on the simulation. Immutable, never null.
- * @param enchantLevel Looting or Fortune level forced on the simulation; empty to read it from the actor's main hand.
+ * @param enchantments Enchantment levels forced on the simulation, in command order; they replace the levels of the
+ *                     actor's held item, and every other enchantment is still read from it. Immutable, never null.
  */
 public record SimulationSetup(ServerLevel level, Vec3 origin, SimulationActor actor, Set<SimulationFlag> flags,
-                              OptionalInt enchantLevel) {
+                              Map<Enchantment, Integer> enchantments) {
     private static final String BLANK_PLAYER_NAME = "Simulator";
 
     /**
-     * Creates a setup and stores an immutable copy of the flags.
+     * Creates a setup and stores immutable copies of the flags and the enchantments, keeping their order.
      */
     public SimulationSetup {
         flags = Set.copyOf(flags);
+        enchantments = Collections.unmodifiableMap(new LinkedHashMap<>(enchantments));
+    }
+
+    /**
+     * Returns the forced Looting level, which vanilla {@code looting_enchant} functions must read too.
+     *
+     * @return The level, or empty when Looting is not forced.
+     */
+    public OptionalInt forcedLooting() {
+        Integer level = enchantments.get(Enchantments.MOB_LOOTING);
+        return level != null ? OptionalInt.of(level) : OptionalInt.empty();
+    }
+
+    /**
+     * Returns the enchantment levels a roll reads: those of the held item, with the forced ones replacing them.
+     *
+     * @param heldItem Item the actor holds. Never null, may be empty.
+     * @return The levels.
+     */
+    public EnchantLevels levelsOf(ItemStack heldItem) {
+        return EnchantLevels.ofItem(heldItem).withOverrides(enchantments);
+    }
+
+    /**
+     * Lists the enchantments a roll reads, for the report: those of the held item, with the forced ones replacing
+     * them; levels of 0 are left out.
+     *
+     * @param heldItem Item the actor holds. Never null, may be empty.
+     * @return The levels above 0, the held item's first, in a mutable ordered map.
+     */
+    public Map<Enchantment, Integer> effectiveEnchantments(ItemStack heldItem) {
+        Map<Enchantment, Integer> levels = new LinkedHashMap<>(EnchantmentHelper.getEnchantments(heldItem));
+        levels.putAll(enchantments);
+        levels.values().removeIf(level -> level <= 0);
+        return levels;
     }
 
     /**

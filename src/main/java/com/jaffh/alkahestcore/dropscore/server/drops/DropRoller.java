@@ -4,7 +4,7 @@ import com.jaffh.alkahestcore.dropscore.common.drops.DropBehavior;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropCount;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropEntry;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropTracking;
-import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonus;
+import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonuses;
 import com.jaffh.alkahestcore.dropscore.server.progress.DropProgress;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootContext;
@@ -28,7 +28,7 @@ public final class DropRoller {
      * Rolls one item drop and applies its loot functions to the stack.
      *
      * @param entry       Drop to roll. Never null.
-     * @param context     Enchantment level, scale value and random source of the roll. Never null.
+     * @param context     Enchantment levels, scale value and random source of the roll. Never null.
      * @param lootContext Loot context of the drop, non-null whenever the drop has functions.
      * @return The dropped stack, or {@link ItemStack#EMPTY} when the drop fails, rolls a count of 0, gives
      *         experience or a function empties it.
@@ -61,7 +61,7 @@ public final class DropRoller {
      * experience.
      *
      * @param entry   Drop to roll. Never null.
-     * @param context Enchantment level, scale value, random source and player of the roll. Never null.
+     * @param context Enchantment levels, scale value, random source and player of the roll. Never null.
      * @return The rolled count, 0 when the drop fails.
      */
     public static int rollCount(DropEntry entry, RollContext context) {
@@ -118,7 +118,7 @@ public final class DropRoller {
      * @return The rolled count, 0 when the chance fails.
      */
     private static int rollChanceAndCount(DropEntry entry, RollContext context) {
-        double chance = entry.enchantBonus().chance().applyTo(entry.chance(), context.enchantLevel());
+        double chance = entry.enchantBonuses().applyToChance(entry.chance(), context.enchantLevels()::levelOf);
         if (context.random().nextDouble() >= chance) return 0;
         return rollCountOnly(entry, context);
     }
@@ -131,10 +131,11 @@ public final class DropRoller {
      * @return The rolled count, 0 or more.
      */
     private static int rollCountOnly(DropEntry entry, RollContext context) {
-        EnchantBonus bonus = entry.enchantBonus();
-        int level = context.enchantLevel();
-        DropCount range = entry.count().withBonus(bonus.count(), level);
-        DropBehavior behavior = entry.behavior().withBonus(bonus.roll(), level);
-        return behavior.type().rollCount(range, behavior, context.scaleValue(), context.random());
+        EnchantBonuses bonuses = entry.enchantBonuses();
+        EnchantLevels levels = context.enchantLevels();
+        DropCount range = bonuses.applyToCount(entry.count(), levels::levelOf);
+        DropBehavior behavior = bonuses.applyToBehavior(entry.behavior(), levels::levelOf);
+        float scaleValue = behavior.type().readsDamageTaken() ? context.damageTaken() : context.scaleValue();
+        return behavior.type().rollCount(range, behavior, scaleValue, context.random());
     }
 }

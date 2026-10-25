@@ -1,6 +1,7 @@
 package com.jaffh.alkahestcore.dropscore.client.compat.jei;
 
 import com.jaffh.alkahestcore.AlkahestCore;
+import com.jaffh.alkahestcore.dropscore.common.drops.DropTrigger;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawableStatic;
 import mezz.jei.api.helpers.IGuiHelper;
@@ -17,6 +18,9 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraftforge.common.ForgeSpawnEggItem;
 
+import java.util.EnumMap;
+import java.util.Map;
+
 /**
  * JEI category of mob drops: one page per mob with its full drops (loot table, experience and dropscore drops).
  * The mob is drawn in a card on the left, with what triggers the drops under it, and the drops are in a panel on the
@@ -31,7 +35,7 @@ final class MobDropCategory extends DropCategory<EntityType<?>> {
     private static final DropGrid GRID = new DropGrid(WIDTH - 4 * DropGrid.CELL - 2, 11, 4, 6);
     private static final int HEIGHT = GRID.y() + GRID.height();
     private static final int TRIGGER_Y = CARD.y() + CARD.height() + 4;
-    private static final ItemStack DEATH_ICON = new ItemStack(Items.IRON_SWORD);
+    private static final Map<DropTrigger, ItemStack> TRIGGER_ICONS = triggerIcons();
 
     private final EntityPreviews previews;
     private final MobIngredientRenderer cardRenderer;
@@ -96,8 +100,8 @@ final class MobDropCategory extends DropCategory<EntityType<?>> {
         int arrowX = CARD.width() + (GRID.x() - CARD.width() - arrow.getWidth()) / 2;
         int arrowY = CARD.y() + (CARD.height() - arrow.getHeight()) / 2;
         arrow.draw(guiGraphics, arrowX, arrowY);
-        guiGraphics.renderFakeItem(DEATH_ICON, 0, TRIGGER_Y);
-        Component trigger = DropDisplayFormat.text("trigger.death");
+        guiGraphics.renderFakeItem(TRIGGER_ICONS.get(recipe.trigger()), 0, TRIGGER_Y);
+        Component trigger = DropDisplayFormat.text("trigger." + recipe.trigger().id());
         guiGraphics.drawString(font, trigger, 19, TRIGGER_Y + 4, TEXT_COLOR, false);
     }
 
@@ -117,6 +121,21 @@ final class MobDropCategory extends DropCategory<EntityType<?>> {
      *
      * @return The recipe type of mob drops.
      */
+    /**
+     * Creates the icon of every trigger, drawn beside the trigger's name under the mob.
+     *
+     * @return An icon per trigger.
+     */
+    private static Map<DropTrigger, ItemStack> triggerIcons() {
+        Map<DropTrigger, ItemStack> icons = new EnumMap<>(DropTrigger.class);
+        icons.put(DropTrigger.DEATH, new ItemStack(Items.IRON_SWORD));
+        icons.put(DropTrigger.SHEAR, new ItemStack(Items.SHEARS));
+        icons.put(DropTrigger.HIT, new ItemStack(Items.WOODEN_SWORD));
+        icons.put(DropTrigger.LIGHTNING, new ItemStack(Items.LIGHTNING_ROD));
+        icons.put(DropTrigger.PERIODIC, new ItemStack(Items.CLOCK));
+        return icons;
+    }
+
     @SuppressWarnings("unchecked")
     private static RecipeType<DropRecipe<EntityType<?>>> createType() {
         return new RecipeType<>(new ResourceLocation(AlkahestCore.ID, "mob_drops"),

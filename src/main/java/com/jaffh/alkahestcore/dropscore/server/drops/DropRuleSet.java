@@ -1,5 +1,6 @@
 package com.jaffh.alkahestcore.dropscore.server.drops;
 
+import com.jaffh.alkahestcore.dropscore.common.drops.DropTrigger;
 import net.minecraft.tags.TagKey;
 
 import java.util.ArrayList;
@@ -25,7 +26,7 @@ public final class DropRuleSet<T> {
     private final Map<String, RuleGroup> namespaceRules;
     private final Map<TagKey<T>, RuleGroup> taggedRules;
     private final RuleGroup anyRules;
-    private final Map<T, DropTable> tables = new ConcurrentHashMap<>();
+    private final Map<T, TriggerTables> tables = new ConcurrentHashMap<>();
 
     /**
      * Creates a rule set from frozen groups.
@@ -63,7 +64,17 @@ public final class DropRuleSet<T> {
      * @return The table, {@link DropTable#EMPTY} when no file matches.
      */
     public DropTable tableOf(T value) {
-        return tables.computeIfAbsent(value, this::buildTable);
+        return triggerTablesOf(value).of(DropTrigger.DEATH);
+    }
+
+    /**
+     * Returns the tables of every trigger of a target, built on the first lookup.
+     *
+     * @param value Target. Never null.
+     * @return The tables, {@link TriggerTables#EMPTY} when no file matches.
+     */
+    public TriggerTables triggerTablesOf(T value) {
+        return tables.computeIfAbsent(value, this::buildTables);
     }
 
     /**
@@ -77,9 +88,9 @@ public final class DropRuleSet<T> {
      * Builds the table of a target from its exact, {@code mod:*}, tag and {@code *} files.
      *
      * @param value Target. Never null.
-     * @return The table, {@link DropTable#EMPTY} when no file matches.
+     * @return The tables, {@link TriggerTables#EMPTY} when no file matches.
      */
-    private DropTable buildTable(T value) {
+    private TriggerTables buildTables(T value) {
         List<DropFile> dropFiles = new ArrayList<>();
         List<RemovalRule> removals = new ArrayList<>();
 
@@ -94,8 +105,8 @@ public final class DropRuleSet<T> {
             anyRules.addTo(dropFiles, removals);
         }
 
-        if (dropFiles.isEmpty() && removals.isEmpty()) return DropTable.EMPTY;
-        return DropTable.build(dropFiles, removals);
+        if (dropFiles.isEmpty() && removals.isEmpty()) return TriggerTables.EMPTY;
+        return TriggerTables.build(dropFiles, removals);
     }
 
     /**

@@ -3,10 +3,11 @@ package com.jaffh.alkahestcore.dropscore.server.sync;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropBehavior;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropCount;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropEntry;
-import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonus;
+import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonuses;
 import com.jaffh.alkahestcore.dropscore.common.drops.SyncedCondition;
 import com.jaffh.alkahestcore.dropscore.common.drops.SyncedDrop;
 import com.jaffh.alkahestcore.dropscore.common.drops.SyncedDropSource;
+import com.jaffh.alkahestcore.dropscore.common.drops.TriggerSettings;
 import com.jaffh.alkahestcore.dropscore.server.drops.DropFile;
 import com.jaffh.alkahestcore.dropscore.server.drops.DropTable;
 import com.jaffh.alkahestcore.dropscore.server.drops.RemovalEntry;
@@ -59,14 +60,37 @@ final class TargetDropsBuilder {
             drops.add(withRemovals(drop, removalsOf(table.perKillRemovals(), rule -> true, entry -> entry.removes(item))));
         }
         if (experience != null && !removesExperience(table, null)) {
-            SyncedDrop drop = new SyncedDrop(ItemStack.EMPTY, 1.0, experience, DropBehavior.UNIFORM, EnchantBonus.NONE,
-                    SyncedDrop.UNTRACKED, List.of(), false, SyncedDropSource.experience(targetId));
+            SyncedDrop drop = new SyncedDrop(ItemStack.EMPTY, 1.0, experience, DropBehavior.UNIFORM, EnchantBonuses.NONE,
+                    SyncedDrop.UNTRACKED, List.of(), false, SyncedDropSource.experience(targetId), TriggerSettings.DEATH);
             drops.add(withRemovals(drop, removalsOf(table.experienceRemovals(), rule -> true, RemovalEntry::isExperience)));
         }
+        addDropscoreDrops(drops, table);
+        return drops;
+    }
+
+    /**
+     * Builds the drops of a trigger other than death: only dropscore drops, since the game drops nothing there that
+     * a loot table describes.
+     *
+     * @param table Drop table of the trigger. Never null.
+     * @return The drops, each carrying its trigger.
+     */
+    List<SyncedDrop> buildTriggered(DropTable table) {
+        List<SyncedDrop> drops = new ArrayList<>();
+        addDropscoreDrops(drops, table);
+        return drops;
+    }
+
+    /**
+     * Adds every dropscore drop of a table that no unconditional removal takes out.
+     *
+     * @param drops Receives the drops. Never null.
+     * @param table Drop table. Never null.
+     */
+    private void addDropscoreDrops(List<SyncedDrop> drops, DropTable table) {
         for (DropFile file : table.dropFiles()) {
             for (DropEntry entry : file.entries()) addDropscoreDrop(drops, file, entry, table);
         }
-        return drops;
     }
 
     /**
@@ -92,7 +116,8 @@ final class TargetDropsBuilder {
         conditions.addAll(entry.conditions());
         ConditionDescriber.Description own = describer.describe(conditions);
         SyncedDrop drop = new SyncedDrop(entry.createStack(1), entry.chance(), entry.count(), entry.behavior(),
-                entry.enchantBonus(), entry.tracking(), own.conditions(), own.hasHidden(), SyncedDropSource.dropscore(fileId));
+                entry.enchantBonuses(), entry.tracking(), own.conditions(), own.hasHidden(), SyncedDropSource.dropscore(fileId),
+                entry.trigger());
         drops.add(withRemovals(drop, removals));
     }
 

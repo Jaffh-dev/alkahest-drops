@@ -1,5 +1,6 @@
 package com.jaffh.alkahestcore.dropscore.server.mobdrops;
 
+import com.jaffh.alkahestcore.dropscore.common.drops.DropTrigger;
 import com.jaffh.alkahestcore.dropscore.server.drops.DropDataException;
 import com.jaffh.alkahestcore.dropscore.server.drops.DropFileFormat;
 import com.jaffh.alkahestcore.dropscore.server.drops.DropIssue;
@@ -31,13 +32,24 @@ public final class MobDropManager extends DropManager<EntityType<?>> {
     }
 
     /**
-     * Returns the drop table of an entity type, built on its first lookup after a reload.
+     * Returns the death drop table of an entity type, built on its first lookup after a reload.
      *
      * @param type Entity type of the dying mob. Never null.
      * @return The table, {@link DropTable#EMPTY} when no file targets this type.
      */
     public static DropTable getTable(EntityType<?> type) {
         return INSTANCE.tableOf(type);
+    }
+
+    /**
+     * Returns the drop table of one trigger of an entity type.
+     *
+     * @param type    Entity type of the mob. Never null.
+     * @param trigger Trigger of the drop. Never null.
+     * @return The table, {@link DropTable#EMPTY} when no rule of that trigger targets this type.
+     */
+    public static DropTable getTable(EntityType<?> type, DropTrigger trigger) {
+        return INSTANCE.tableOf(type, trigger);
     }
 
     /**

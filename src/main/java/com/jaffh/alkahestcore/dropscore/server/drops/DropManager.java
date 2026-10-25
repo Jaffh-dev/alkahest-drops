@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.jaffh.alkahestcore.dropscore.common.DropscoreConfig;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropEntry;
+import com.jaffh.alkahestcore.dropscore.common.drops.DropTrigger;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -77,6 +78,27 @@ public abstract class DropManager<T> extends SimpleJsonResourceReloadListener {
      */
     public DropTable tableOf(T value) {
         return rules.tableOf(value);
+    }
+
+    /**
+     * Returns the drop table of one trigger of a target, built on its first lookup after a reload.
+     *
+     * @param value   Target that drops. Never null.
+     * @param trigger Trigger of the drop. Never null.
+     * @return The table, {@link DropTable#EMPTY} when no rule of that trigger targets it.
+     */
+    public DropTable tableOf(T value, DropTrigger trigger) {
+        return rules.triggerTablesOf(value).of(trigger);
+    }
+
+    /**
+     * Returns the drop tables of every trigger of a target.
+     *
+     * @param value Target. Never null.
+     * @return The tables, {@link TriggerTables#EMPTY} when no file targets it.
+     */
+    public TriggerTables triggerTablesOf(T value) {
+        return rules.triggerTablesOf(value);
     }
 
     /**

@@ -4,7 +4,10 @@ import com.jaffh.alkahestcore.dropscore.common.drops.DropBehavior;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropBehaviorType;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropCount;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropTracking;
+import com.jaffh.alkahestcore.dropscore.common.drops.DropTrigger;
 import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonus;
+import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonusEntry;
+import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonuses;
 import com.jaffh.alkahestcore.dropscore.common.drops.ScaleFormula;
 import com.jaffh.alkahestcore.dropscore.common.drops.ScaleFunction;
 import com.jaffh.alkahestcore.dropscore.common.drops.SyncedCondition;
@@ -12,7 +15,14 @@ import com.jaffh.alkahestcore.dropscore.common.drops.SyncedDrop;
 import com.jaffh.alkahestcore.dropscore.common.drops.SyncedDropRules;
 import com.jaffh.alkahestcore.dropscore.common.drops.SyncedDropSource;
 import com.jaffh.alkahestcore.dropscore.common.drops.SyncedTarget;
+import com.jaffh.alkahestcore.dropscore.common.drops.TriggerSettings;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraftforge.registries.ForgeRegistries;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Writes and reads the synced drop records on a packet buffer. Every {@code read*} method reads exactly what the
@@ -81,12 +91,34 @@ final class DropSyncCodec {
         buf.writeVarInt(drop.count().min());
         buf.writeVarInt(drop.count().max());
         writeUnlessDefault(buf, drop.behavior(), DropBehavior.UNIFORM, DropSyncCodec::writeBehavior);
-        writeUnlessDefault(buf, drop.enchantBonus(), EnchantBonus.NONE, DropSyncCodec::writeEnchantBonus);
+        writeUnlessDefault(buf, drop.enchantBonuses(), EnchantBonuses.NONE, DropSyncCodec::writeEnchantBonuses);
         writeUnlessDefault(buf, drop.tracking(), SyncedDrop.UNTRACKED, DropSyncCodec::writeTracking);
         buf.writeCollection(drop.conditions(), DropSyncCodec::writeCondition);
         buf.writeBoolean(drop.hasHiddenConditions());
         buf.writeEnum(drop.source().kind());
         buf.writeResourceLocation(drop.source().id());
+        writeUnlessDefault(buf, drop.trigger(), TriggerSettings.DEATH, DropSyncCodec::writeTrigger);
+    }
+
+    /**
+     * Writes the trigger of a drop.
+     *
+     * @param buf     Target buffer. Never null.
+     * @param trigger Trigger settings to write. Never null.
+     */
+    private static void writeTrigger(FriendlyByteBuf buf, TriggerSettings trigger) {
+        buf.writeEnum(trigger.trigger());
+        buf.writeVarInt(trigger.ticks());
+    }
+
+    /**
+     * Reads the trigger of a drop.
+     *
+     * @param buf Source buffer. Never null.
+     * @return The trigger settings.
+     */
+    private static TriggerSettings readTrigger(FriendlyByteBuf buf) {
+        return new TriggerSettings(buf.readEnum(DropTrigger.class), buf.readVarInt());
     }
 
     /**
@@ -101,11 +133,12 @@ final class DropSyncCodec {
                 buf.readDouble(),
                 new DropCount(buf.readVarInt(), buf.readVarInt()),
                 buf.readBoolean() ? readBehavior(buf) : DropBehavior.UNIFORM,
-                buf.readBoolean() ? readEnchantBonus(buf) : EnchantBonus.NONE,
+                buf.readBoolean() ? readEnchantBonuses(buf) : EnchantBonuses.NONE,
                 buf.readBoolean() ? readTracking(buf) : SyncedDrop.UNTRACKED,
                 buf.readList(DropSyncCodec::readCondition),
                 buf.readBoolean(),
-                new SyncedDropSource(buf.readEnum(SyncedDropSource.Kind.class), buf.readResourceLocation())
+                new SyncedDropSource(buf.readEnum(SyncedDropSource.Kind.class), buf.readResourceLocation()),
+                buf.readBoolean() ? readTrigger(buf) : TriggerSettings.DEATH
         );
     }
 
@@ -181,10 +214,42 @@ final class DropSyncCodec {
     }
 
     /**
-     * Writes the enchantment bonuses of a drop.
+     * Writes the bonuses of every enchantment of a drop: the count, then each enchantment id and its bonus.
+     *
+     * @param buf     Target buffer. Never null.
+     * @param bonuses Bonuses to write. Never null.
+     */
+    private static void writeEnchantBonuses(FriendlyByteBuf buf, EnchantBonuses bonuses) {
+        buf.writeVarInt(bonuses.entries().size());
+        for (EnchantBonusEntry entry : bonuses.entries()) {
+            buf.writeResourceLocation(ForgeRegistries.ENCHANTMENTS.getKey(entry.enchantment()));
+            writeEnchantBonus(buf, entry.bonus());
+        }
+    }
+
+    /**
+     * Reads the bonuses of every enchantment of a drop. An enchantment the client does not know is left out.
+     *
+     * @param buf Source buffer. Never null.
+     * @return The bonuses.
+     */
+    private static EnchantBonuses readEnchantBonuses(FriendlyByteBuf buf) {
+        int size = buf.readVarInt();
+        List<EnchantBonusEntry> entries = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            ResourceLocation id = buf.readResourceLocation();
+            EnchantBonus bonus = readEnchantBonus(buf);
+            Enchantment enchantment = ForgeRegistries.ENCHANTMENTS.getValue(id);
+            if (enchantment != null) entries.add(new EnchantBonusEntry(enchantment, bonus));
+        }
+        return new EnchantBonuses(entries);
+    }
+
+    /**
+     * Writes the bonus of one enchantment.
      *
      * @param buf   Target buffer. Never null.
-     * @param bonus Bonuses to write. Never null.
+     * @param bonus Bonus to write. Never null.
      */
     private static void writeEnchantBonus(FriendlyByteBuf buf, EnchantBonus bonus) {
         buf.writeDouble(bonus.chance().bonusPerLevel());
@@ -204,10 +269,10 @@ final class DropSyncCodec {
     }
 
     /**
-     * Reads the enchantment bonuses of a drop.
+     * Reads the bonus of one enchantment.
      *
      * @param buf Source buffer. Never null.
-     * @return The bonuses.
+     * @return The bonus.
      */
     private static EnchantBonus readEnchantBonus(FriendlyByteBuf buf) {
         EnchantBonus.ChanceBonus chance = new EnchantBonus.ChanceBonus(buf.readDouble(), buf.readDouble());

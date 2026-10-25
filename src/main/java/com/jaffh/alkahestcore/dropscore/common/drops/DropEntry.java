@@ -18,11 +18,12 @@ import java.util.List;
  * @param chance       Base chance (0–1) that the drop happens.
  * @param count        Base count range. Never null.
  * @param behavior     How the count is rolled. Never null.
- * @param enchantBonus Per-level bonuses from Looting or Fortune. Never null.
+ * @param enchantBonuses Per-level bonuses of each enchantment in {@code enchant_bonus}. Never null.
  * @param conditions   Vanilla loot conditions that must all pass. Immutable, never null.
  * @param functions    Vanilla loot functions applied in order to every dropped stack, after {@code nbt}. Always
  *                     empty for experience. Immutable, never null.
  * @param tracking     Per-player settings: pity, first kill and per-player rolls. Never null.
+ * @param trigger      What makes the drop happen, death by default; always death for blocks. Never null.
  */
 public record DropEntry(
         @Nullable Item item,
@@ -30,10 +31,11 @@ public record DropEntry(
         double chance,
         DropCount count,
         DropBehavior behavior,
-        EnchantBonus enchantBonus,
+        EnchantBonuses enchantBonuses,
         List<LootItemCondition> conditions,
         List<LootItemFunction> functions,
-        DropTracking tracking
+        DropTracking tracking,
+        TriggerSettings trigger
 ) {
     /**
      * Creates a drop entry and stores immutable copies of the conditions and functions.

@@ -2,7 +2,11 @@ package com.jaffh.alkahestcore.dropscore.server.drops;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.jaffh.alkahestcore.dropscore.common.drops.EnchantBonuses;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.GsonHelper;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.storage.loot.LootDataId;
 import net.minecraft.world.level.storage.loot.LootDataManager;
 import net.minecraft.world.level.storage.loot.LootDataResolver;
@@ -14,6 +18,7 @@ import net.minecraft.world.level.storage.loot.functions.LootItemFunctionType;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunctions;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraft.world.level.storage.loot.predicates.LootItemRandomChanceCondition;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -71,22 +76,39 @@ public final class LootFunctionChecker {
      *
      * @param functions       Parsed functions, in file order. Never null.
      * @param json            JSON array the functions were parsed from, same order. Never null.
-     * @param hasEnchantBonus Whether the drop has the format's bonus key ({@code on_looting} or {@code on_fortune}).
+     * @param bonuses         Enchantment bonuses of the drop ({@code enchant_bonus}). Never null.
      * @param ctx             Context of the drop. Never null.
      */
-    public void check(List<LootItemFunction> functions, JsonArray json, boolean hasEnchantBonus, ParseContext ctx) {
+    public void check(List<LootItemFunction> functions, JsonArray json, EnchantBonuses bonuses, ParseContext ctx) {
         for (int i = 0; i < functions.size(); i++) {
             LootItemFunction function = functions.get(i);
             ParseContext functionCtx = ctx.at("functions", i);
             warnMissingParams(function, functionCtx);
             LootItemFunctionType type = function.getType();
             if (type == LootItemFunctions.SET_COUNT && !isAddingCount(json.get(i))) {
-                functionCtx.warn("set_count_replaces", format.bonusKey());
+                functionCtx.warn("set_count_replaces");
             }
-            if (type == format.enchantBonusFunction() && hasEnchantBonus) {
-                functionCtx.warn("double_enchant_bonus", format.bonusKey());
+            Enchantment bonusEnchantment = bonusEnchantmentOf(type, json.get(i));
+            if (bonusEnchantment != null && bonuses.has(bonusEnchantment)) {
+                functionCtx.warn("double_enchant_bonus", ForgeRegistries.ENCHANTMENTS.getKey(bonusEnchantment));
             }
         }
+    }
+
+    /**
+     * Returns the enchantment a vanilla bonus function scales with: Looting for {@code looting_enchant}, the
+     * {@code enchantment} key of {@code apply_bonus}.
+     *
+     * @param type Type of the function. Never null.
+     * @param json JSON of the function. Never null.
+     * @return The enchantment, or null when the function adds no enchantment bonus.
+     */
+    @Nullable
+    private static Enchantment bonusEnchantmentOf(LootItemFunctionType type, JsonElement json) {
+        if (type == LootItemFunctions.LOOTING_ENCHANT) return Enchantments.MOB_LOOTING;
+        if (type != LootItemFunctions.APPLY_BONUS || !json.isJsonObject()) return null;
+        ResourceLocation id = ResourceLocation.tryParse(GsonHelper.getAsString(json.getAsJsonObject(), "enchantment", ""));
+        return id != null ? ForgeRegistries.ENCHANTMENTS.getValue(id) : null;
     }
 
     /**

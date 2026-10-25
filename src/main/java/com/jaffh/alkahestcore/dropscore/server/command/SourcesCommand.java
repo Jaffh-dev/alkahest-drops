@@ -118,6 +118,7 @@ final class SourcesCommand {
             lines.add(RuleText.fileLine("- ", ChatFormatting.RED, removals, manager)
                     .append(CommandText.text(": ", ChatFormatting.WHITE))
                     .append(CommandText.lang("rule.removes", RuleText.describeRemovalMatch(entry)).withStyle(ChatFormatting.WHITE))
+                    .append(RuleText.removalTrigger(rule.trigger()))
                     .append(isConditional ? CommandText.text(", ", ChatFormatting.WHITE).append(RuleText.conditional()) : CommandText.text("")));
         }
     }

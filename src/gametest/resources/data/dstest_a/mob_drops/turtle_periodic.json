@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "entity": "minecraft:turtle",
+  "drops": [
+    { "item": "minecraft:slime_ball", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" }, "on": "periodic", "interval": 10 },
+    { "item": "minecraft:clay_ball", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" }, "on": "periodic", "interval": 15 },
+    { "experience": true, "chance": 1.0, "count": { "min": 3, "max": 3 }, "drop_behavior": { "type": "uniform" }, "on": "periodic", "interval": 10 }
+  ]
+}

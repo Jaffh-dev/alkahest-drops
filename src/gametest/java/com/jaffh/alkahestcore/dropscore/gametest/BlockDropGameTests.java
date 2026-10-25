@@ -41,7 +41,7 @@ public class BlockDropGameTests {
     }
 
     /**
-     * {@code on_fortune.bonus_count} raises the count by one per Fortune level: 1 + 3 with Fortune III.
+     * A Fortune {@code bonus_count} raises the count by one per Fortune level: 1 + 3 with Fortune III.
      *
      * @param helper Helper of the test.
      */
@@ -50,6 +50,20 @@ public class BlockDropGameTests {
         DropTestKit.breakBlock(helper, Blocks.TERRACOTTA, enchantedPickaxe(Enchantments.BLOCK_FORTUNE, 3), false);
         helper.runAfterDelay(1, () -> {
             DropTestKit.assertItemCount(helper, Items.AMETHYST_SHARD, 4);
+            helper.succeed();
+        });
+    }
+
+    /**
+     * Any enchantment of the tool can give a bonus: 1 echo shard + 1 per Efficiency level, so 5 with Efficiency IV.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void anyToolEnchantmentGivesBonus(GameTestHelper helper) {
+        DropTestKit.breakBlock(helper, Blocks.DEEPSLATE_TILES, enchantedPickaxe(Enchantments.BLOCK_EFFICIENCY, 4), false);
+        helper.runAfterDelay(1, () -> {
+            DropTestKit.assertItemCount(helper, Items.ECHO_SHARD, 5);
             helper.succeed();
         });
     }
@@ -213,7 +227,7 @@ public class BlockDropGameTests {
     }
 
     /**
-     * {@code on_fortune.bonus_count} raises the experience by two per Fortune level: 5 + 4 with Fortune II.
+     * A Fortune {@code bonus_count} raises the experience by two per Fortune level: 5 + 4 with Fortune II.
      *
      * @param helper Helper of the test.
      */
@@ -328,7 +342,6 @@ public class BlockDropGameTests {
         DropTestKit.assertIssue(issues, "entity_key_in_block_file", "entity", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "per_player_on_block", "drops[0].per_player", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "per_player_on_block", "drops[1].first_kill", DropIssue.Severity.WARNING);
-        DropTestKit.assertIssue(issues, "on_looting_in_block_file", "drops[0].on_looting", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "experience_with_item", "drops[0].experience", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "experience_with_nbt", "drops[0].nbt", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "looting_enchant_on_block", "drops[0].functions[0]", DropIssue.Severity.WARNING);
