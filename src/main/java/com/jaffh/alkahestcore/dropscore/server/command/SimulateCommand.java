@@ -3,6 +3,7 @@ package com.jaffh.alkahestcore.dropscore.server.command;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropTracking;
 import com.jaffh.alkahestcore.dropscore.server.blockdrops.BlockDropSimulator;
 import com.jaffh.alkahestcore.dropscore.server.drops.IDropSimulator;
+import com.jaffh.alkahestcore.dropscore.server.drops.InvalidSimulationException;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulationActor;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulationFlag;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulationSetup;
@@ -55,7 +56,7 @@ import java.util.function.UnaryOperator;
 final class SimulateCommand {
     private static final int MAX_RUNS = 1_000_000;
     private static final int MAX_ENCHANT_LEVEL = 255;
-    private static final String TITLE = "SIMULATION";
+    private static final Component TITLE = CommandText.lang("simulate.title");
     private static final String PAGE_COMMAND = "/dropscore simulate";
     private static final int DEFAULT_RUNS = 1;
     private static final String KILLER = "killer";
@@ -142,8 +143,8 @@ final class SimulateCommand {
         IDropSimulator simulator;
         try {
             simulator = kind.factory.create(context, setup);
-        } catch (IllegalArgumentException e) {
-            source.sendFailure(Component.literal(e.getMessage()));
+        } catch (InvalidSimulationException e) {
+            source.sendFailure(e.text());
             return 0;
         }
 
@@ -172,7 +173,7 @@ final class SimulateCommand {
     private static int showPage(CommandSourceStack source, int page) {
         Report report = LAST_REPORTS.get(source.getTextName());
         if (report == null) {
-            source.sendFailure(Component.literal("No simulation to show: run /dropscore simulate entity|block first"));
+            source.sendFailure(CommandText.lang("simulate.no_report"));
             return 0;
         }
         PagedOutput.send(source, TITLE, report.intro(), report.lines(), page, PAGE_COMMAND);
@@ -270,18 +271,19 @@ final class SimulateCommand {
     private static Report buildReport(IDropSimulator simulator, DropSimulation simulation, SimulationFilter filter, Kind kind) {
         int runs = simulation.runCount();
         List<Component> intro = new ArrayList<>();
-        intro.add(CommandText.text("")
-                .append(CommandText.text("Simulated ", ChatFormatting.BLUE))
-                .append(CommandText.bold(String.valueOf(runs), ChatFormatting.BLUE))
-                .append(CommandText.text(" " + kind.runNoun + (runs == 1 ? "" : "s") + " of ", ChatFormatting.BLUE))
-                .append(simulator.targetName().copy().withStyle(ChatFormatting.BLUE, ChatFormatting.BOLD))
-                .append(CommandText.text(" (" + simulator.describeSetup() + ")", ChatFormatting.GRAY)));
-        if (filter.isFiltered()) intro.add(CommandText.text("Showing only " + filter.label(), ChatFormatting.GRAY));
+        String headerKey = "simulate.header." + kind.runNoun + (runs == 1 ? ".one" : ".many");
+        intro.add(CommandText.lang(headerKey, CommandText.bold(String.valueOf(runs), ChatFormatting.BLUE),
+                        simulator.targetName().copy().withStyle(ChatFormatting.BLUE, ChatFormatting.BOLD))
+                .withStyle(ChatFormatting.BLUE)
+                .append(CommandText.text(" (", ChatFormatting.GRAY).append(simulator.describeSetup()).append(")")));
+        if (filter.isFiltered()) intro.add(CommandText.lang("simulate.only", filter.label()).withStyle(ChatFormatting.GRAY));
 
         List<Component> lines = new ArrayList<>();
         if (simulation.isEmpty()) {
-            String what = filter.isFiltered() ? "No " + filter.label() : "Nothing";
-            lines.add(CommandText.text(what + " dropped in " + CommandText.count(runs, kind.runNoun) + ".", ChatFormatting.GRAY));
+            Component runText = CommandText.plural("count." + kind.runNoun, runs);
+            lines.add((filter.isFiltered()
+                    ? CommandText.lang("simulate.empty.filtered", filter.label(), runText)
+                    : CommandText.lang("simulate.empty.all", runText)).withStyle(ChatFormatting.GRAY));
         }
         for (DropSimulation.ItemResult result : simulation.itemResults()) {
             Component line = resultLine(CommandText.itemName(result.item()), ChatFormatting.YELLOW,
@@ -289,7 +291,7 @@ final class SimulateCommand {
             lines.add(result.tracking() == null ? line : line.copy().append(trackingNote(result.tracking(), kind)));
         }
         for (DropSimulation.ExperienceResult result : simulation.experienceResults()) {
-            Component line = resultLine(CommandText.bold("Experience", ChatFormatting.GREEN), ChatFormatting.GREEN,
+            Component line = resultLine(CommandText.experienceName(), ChatFormatting.GREEN,
                     result.total(), result.runsWithDrop(), runs, kind);
             lines.add(result.tracking() == null ? line : line.copy().append(trackingNote(result.tracking(), kind)));
         }
@@ -310,13 +312,13 @@ final class SimulateCommand {
      */
     private static Component resultLine(Component name, ChatFormatting nameColor, long total, int runsWithAny, int runs, Kind kind) {
         return CommandText.text("")
-                .append(CommandText.text("[" + total + " total] ", ChatFormatting.AQUA))
+                .append(CommandText.text("[", ChatFormatting.AQUA).append(CommandText.lang("simulate.total", total)).append("] "))
                 .append(name)
                 .append(CommandText.text(": ", nameColor))
-                .append(CommandText.text(CommandText.number((double) total / runs), ChatFormatting.GRAY))
-                .append(CommandText.text(" per " + kind.runNoun + " in ", ChatFormatting.WHITE))
-                .append(CommandText.text(CommandText.percent((double) runsWithAny / runs), ChatFormatting.GRAY))
-                .append(CommandText.text(" of " + kind.runNoun + "s", ChatFormatting.WHITE));
+                .append(CommandText.lang("simulate.rate." + kind.runNoun,
+                        CommandText.text(CommandText.number((double) total / runs), ChatFormatting.GRAY),
+                        CommandText.text(CommandText.percent((double) runsWithAny / runs), ChatFormatting.GRAY))
+                        .withStyle(ChatFormatting.WHITE));
     }
 
     /**
@@ -327,10 +329,10 @@ final class SimulateCommand {
      * @return Such as {@code " (guaranteed within 50 kills)"} or {@code " (first break)"}.
      */
     private static Component trackingNote(DropTracking tracking, Kind kind) {
-        String note = tracking.isFirstDrop()
-                ? "first " + kind.runNoun
-                : "guaranteed within " + CommandText.count(tracking.pity(), kind.runNoun);
-        return CommandText.text(" (" + note + ")", ChatFormatting.GREEN);
+        Component note = tracking.isFirstDrop()
+                ? CommandText.lang("simulate.first." + kind.runNoun)
+                : CommandText.lang("simulate.guaranteed", CommandText.plural("count." + kind.runNoun, tracking.pity()));
+        return CommandText.text(" (", ChatFormatting.GREEN).append(note).append(")");
     }
 
     /**
@@ -357,10 +359,10 @@ final class SimulateCommand {
         int experience = (int) Math.min(simulation.experience(), Integer.MAX_VALUE);
         if (experience > 0) ExperienceOrb.award(level, origin, experience);
 
-        return CommandText.text("Dropped " + CommandText.count(itemCount, "item") + " in "
-                + CommandText.count(entityCount, "stack") + " and " + experience + " experience at "
-                + CommandText.number(origin.x) + ", " + CommandText.number(origin.y) + ", " + CommandText.number(origin.z) + ".",
-                ChatFormatting.GREEN);
+        return CommandText.lang("simulate.dropped", CommandText.plural("count.item", itemCount),
+                CommandText.plural("count.stack", entityCount), experience,
+                CommandText.number(origin.x), CommandText.number(origin.y), CommandText.number(origin.z))
+                .withStyle(ChatFormatting.GREEN);
     }
 
     /**
@@ -384,7 +386,7 @@ final class SimulateCommand {
          * @param setup   Level, position, actor, flags and forced enchantment level. Never null.
          * @return The simulator.
          * @throws CommandSyntaxException   If the target argument is invalid.
-         * @throws IllegalArgumentException If the setup cannot be simulated, with a message for the player.
+         * @throws InvalidSimulationException If the setup cannot be simulated, with a message for the player.
          */
         IDropSimulator create(CommandContext<CommandSourceStack> context, SimulationSetup setup) throws CommandSyntaxException;
     }

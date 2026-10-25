@@ -60,31 +60,34 @@ public record ParseContext(ResourceLocation fileId, String path, DropIssueLog lo
     /**
      * Creates an error for the current key, to be thrown by the caller.
      *
-     * @param message English description of the problem. Never null.
+     * @param key  Translation key of the problem, without the issue prefix (see {@link DropIssue#text}). Never null.
+     * @param args Values of the key's placeholders. Never null.
      * @return The exception to throw.
      */
-    public DropDataException error(String message) {
-        return new DropDataException(new DropIssue(fileId, path, message, DropIssue.Severity.ERROR));
+    public DropDataException error(String key, Object... args) {
+        return new DropDataException(new DropIssue(fileId, path, DropIssue.text(key, args), DropIssue.Severity.ERROR));
     }
 
     /**
      * Creates a warning-level skip caused only by ids that name nothing registered, usually an optional mod that is
      * not installed.
      *
-     * @param message English description of the problem. Never null.
+     * @param key  Translation key of the problem, without the issue prefix (see {@link DropIssue#text}). Never null.
+     * @param args Values of the key's placeholders. Never null.
      * @return The exception to throw.
      */
-    public DropDataException unknownId(String message) {
-        return new DropDataException(new DropIssue(fileId, path, message, DropIssue.Severity.WARNING));
+    public DropDataException unknownId(String key, Object... args) {
+        return new DropDataException(new DropIssue(fileId, path, DropIssue.text(key, args), DropIssue.Severity.WARNING));
     }
 
     /**
      * Reports a warning for the current key without skipping anything.
      *
-     * @param message English description of the problem. Never null.
+     * @param key  Translation key of the problem, without the issue prefix (see {@link DropIssue#text}). Never null.
+     * @param args Values of the key's placeholders. Never null.
      */
-    public void warn(String message) {
-        log.report(new DropIssue(fileId, path, message, DropIssue.Severity.WARNING));
+    public void warn(String key, Object... args) {
+        log.report(new DropIssue(fileId, path, DropIssue.text(key, args), DropIssue.Severity.WARNING));
     }
 
     /**
@@ -96,7 +99,7 @@ public record ParseContext(ResourceLocation fileId, String path, DropIssueLog lo
      * @throws DropDataException If the value is null.
      */
     public <T> T require(@Nullable T value) throws DropDataException {
-        if (value == null) throw error("missing required key");
+        if (value == null) throw error("missing_key");
         return value;
     }
 
@@ -108,7 +111,7 @@ public record ParseContext(ResourceLocation fileId, String path, DropIssueLog lo
      * @throws DropDataException If the value is below min.
      */
     public void requireAtLeast(int value, int min) throws DropDataException {
-        if (value < min) throw error("must be at least " + min + ", got " + value);
+        if (value < min) throw error("at_least", min, value);
     }
 
     /**
@@ -119,7 +122,7 @@ public record ParseContext(ResourceLocation fileId, String path, DropIssueLog lo
      * @throws DropDataException If the value is NaN or below min.
      */
     public void requireAtLeast(double value, double min) throws DropDataException {
-        if (!(value >= min)) throw error("must be at least " + min + ", got " + value);
+        if (!(value >= min)) throw error("at_least", min, value);
     }
 
     /**
@@ -129,7 +132,7 @@ public record ParseContext(ResourceLocation fileId, String path, DropIssueLog lo
      * @throws DropDataException If the value is NaN, 0 or negative.
      */
     public void requirePositive(double value) throws DropDataException {
-        if (!(value > 0)) throw error("must be above 0, got " + value);
+        if (!(value > 0)) throw error("above_zero", value);
     }
 
     /**
@@ -141,7 +144,7 @@ public record ParseContext(ResourceLocation fileId, String path, DropIssueLog lo
      */
     public int clampAtMost(int value, int max) {
         if (value <= max) return value;
-        warn("is " + value + ", above the limit " + max + "; clamped to " + max);
+        warn("clamped_max", value, max);
         return max;
     }
 
@@ -154,7 +157,7 @@ public record ParseContext(ResourceLocation fileId, String path, DropIssueLog lo
      */
     public double clampAtMost(double value, double max) {
         if (value <= max) return value;
-        warn("is " + value + ", above the limit " + max + "; clamped to " + max);
+        warn("clamped_max", value, max);
         return max;
     }
 
@@ -167,7 +170,7 @@ public record ParseContext(ResourceLocation fileId, String path, DropIssueLog lo
      */
     public int clampAtLeast(int value, int min) {
         if (value >= min) return value;
-        warn("is " + value + ", below the minimum " + min + "; clamped to " + min);
+        warn("clamped_min", value, min);
         return min;
     }
 
@@ -180,7 +183,7 @@ public record ParseContext(ResourceLocation fileId, String path, DropIssueLog lo
      */
     public double clampAtLeast(double value, double min) {
         if (value >= min) return value;
-        warn("is " + value + ", below the minimum " + min + "; clamped to " + min);
+        warn("clamped_min", value, min);
         return min;
     }
 }

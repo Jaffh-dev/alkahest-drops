@@ -25,6 +25,7 @@ import java.util.function.Predicate;
  * experience) and every removal file that removes it, with the target of each file.
  */
 final class SourcesCommand {
+    private static final Component TITLE = CommandText.lang("sources.title");
 
     /**
      * Prevents instantiation of this utility class.
@@ -68,22 +69,17 @@ final class SourcesCommand {
         }
 
         if (addLines.isEmpty() && removeLines.isEmpty()) {
-            Component message = CommandText.text("No dropscore file adds or removes ", ChatFormatting.GRAY)
-                    .append(lookup.name()).append(CommandText.text(".", ChatFormatting.GRAY));
-            PagedOutput.send(source, "SOURCES", List.of(message), List.of(), 1, "/dropscore sources " + lookup.argument());
+            Component message = CommandText.lang("sources.none", lookup.name()).withStyle(ChatFormatting.GRAY);
+            PagedOutput.send(source, TITLE, List.of(message), List.of(), 1, "/dropscore sources " + lookup.argument());
             return 0;
         }
 
         List<Component> lines = new ArrayList<>(addLines);
         lines.addAll(removeLines);
-        Component title = CommandText.text("Sources of ", ChatFormatting.BLUE)
-                .append(lookup.name())
+        Component title = CommandText.lang("sources.header", lookup.name()).withStyle(ChatFormatting.BLUE)
                 .append(CommandText.text(": ", ChatFormatting.YELLOW))
-                .append(CommandText.text(String.valueOf(addLines.size()), ChatFormatting.GREEN))
-                .append(CommandText.text(addLines.size() == 1 ? " drop, " : " drops, ", ChatFormatting.GRAY))
-                .append(CommandText.text(String.valueOf(removeLines.size()), ChatFormatting.RED))
-                .append(CommandText.text(removeLines.size() == 1 ? " removal" : " removals", ChatFormatting.GRAY));
-        PagedOutput.send(source, "SOURCES", List.of(title), lines, page, "/dropscore sources " + lookup.argument());
+                .append(RuleText.counts(addLines.size(), removeLines.size()));
+        PagedOutput.send(source, TITLE, List.of(title), lines, page, "/dropscore sources " + lookup.argument());
         return lines.size();
     }
 
@@ -101,7 +97,8 @@ final class SourcesCommand {
             if (!lookup.matchesDrop().test(entry)) continue;
             boolean isConditional = file.hasGlobalConditions() || entry.hasConditions();
             lines.add(RuleText.fileLine("+ ", ChatFormatting.GREEN, drops, manager)
-                    .append(CommandText.text(": " + RuleText.describeDrop(entry, manager.format(), isConditional), ChatFormatting.WHITE)));
+                    .append(CommandText.text(": ", ChatFormatting.WHITE))
+                    .append(RuleText.describeDrop(entry, manager.format(), isConditional).withStyle(ChatFormatting.WHITE)));
         }
     }
 
@@ -119,7 +116,9 @@ final class SourcesCommand {
             if (!lookup.matchesRemoval().test(entry)) continue;
             boolean isConditional = rule.hasGlobalConditions() || entry.hasConditions();
             lines.add(RuleText.fileLine("- ", ChatFormatting.RED, removals, manager)
-                    .append(CommandText.text(": removes " + RuleText.describeRemovalMatch(entry) + (isConditional ? ", conditional" : ""), ChatFormatting.WHITE)));
+                    .append(CommandText.text(": ", ChatFormatting.WHITE))
+                    .append(CommandText.lang("rule.removes", RuleText.describeRemovalMatch(entry)).withStyle(ChatFormatting.WHITE))
+                    .append(isConditional ? CommandText.text(", ", ChatFormatting.WHITE).append(RuleText.conditional()) : CommandText.text("")));
         }
     }
 
@@ -134,7 +133,7 @@ final class SourcesCommand {
     private record Lookup(Component name, String argument, Predicate<DropEntry> matchesDrop, Predicate<RemovalEntry> matchesRemoval) {
         /** Experience drops and experience removal entries. */
         static final Lookup EXPERIENCE = new Lookup(
-                CommandText.bold("experience", ChatFormatting.YELLOW), "experience",
+                CommandText.lang("sources.experience").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD), "experience",
                 DropEntry::isExperience, RemovalEntry::isExperience);
 
         /**

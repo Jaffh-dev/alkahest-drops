@@ -10,6 +10,7 @@ import com.jaffh.alkahestcore.dropscore.server.drops.ItemTarget;
 import com.jaffh.alkahestcore.dropscore.server.drops.ParsedDropFile;
 import com.jaffh.alkahestcore.dropscore.server.drops.RemovalEntry;
 import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
 import java.util.Locale;
@@ -37,7 +38,7 @@ final class RuleText {
      */
     static MutableComponent fileLine(String sign, ChatFormatting color, ParsedDropFile file, DropManager<?> manager) {
         return CommandText.text(sign, color)
-                .append(CommandText.text("[" + manager.kind() + "] ", ChatFormatting.GRAY))
+                .append(CommandText.kindTag(manager))
                 .append(CommandText.fileId(file.fileId(), manager, ChatFormatting.YELLOW))
                 .append(CommandText.text(" → " + file.target(), ChatFormatting.WHITE));
     }
@@ -48,49 +49,74 @@ final class RuleText {
      * @param entry         Drop. Never null.
      * @param format        Format of the drop's file, which names its one-time drops. Never null.
      * @param isConditional Whether the file or the drop has conditions.
-     * @return Such as {@code "1–3 (5%)"}, {@code "3–7 XP (100%), max_health"} or
-     *         {@code "1 (50%), functions, pity 20, per player, conditional"}.
+     * @return Such as "1–3 (5%)", "3–7 XP (100%), max_health" or
+     *         "1 (50%), functions, pity 20, per player, conditional", in the player's language.
      */
-    static String describeDrop(DropEntry entry, DropFileFormat format, boolean isConditional) {
-        StringBuilder text = new StringBuilder(DropNumbers.range(entry.count()));
-        if (entry.isExperience()) text.append(" XP");
-        text.append(" (").append(CommandText.percent(entry.chance())).append(")");
+    static MutableComponent describeDrop(DropEntry entry, DropFileFormat format, boolean isConditional) {
+        MutableComponent text = CommandText.text(DropNumbers.range(entry.count()));
+        if (entry.isExperience()) text.append(" ").append(CommandText.lang("rule.xp"));
+        text.append(" (" + CommandText.percent(entry.chance()) + ")");
         DropBehaviorType type = entry.behavior().type();
-        if (type != DropBehaviorType.UNIFORM) text.append(", ").append(type.name().toLowerCase(Locale.ROOT));
-        if (entry.hasFunctions()) text.append(", functions");
+        if (type != DropBehaviorType.UNIFORM) text.append(", " + type.name().toLowerCase(Locale.ROOT));
+        if (entry.hasFunctions()) text.append(", ").append(CommandText.lang("rule.functions"));
         DropTracking tracking = entry.tracking();
-        if (tracking.hasPity()) text.append(", pity ").append(tracking.pity());
-        if (tracking.isFirstDrop()) text.append(", ").append(format.firstDropKey().replace('_', ' '));
-        if (tracking.isPerPlayer()) text.append(", per player");
-        if (isConditional) text.append(", conditional");
-        return text.toString();
+        if (tracking.hasPity()) text.append(", ").append(CommandText.lang("rule.pity", tracking.pity()));
+        if (tracking.isFirstDrop()) text.append(", ").append(CommandText.lang("rule." + format.firstDropKey()));
+        if (tracking.isPerPlayer()) text.append(", ").append(CommandText.lang("rule.per_player"));
+        if (isConditional) text.append(", ").append(conditional());
+        return text;
+    }
+
+    /**
+     * Returns the note of a drop or removal that has conditions.
+     *
+     * @return "conditional", in the player's language.
+     */
+    static MutableComponent conditional() {
+        return CommandText.lang("rule.conditional");
     }
 
     /**
      * Describes how a removal entry names its target.
      *
      * @param entry Removal entry. Never null.
-     * @return Such as {@code "experience"}, {@code "by id"}, {@code "by #minecraft:logs"} or {@code "by *"}.
+     * @return Such as "experience", "by id", "by #minecraft:logs" or "by *", in the player's language.
      */
-    static String describeRemovalMatch(RemovalEntry entry) {
+    static Component describeRemovalMatch(RemovalEntry entry) {
         ItemTarget target = entry.target();
-        if (target == null) return "experience";
-        if (target instanceof ItemTarget.Tagged tagged) return "by #" + tagged.tag().location();
-        if (target instanceof ItemTarget.Any) return "by *";
-        return "by id";
+        if (target == null) return CommandText.lang("rule.match.experience");
+        if (target instanceof ItemTarget.Tagged tagged) return CommandText.lang("rule.match.tag", "#" + tagged.tag().location());
+        if (target instanceof ItemTarget.Any) return CommandText.lang("rule.match.any");
+        return CommandText.lang("rule.match.id");
     }
 
     /**
      * Names what a removal entry removes.
      *
      * @param entry Removal entry. Never null.
-     * @return The item name in bold yellow, or {@code "#tag"}, {@code "every item"} or {@code "experience"} in yellow.
+     * @return The item name in bold yellow, "#tag" or "every item" in yellow, or "Experience" in bold green.
      */
     static MutableComponent removedThing(RemovalEntry entry) {
         ItemTarget target = entry.target();
-        if (target == null) return CommandText.bold("Experience", ChatFormatting.GREEN);
+        if (target == null) return CommandText.experienceName();
         if (target instanceof ItemTarget.Exact exact) return CommandText.itemName(exact.item());
         if (target instanceof ItemTarget.Tagged tagged) return CommandText.text("#" + tagged.tag().location(), ChatFormatting.YELLOW);
-        return CommandText.text("every item", ChatFormatting.YELLOW);
+        return CommandText.lang("rule.every_item").withStyle(ChatFormatting.YELLOW);
+    }
+
+    /**
+     * Counts the drop lines and removal lines of a result: the numbers in green and red, the words in gray.
+     *
+     * @param dropCount    Number of drops.
+     * @param removalCount Number of removal entries.
+     * @return Such as "3 drops, 1 removal", in the player's language.
+     */
+    static MutableComponent counts(int dropCount, int removalCount) {
+        return CommandText.lang(dropCount == 1 ? "rule.drops.one" : "rule.drops.many",
+                        CommandText.text(String.valueOf(dropCount), ChatFormatting.GREEN))
+                .withStyle(ChatFormatting.GRAY)
+                .append(CommandText.text(", ", ChatFormatting.GRAY))
+                .append(CommandText.lang(removalCount == 1 ? "rule.removals.one" : "rule.removals.many",
+                        CommandText.text(String.valueOf(removalCount), ChatFormatting.RED)).withStyle(ChatFormatting.GRAY));
     }
 }

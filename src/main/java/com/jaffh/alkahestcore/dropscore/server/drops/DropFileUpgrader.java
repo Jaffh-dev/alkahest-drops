@@ -36,14 +36,13 @@ public final class DropFileUpgrader {
         ParseContext versionCtx = ctx.at("version");
         int version = readVersion(file.get("version"), versionCtx);
         if (version > CURRENT_VERSION) {
-            throw versionCtx.error("version " + version + " is newer than the supported version " + CURRENT_VERSION
-                    + "; update Alkahest Core");
+            throw versionCtx.error("version_too_new", version, CURRENT_VERSION);
         }
 
         JsonObject upgraded = file;
         for (int from = version; from < CURRENT_VERSION; from++) {
             UnaryOperator<JsonObject> step = UPGRADES.get(from);
-            if (step == null) throw versionCtx.error("no upgrade from version " + from);
+            if (step == null) throw versionCtx.error("no_upgrade", from);
             upgraded = step.apply(upgraded.deepCopy());
         }
         return upgraded;
@@ -60,11 +59,11 @@ public final class DropFileUpgrader {
     private static int readVersion(JsonElement element, ParseContext ctx) throws DropDataException {
         ctx.require(element);
         if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
-            throw ctx.error("must be a whole number, got " + element);
+            throw ctx.error("not_whole_number", element);
         }
         double value = element.getAsDouble();
-        if (value != Math.rint(value)) throw ctx.error("must be a whole number, got " + element);
-        if (value < 1) throw ctx.error("must be at least 1, got " + element);
+        if (value != Math.rint(value)) throw ctx.error("not_whole_number", element);
+        if (value < 1) throw ctx.error("at_least", 1, element);
         return (int) Math.min(value, Integer.MAX_VALUE);
     }
 }

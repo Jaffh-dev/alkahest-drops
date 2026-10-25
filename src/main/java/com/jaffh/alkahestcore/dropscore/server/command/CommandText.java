@@ -1,27 +1,54 @@
 package com.jaffh.alkahestcore.dropscore.server.command;
 
+import com.jaffh.alkahestcore.AlkahestCore;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropNumbers;
 import com.jaffh.alkahestcore.dropscore.server.drops.DropManager;
+import com.jaffh.alkahestcore.dropscore.server.lang.Localizer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
-
 /**
- * Builds the chat text shared by the {@code /dropscore} commands: clickable file ids and items, and numbers.
+ * Builds the chat text shared by the {@code /dropscore} commands: translatable text, clickable file ids and items,
+ * and numbers. {@link PagedOutput} translates the keys into the player's language before sending.
  */
 final class CommandText {
+    private static final String KEY_PREFIX = "command." + AlkahestCore.ID + ".dropscore.";
 
     /**
      * Prevents instantiation of this utility class.
      */
     private CommandText() {
+    }
+
+    /**
+     * Creates translatable text.
+     *
+     * @param key  Key without the {@code command.alkahestcore.dropscore.} prefix, such as {@code files.empty}.
+     *             Never null.
+     * @param args Values of the key's placeholders: texts, or values shown with {@code toString}. Never null.
+     * @return A new mutable component.
+     */
+    static MutableComponent lang(String key, Object... args) {
+        return Localizer.translatable(KEY_PREFIX + key, args);
+    }
+
+    /**
+     * Creates translatable text with a count, picking the singular key when the count is 1.
+     *
+     * @param key   Key without the prefix and without {@code .one} / {@code .many}, such as {@code count.file}.
+     *              Never null.
+     * @param count Count, the key's first placeholder.
+     * @return Such as "1 file" or "3 files", in the player's language.
+     */
+    static MutableComponent plural(String key, long count) {
+        return lang(key + (count == 1 ? ".one" : ".many"), count);
     }
 
     /**
@@ -57,6 +84,16 @@ final class CommandText {
     }
 
     /**
+     * Creates the module tag of a line, in gray.
+     *
+     * @param manager Module. Never null.
+     * @return Such as "[mob] ", in the player's language.
+     */
+    static MutableComponent kindTag(DropManager<?> manager) {
+        return text("[", ChatFormatting.GRAY).append(lang("kind." + manager.kind())).append("] ");
+    }
+
+    /**
      * Creates an underlined file id that shows its datapack path on hover and copies the path when clicked.
      *
      * @param fileId  File id. Never null.
@@ -69,7 +106,7 @@ final class CommandText {
         Style style = Style.EMPTY
                 .withColor(color)
                 .withUnderlined(true)
-                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, text(path + "\nClick to copy the path")))
+                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, text(path + "\n").append(lang("hint.copy_path"))))
                 .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, path));
         return text(fileId.toString()).withStyle(style);
     }
@@ -85,6 +122,15 @@ final class CommandText {
     }
 
     /**
+     * Creates the name of experience, in bold green.
+     *
+     * @return "Experience", in the player's language.
+     */
+    static MutableComponent experienceName() {
+        return lang("experience").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD);
+    }
+
+    /**
      * Creates text that runs a command when clicked.
      *
      * @param label   Shown text. Never null.
@@ -92,7 +138,7 @@ final class CommandText {
      * @param command Command to run. Never null.
      * @return The clickable text, in green.
      */
-    static MutableComponent runnable(String label, String hint, String command) {
+    static MutableComponent runnable(String label, Component hint, String command) {
         return runnable(label, hint, command, ChatFormatting.GREEN);
     }
 
@@ -105,7 +151,20 @@ final class CommandText {
      * @param color   Color of the text. Never null.
      * @return The clickable text.
      */
-    static MutableComponent runnable(String label, String hint, String command, ChatFormatting color) {
+    static MutableComponent runnable(String label, Component hint, String command, ChatFormatting color) {
+        return clickable(text(label), hint, new ClickEvent(ClickEvent.Action.RUN_COMMAND, command), color);
+    }
+
+    /**
+     * Creates colored text that runs a command when clicked.
+     *
+     * @param label   Shown text. Never null.
+     * @param hint    Hover text. Never null.
+     * @param command Command to run. Never null.
+     * @param color   Color of the text. Never null.
+     * @return The clickable text.
+     */
+    static MutableComponent runnable(MutableComponent label, Component hint, String command, ChatFormatting color) {
         return clickable(label, hint, new ClickEvent(ClickEvent.Action.RUN_COMMAND, command), color);
     }
 
@@ -118,12 +177,12 @@ final class CommandText {
      * @param color   Color of the text. Never null.
      * @return The clickable text.
      */
-    static MutableComponent suggestable(String label, String hint, String command, ChatFormatting color) {
-        return clickable(label, hint, new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, command), color);
+    static MutableComponent suggestable(String label, Component hint, String command, ChatFormatting color) {
+        return clickable(text(label), hint, new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, command), color);
     }
 
     /**
-     * Creates colored text with a hover text and a click action.
+     * Gives text a color, a hover text and a click action.
      *
      * @param label Shown text. Never null.
      * @param hint  Hover text. Never null.
@@ -131,12 +190,12 @@ final class CommandText {
      * @param color Color of the text. Never null.
      * @return The clickable text.
      */
-    private static MutableComponent clickable(String label, String hint, ClickEvent click, ChatFormatting color) {
+    private static MutableComponent clickable(MutableComponent label, Component hint, ClickEvent click, ChatFormatting color) {
         Style style = Style.EMPTY
                 .withColor(color)
-                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, text(hint)))
+                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hint))
                 .withClickEvent(click);
-        return text(label).withStyle(style);
+        return label.withStyle(style);
     }
 
     /**
@@ -157,16 +216,5 @@ final class CommandText {
      */
     static String percent(double ratio) {
         return DropNumbers.percent(ratio);
-    }
-
-    /**
-     * Returns a word with a plural {@code s} when the count is not 1.
-     *
-     * @param count Count of things.
-     * @param word  Singular word. Never null.
-     * @return Such as {@code "1 file"} or {@code "3 files"}.
-     */
-    static String count(long count, String word) {
-        return count + " " + word + (count == 1 ? "" : "s");
     }
 }

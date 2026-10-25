@@ -27,6 +27,7 @@ import java.util.List;
  */
 final class DropsCommand {
     private static final String TARGET = "target";
+    private static final Component TITLE = CommandText.lang("drops.title");
 
     /** Suggests every mob and block that some dropscore file applies to. */
     private static final SuggestionProvider<CommandSourceStack> TARGETS_WITH_RULES =
@@ -66,22 +67,17 @@ final class DropsCommand {
         String command = "/dropscore drops " + lookup.id();
         MutableComponent name = nameOf(lookup);
         if (addLines.isEmpty() && removeLines.isEmpty()) {
-            Component message = CommandText.text("No dropscore file changes the drops of ", ChatFormatting.GRAY)
-                    .append(name).append(CommandText.text(".", ChatFormatting.GRAY));
-            PagedOutput.send(source, "DROPS", List.of(message), List.of(), 1, command);
+            Component message = CommandText.lang("drops.none", name).withStyle(ChatFormatting.GRAY);
+            PagedOutput.send(source, TITLE, List.of(message), List.of(), 1, command);
             return 0;
         }
 
         List<Component> lines = new ArrayList<>(addLines);
         lines.addAll(removeLines);
-        Component title = CommandText.text("Drops of ", ChatFormatting.BLUE)
-                .append(name)
+        Component title = CommandText.lang("drops.header", name).withStyle(ChatFormatting.BLUE)
                 .append(CommandText.text(": ", ChatFormatting.YELLOW))
-                .append(CommandText.text(String.valueOf(addLines.size()), ChatFormatting.GREEN))
-                .append(CommandText.text(addLines.size() == 1 ? " drop, " : " drops, ", ChatFormatting.GRAY))
-                .append(CommandText.text(String.valueOf(removeLines.size()), ChatFormatting.RED))
-                .append(CommandText.text(removeLines.size() == 1 ? " removal" : " removals", ChatFormatting.GRAY));
-        PagedOutput.send(source, "DROPS", List.of(title), lines, page, command);
+                .append(RuleText.counts(addLines.size(), removeLines.size()));
+        PagedOutput.send(source, TITLE, List.of(title), lines, page, command);
         return lines.size();
     }
 
@@ -136,12 +132,13 @@ final class DropsCommand {
         for (DropEntry entry : file.entries()) {
             boolean isConditional = file.hasGlobalConditions() || entry.hasConditions();
             Component what = entry.isExperience()
-                    ? CommandText.bold("Experience", ChatFormatting.GREEN)
+                    ? CommandText.experienceName()
                     : CommandText.itemName(entry.item());
             lines.add(RuleText.fileLine("+ ", ChatFormatting.GREEN, drops, manager)
                     .append(CommandText.text(": ", ChatFormatting.WHITE))
                     .append(what)
-                    .append(CommandText.text(" " + RuleText.describeDrop(entry, manager.format(), isConditional), ChatFormatting.WHITE)));
+                    .append(CommandText.text(" ", ChatFormatting.WHITE))
+                    .append(RuleText.describeDrop(entry, manager.format(), isConditional).withStyle(ChatFormatting.WHITE)));
         }
     }
 
@@ -157,9 +154,9 @@ final class DropsCommand {
         for (RemovalEntry entry : rule.entries()) {
             boolean isConditional = rule.hasGlobalConditions() || entry.hasConditions();
             lines.add(RuleText.fileLine("- ", ChatFormatting.RED, removals, manager)
-                    .append(CommandText.text(": removes ", ChatFormatting.WHITE))
-                    .append(RuleText.removedThing(entry))
-                    .append(CommandText.text(isConditional ? ", conditional" : "", ChatFormatting.WHITE)));
+                    .append(CommandText.text(": ", ChatFormatting.WHITE))
+                    .append(CommandText.lang("rule.removes", RuleText.removedThing(entry)).withStyle(ChatFormatting.WHITE))
+                    .append(isConditional ? CommandText.text(", ", ChatFormatting.WHITE).append(RuleText.conditional()) : CommandText.text("")));
         }
     }
 }

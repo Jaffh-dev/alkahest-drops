@@ -54,12 +54,12 @@ public final class DropFileParser {
         try {
             return Optional.of(parseFile(json, ctx));
         } catch (DropDataException e) {
-            log.report(e.toIssue("file skipped"));
+            log.report(e.toIssue("file"));
             return Optional.empty();
         } catch (RuntimeException e) {
             // A reload runs while the world opens, so an unforeseen exception here would crash the server.
             LOGGER.error("[dropscore] {}: unexpected error, file skipped", fileId, e);
-            log.report(new DropIssue(fileId, "", "unexpected error (" + e + "), file skipped", DropIssue.Severity.ERROR));
+            log.report(new DropIssue(fileId, "", DropIssue.text("unexpected_error", e), DropIssue.Severity.ERROR));
             return Optional.empty();
         }
     }
@@ -73,21 +73,20 @@ public final class DropFileParser {
      * @throws DropDataException If a file-level key is invalid or no entry of the file is valid.
      */
     private ParsedDropFile parseFile(JsonElement json, ParseContext ctx) throws DropDataException {
-        if (!json.isJsonObject()) throw ctx.error("file must be a JSON object");
+        if (!json.isJsonObject()) throw ctx.error("file_not_object");
         JsonObject upgraded = DropFileUpgrader.upgrade(json.getAsJsonObject(), ctx);
         DropFileJson file = DropValues.readObject(upgraded, DropFileJson.class, ctx);
 
         boolean isDropFile = file.drops != null;
         boolean isRemovalFile = file.removals != null;
         if (isDropFile && isRemovalFile) {
-            throw ctx.error("a file cannot have both 'drops' and 'removals'; split it into two files");
+            throw ctx.error("drops_and_removals");
         }
-        if (!isDropFile && !isRemovalFile) throw ctx.error("no 'drops' or 'removals'");
+        if (!isDropFile && !isRemovalFile) throw ctx.error("no_drops_or_removals");
 
         DropFileFormat other = format.other();
         if (format.targetOf(file) == null && other.targetOf(file) != null) {
-            throw ctx.at(other.targetKey()).error("is a key of " + other.filesName() + "; "
-                    + format.filesName() + " use '" + format.targetKey() + "'");
+            throw ctx.at(other.targetKey()).error("other_target_key", other.filesName(), format.filesName(), format.targetKey());
         }
         String target = ctx.at(format.targetKey()).require(format.targetOf(file));
         List<LootItemCondition> globalConditions = DropValues.parseConditions(file.conditions, ctx.at("conditions"));
@@ -115,16 +114,16 @@ public final class DropFileParser {
             try {
                 DropEntry entry = entryParser.parse(file.drops.get(i), ctx.at("drops", i), i);
                 if (!progressKeys.add(entry.tracking().key())) {
-                    throw ctx.at("drops", i).at("id").error("is already used by another drop of this file");
+                    throw ctx.at("drops", i).at("id").error("duplicate_drop_id");
                 }
                 entries.add(entry);
             } catch (DropDataException e) {
-                DropIssue issue = e.toIssue("drop skipped");
+                DropIssue issue = e.toIssue("drop");
                 log.report(issue);
                 if (issue.severity() == DropIssue.Severity.ERROR) isEverySkipAnUnknownId = false;
             }
         }
-        if (entries.isEmpty()) throw noValidEntries("no valid drops", isEverySkipAnUnknownId, ctx);
+        if (entries.isEmpty()) throw noValidEntries("no_valid_drops", isEverySkipAnUnknownId, ctx);
         boolean hasSkippedDrops = entries.size() < file.drops.size();
         return new ParsedDropFile.Drops(target, new DropFile(ctx.fileId(), globalConditions, entries), hasSkippedDrops);
     }
@@ -148,12 +147,12 @@ public final class DropFileParser {
             try {
                 entries.add(parseRemovalEntry(removals.get(i), ctx.at("removals", i)));
             } catch (DropDataException e) {
-                DropIssue issue = e.toIssue("entry skipped");
+                DropIssue issue = e.toIssue("entry");
                 log.report(issue);
                 if (issue.severity() == DropIssue.Severity.ERROR) isEverySkipAnUnknownId = false;
             }
         }
-        if (entries.isEmpty()) throw noValidEntries("no valid removals", isEverySkipAnUnknownId, ctx);
+        if (entries.isEmpty()) throw noValidEntries("no_valid_removals", isEverySkipAnUnknownId, ctx);
         return new ParsedDropFile.Removals(target, new RemovalRule(ctx.fileId(), globalConditions, entries));
     }
 
@@ -161,13 +160,13 @@ public final class DropFileParser {
      * Creates the skip of a file left without entries. It is a warning only when every entry named an item that
      * is not installed (an optional mod), and an error otherwise, since then the file itself is wrong.
      *
-     * @param message                English description of the problem. Never null.
+     * @param key                    Translation key of the problem, without the issue prefix. Never null.
      * @param isEverySkipAnUnknownId Whether every skipped entry was skipped only for an unknown id.
      * @param ctx                    Context of the file root. Never null.
      * @return The exception to throw.
      */
-    private static DropDataException noValidEntries(String message, boolean isEverySkipAnUnknownId, ParseContext ctx) {
-        return isEverySkipAnUnknownId ? ctx.unknownId(message) : ctx.error(message);
+    private static DropDataException noValidEntries(String key, boolean isEverySkipAnUnknownId, ParseContext ctx) {
+        return isEverySkipAnUnknownId ? ctx.unknownId(key) : ctx.error(key);
     }
 
     /**
@@ -185,15 +184,14 @@ public final class DropFileParser {
             return new RemovalEntry(DropValues.parseItemTarget(element.getAsString(), ctx), List.of());
         }
         if (!element.isJsonObject()) {
-            throw ctx.error("must be an item id, '#tag', '*' or an object with 'item' and 'conditions' "
-                    + "or with 'experience': true");
+            throw ctx.error("bad_removal_entry");
         }
 
         RemovalEntryJson entry = DropValues.readObject(element, RemovalEntryJson.class, ctx);
         ParseContext conditionsCtx = ctx.at("conditions");
         if (Boolean.TRUE.equals(entry.experience)) {
             if (entry.item != null) {
-                throw ctx.at("experience").error("cannot be used with 'item'; an entry removes either items or experience");
+                throw ctx.at("experience").error("removal_experience_with_item");
             }
             return new RemovalEntry(null, DropValues.parseConditions(entry.conditions, conditionsCtx));
         }

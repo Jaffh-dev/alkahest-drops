@@ -8,7 +8,6 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.Block;
@@ -29,7 +28,7 @@ import java.util.function.Predicate;
  */
 record TargetLookup(ResourceLocation id, @Nullable EntityType<?> entity, @Nullable Block block) {
     private static final DynamicCommandExceptionType UNKNOWN_TARGET = new DynamicCommandExceptionType(
-            id -> Component.literal("Unknown entity or block: " + id));
+            id -> CommandText.lang("error.unknown_target", id));
 
     /**
      * Finds the mob and the block of an id.

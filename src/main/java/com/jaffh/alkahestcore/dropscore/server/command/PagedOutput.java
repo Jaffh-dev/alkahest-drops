@@ -1,5 +1,6 @@
 package com.jaffh.alkahestcore.dropscore.server.command;
 
+import com.jaffh.alkahestcore.dropscore.server.lang.Localizer;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -21,8 +22,9 @@ import java.util.List;
  * body lines of the page
  * ====[&lt;]==[PAGE X/Y]==[&gt;]====
  * </pre>
- * A page holds at most {@link #MAX_LINES} chat lines, frame included, counting the lines a long message wraps into;
- * an entry that does not fit moves to the next page. The bars are padded with {@code =} to fill a chat line, with
+ * Every line is first translated into the language of whoever runs the command, so the layout measures the text
+ * the player will read. A page holds at most {@link #MAX_LINES} chat lines, frame included, counting the lines a
+ * long message wraps into; an entry that does not fit moves to the next page. The bars are padded with {@code =} to fill a chat line, with
  * their label centered. The arrows run the command for the other pages.
  */
 final class PagedOutput {
@@ -71,29 +73,33 @@ final class PagedOutput {
     }
 
     /**
-     * Sends one framed page: the title bar, the intro lines, the page's body lines and the page bar.
+     * Sends one framed page, translated for the source: the title bar, the intro lines, the page's body lines and
+     * the page bar.
      *
      * @param source  Command source. Never null.
-     * @param title   Title shown in the top bar, such as {@code SIMULATION}. Never null.
+     * @param title   Title shown in the top bar, such as "SIMULATION". Never null.
      * @param intro   Lines repeated on top of every page. Never null.
      * @param lines   Body lines, split into pages. Never null.
      * @param page    Requested page, clamped to the last page.
      * @param command Command that sends this output, without the page suffix, such as {@code /dropscore validate}.
      *                Never null.
      */
-    static void send(CommandSourceStack source, String title, List<? extends Component> intro,
+    static void send(CommandSourceStack source, Component title, List<? extends Component> intro,
                      List<? extends Component> lines, int page, String command) {
-        List<Integer> pageStarts = splitIntoPages(lines, MAX_LINES - FRAME_LINES - countChatLines(intro));
+        Localizer lang = Localizer.forSource(source);
+        List<Component> shownIntro = intro.stream().<Component>map(lang::localize).toList();
+        List<Component> shownLines = lines.stream().<Component>map(lang::localize).toList();
+        List<Integer> pageStarts = splitIntoPages(shownLines, MAX_LINES - FRAME_LINES - countChatLines(shownIntro));
         int pageCount = pageStarts.size();
         int shownPage = Math.min(page, pageCount);
         int start = pageStarts.get(shownPage - 1);
-        int end = shownPage < pageCount ? pageStarts.get(shownPage) : lines.size();
+        int end = shownPage < pageCount ? pageStarts.get(shownPage) : shownLines.size();
 
-        Component header = titleBar(title);
+        Component header = titleBar(lang.text(title));
         source.sendSuccess(() -> header, false);
-        for (Component line : intro) source.sendSuccess(() -> line, false);
-        for (Component line : lines.subList(start, end)) source.sendSuccess(() -> line, false);
-        Component footer = pageBar(shownPage, pageCount, command);
+        for (Component line : shownIntro) source.sendSuccess(() -> line, false);
+        for (Component line : shownLines.subList(start, end)) source.sendSuccess(() -> line, false);
+        Component footer = pageBar(shownPage, pageCount, command, lang);
         source.sendSuccess(() -> footer, false);
     }
 
@@ -135,7 +141,7 @@ final class PagedOutput {
     /**
      * Builds the top bar.
      *
-     * @param title Title. Never null.
+     * @param title Translated title. Never null.
      * @return Such as {@code "===========[SIMULATION]==========="}, filling a chat line.
      */
     private static Component titleBar(String title) {
@@ -152,16 +158,17 @@ final class PagedOutput {
      * @param page      Shown page.
      * @param pageCount Number of pages, 1 or more.
      * @param command   Command without the page suffix. Never null.
+     * @param lang      Language of the source. Never null.
      * @return Such as {@code "========[<]==[PAGE 2/5]==[>]========"}, filling a chat line.
      */
-    private static Component pageBar(int page, int pageCount, String command) {
-        String pageLabel = "==[PAGE " + page + "/" + pageCount + "]==";
+    private static Component pageBar(int page, int pageCount, String command, Localizer lang) {
+        String pageLabel = "==[" + lang.text(CommandText.lang("page.label", page, pageCount)) + "]==";
         int fillCount = fillCount(ChatWidth.of("[<]" + pageLabel + "[>]"));
         int left = fillCount / 2;
         return CommandText.text(FILL.repeat(left), FRAME_COLOR)
-                .append(arrow("[<]", page - 1, pageCount, command))
+                .append(arrow("[<]", page - 1, pageCount, command, lang))
                 .append(CommandText.text(pageLabel, FRAME_COLOR))
-                .append(arrow("[>]", page + 1, pageCount, command))
+                .append(arrow("[>]", page + 1, pageCount, command, lang))
                 .append(CommandText.text(FILL.repeat(fillCount - left), FRAME_COLOR));
     }
 
@@ -182,10 +189,11 @@ final class PagedOutput {
      * @param targetPage Page the arrow leads to.
      * @param pageCount  Number of pages.
      * @param command    Command without the page suffix. Never null.
+     * @param lang       Language of the source. Never null.
      * @return A clickable arrow, or a gray one when the target page does not exist.
      */
-    private static MutableComponent arrow(String label, int targetPage, int pageCount, String command) {
+    private static MutableComponent arrow(String label, int targetPage, int pageCount, String command, Localizer lang) {
         if (targetPage < 1 || targetPage > pageCount) return CommandText.text(label, ChatFormatting.DARK_GRAY);
-        return CommandText.runnable(label, "Show page " + targetPage, command + " page " + targetPage);
+        return lang.localize(CommandText.runnable(label, CommandText.lang("page.show", targetPage), command + " page " + targetPage));
     }
 }

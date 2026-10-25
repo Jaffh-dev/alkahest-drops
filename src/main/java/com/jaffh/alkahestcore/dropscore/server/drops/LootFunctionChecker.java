@@ -81,12 +81,10 @@ public final class LootFunctionChecker {
             warnMissingParams(function, functionCtx);
             LootItemFunctionType type = function.getType();
             if (type == LootItemFunctions.SET_COUNT && !isAddingCount(json.get(i))) {
-                functionCtx.warn("replaces the rolled count, so 'count' and the " + format.bonusKey()
-                        + " count bonuses are lost; set \"add\": true to add to the rolled count instead");
+                functionCtx.warn("set_count_replaces", format.bonusKey());
             }
             if (type == format.enchantBonusFunction() && hasEnchantBonus) {
-                functionCtx.warn("adds a vanilla enchantment bonus on top of '" + format.bonusKey()
-                        + "', so the drop gets both bonuses");
+                functionCtx.warn("double_enchant_bonus", format.bonusKey());
             }
         }
     }
@@ -102,8 +100,7 @@ public final class LootFunctionChecker {
         ValidationContext validation = new ValidationContext(format.lootParams(), REFERENCE_STAND_INS);
         function.validate(validation);
         for (Map.Entry<String, String> problem : validation.getProblems().entries()) {
-            functionCtx.atSuffix(problem.getKey()).warn(problem.getValue() + " (" + format.filesName()
-                    + "), so it has no effect");
+            functionCtx.atSuffix(problem.getKey()).warn("missing_loot_param", problem.getValue(), format.filesName());
         }
     }
 

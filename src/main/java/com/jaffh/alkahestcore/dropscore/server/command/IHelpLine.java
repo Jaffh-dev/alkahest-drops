@@ -25,7 +25,7 @@ sealed interface IHelpLine permits IHelpLine.Syntax, IHelpLine.Argument, IHelpLi
     record Syntax(String usage) implements IHelpLine {
         @Override
         public Component render() {
-            return CommandText.text(INDENT).append(CommandText.suggestable(usage, "Click to start typing this command",
+            return CommandText.text(INDENT).append(CommandText.suggestable(usage, CommandText.lang("hint.start_typing"),
                     fixedStart(), ChatFormatting.YELLOW));
         }
 
@@ -53,13 +53,13 @@ sealed interface IHelpLine permits IHelpLine.Syntax, IHelpLine.Argument, IHelpLi
      * @param term    Argument as typed, such as {@code page <n>}. Never null.
      * @param meaning What the argument does. Never null.
      */
-    record Argument(String term, String meaning) implements IHelpLine {
+    record Argument(Component term, Component meaning) implements IHelpLine {
         @Override
         public Component render() {
             return CommandText.text(INDENT, ChatFormatting.WHITE)
-                    .append(CommandText.bold(term, ChatFormatting.YELLOW))
+                    .append(term.copy().withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))
                     .append(CommandText.text(": ", ChatFormatting.YELLOW))
-                    .append(CommandText.text(meaning, ChatFormatting.WHITE));
+                    .append(meaning.copy().withStyle(ChatFormatting.WHITE));
         }
     }
 
@@ -69,12 +69,13 @@ sealed interface IHelpLine permits IHelpLine.Syntax, IHelpLine.Argument, IHelpLi
      * @param command     Full command. Never null.
      * @param description What the example does. Never null.
      */
-    record Example(String command, String description) implements IHelpLine {
+    record Example(String command, Component description) implements IHelpLine {
         @Override
         public Component render() {
             return CommandText.text(INDENT, ChatFormatting.WHITE)
-                    .append(CommandText.suggestable(command, "Click to put this command in the chat", command, ChatFormatting.AQUA))
-                    .append(CommandText.text(" " + description, ChatFormatting.GRAY));
+                    .append(CommandText.suggestable(command, CommandText.lang("hint.put_in_chat"), command, ChatFormatting.AQUA))
+                    .append(CommandText.text(" ", ChatFormatting.GRAY))
+                    .append(description.copy().withStyle(ChatFormatting.GRAY));
         }
     }
 }

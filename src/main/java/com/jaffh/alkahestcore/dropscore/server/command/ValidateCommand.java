@@ -20,7 +20,7 @@ import java.util.List;
  * the drop files, optionally only one severity and only one namespace, with error and warning totals.
  */
 final class ValidateCommand {
-    private static final String TITLE = "VALIDATE";
+    private static final Component TITLE = CommandText.lang("validate.title");
     private static final String NAMESPACE = "namespace";
 
     /**
@@ -77,24 +77,26 @@ final class ValidateCommand {
             }
         }
 
-        String scope = namespace == null ? "the dropscore files" : "namespace " + namespace;
+        Component scope = namespace == null
+                ? CommandText.lang("validate.scope.all")
+                : CommandText.lang("validate.scope.namespace", namespace);
         String command = "/dropscore validate" + severityArgument(severity) + (namespace == null ? "" : " " + namespace);
         if (lines.isEmpty()) {
             String what = severity == null ? "problems" : severity == DropIssue.Severity.ERROR ? "errors" : "warnings";
-            Component message = CommandText.text("No " + what + " in " + scope + ".", ChatFormatting.GREEN);
+            Component message = CommandText.lang("validate.none." + what, scope).withStyle(ChatFormatting.GREEN);
             PagedOutput.send(source, TITLE, List.of(message), List.of(), 1, command);
             return 0;
         }
 
-        MutableComponent title = CommandText.text("Problems in " + scope + ": ", ChatFormatting.BLUE);
+        MutableComponent title = CommandText.lang("validate.header", scope).withStyle(ChatFormatting.BLUE);
         if (severity != DropIssue.Severity.WARNING) {
-            title.append(CommandText.bold(String.valueOf(errorCount), ChatFormatting.RED))
-                    .append(CommandText.text(errorCount == 1 ? " error" : " errors", ChatFormatting.GRAY));
+            title.append(CommandText.lang(errorCount == 1 ? "validate.errors.one" : "validate.errors.many",
+                    CommandText.bold(String.valueOf(errorCount), ChatFormatting.RED)).withStyle(ChatFormatting.GRAY));
         }
         if (severity == null) title.append(CommandText.text(", ", ChatFormatting.GRAY));
         if (severity != DropIssue.Severity.ERROR) {
-            title.append(CommandText.bold(String.valueOf(warningCount), ChatFormatting.YELLOW))
-                    .append(CommandText.text(warningCount == 1 ? " warning" : " warnings", ChatFormatting.GRAY));
+            title.append(CommandText.lang(warningCount == 1 ? "validate.warnings.one" : "validate.warnings.many",
+                    CommandText.bold(String.valueOf(warningCount), ChatFormatting.YELLOW)).withStyle(ChatFormatting.GRAY));
         }
         PagedOutput.send(source, TITLE, List.of(title), lines, page, command);
         return lines.size();
@@ -121,12 +123,13 @@ final class ValidateCommand {
      */
     private static Component describe(DropIssue issue, DropManager<?> manager) {
         ChatFormatting color = issue.severity() == DropIssue.Severity.ERROR ? ChatFormatting.RED : ChatFormatting.YELLOW;
-        String tag = issue.severity() == DropIssue.Severity.ERROR ? "[E]" : "[W]";
+        String tag = issue.severity() == DropIssue.Severity.ERROR ? "validate.tag.error" : "validate.tag.warning";
         return CommandText.text("")
-                .append(CommandText.bold(tag, color))
-                .append(CommandText.text(" [" + manager.kind() + "] ", ChatFormatting.GRAY))
+                .append(CommandText.lang(tag).withStyle(color, ChatFormatting.BOLD))
+                .append(CommandText.text(" "))
+                .append(CommandText.kindTag(manager))
                 .append(CommandText.fileId(issue.fileId(), manager, color))
                 .append(CommandText.text(": ", color))
-                .append(CommandText.text(issue.describe(), ChatFormatting.WHITE));
+                .append(issue.describe().copy().withStyle(ChatFormatting.WHITE));
     }
 }
