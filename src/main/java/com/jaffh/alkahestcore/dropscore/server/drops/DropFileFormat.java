@@ -4,6 +4,7 @@ import com.jaffh.alkahestcore.dropscore.common.drops.DropBehaviorType;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.DropEntryJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.DropFileJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.EnchantBonusJson;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunctionType;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunctions;
@@ -21,7 +22,7 @@ public enum DropFileFormat {
      * Files in {@code data/<namespace>/mob_drops/}: target key {@code entity}, bonus key {@code on_looting},
      * one-time drop key {@code first_kill}.
      */
-    MOB("mob drop files", "entity", "on_looting", "first_kill", DropBehaviorType.MAX_HEALTH) {
+    MOB("entity", "on_looting", "first_kill", DropBehaviorType.MAX_HEALTH) {
         @Nullable
         @Override
         public String targetOf(DropFileJson file) {
@@ -54,7 +55,7 @@ public enum DropFileFormat {
      * Files in {@code data/<namespace>/block_drops/}: target key {@code block}, bonus key {@code on_fortune},
      * one-time drop key {@code first_break}.
      */
-    BLOCK("block drop files", "block", "on_fortune", "first_break", DropBehaviorType.HARDNESS) {
+    BLOCK("block", "on_fortune", "first_break", DropBehaviorType.HARDNESS) {
         @Nullable
         @Override
         public String targetOf(DropFileJson file) {
@@ -84,7 +85,6 @@ public enum DropFileFormat {
         }
     };
 
-    private final String filesName;
     private final String targetKey;
     private final String bonusKey;
     private final String firstDropKey;
@@ -93,14 +93,12 @@ public enum DropFileFormat {
     /**
      * Creates a file format.
      *
-     * @param filesName          Name of the files of this format in messages, such as {@code mob drop files}.
      * @param targetKey          JSON key of the file target.
      * @param bonusKey           JSON key of a drop's enchantment bonus.
      * @param firstDropKey       JSON key of a drop that happens once per player.
      * @param scaleType          The only scaled behavior drops of this format may use.
      */
-    DropFileFormat(String filesName, String targetKey, String bonusKey, String firstDropKey, DropBehaviorType scaleType) {
-        this.filesName = filesName;
+    DropFileFormat(String targetKey, String bonusKey, String firstDropKey, DropBehaviorType scaleType) {
         this.targetKey = targetKey;
         this.bonusKey = bonusKey;
         this.firstDropKey = firstDropKey;
@@ -159,12 +157,12 @@ public enum DropFileFormat {
     }
 
     /**
-     * Returns the name of the files of this format in messages.
+     * Returns the name of the files of this format in problem messages.
      *
-     * @return {@code mob drop files} or {@code block drop files}.
+     * @return Translatable text, such as "mob drop files". Never null.
      */
-    public String filesName() {
-        return filesName;
+    public Component filesName() {
+        return DropIssue.text("files." + name().toLowerCase(Locale.ROOT));
     }
 
     /**

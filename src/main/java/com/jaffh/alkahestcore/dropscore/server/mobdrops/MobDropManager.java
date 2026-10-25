@@ -62,7 +62,7 @@ public final class MobDropManager extends DropManager<EntityType<?>> {
         if (parsed instanceof ParsedDropFile.Removals
                 && target instanceof TargetMatcher.Target.Values<EntityType<?>> values
                 && values.values().contains(EntityType.PLAYER)) {
-            throw ctx.error("removal files cannot target players, a player's drops are their inventory");
+            throw ctx.error("removal_on_player");
         }
     }
 }

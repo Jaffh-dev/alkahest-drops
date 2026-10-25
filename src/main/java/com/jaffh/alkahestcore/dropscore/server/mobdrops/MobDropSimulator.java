@@ -2,6 +2,7 @@ package com.jaffh.alkahestcore.dropscore.server.mobdrops;
 
 import com.jaffh.alkahestcore.dropscore.server.drops.DropTable;
 import com.jaffh.alkahestcore.dropscore.server.drops.IDropSimulator;
+import com.jaffh.alkahestcore.dropscore.server.drops.InvalidSimulationException;
 import com.jaffh.alkahestcore.dropscore.server.drops.RollContext;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulatedDrop;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulationActor;
@@ -9,6 +10,7 @@ import com.jaffh.alkahestcore.dropscore.server.drops.SimulationFlag;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulationSetup;
 import com.jaffh.alkahestcore.dropscore.server.drops.TrackedDropRecorder;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
@@ -67,11 +69,11 @@ public final class MobDropSimulator implements IDropSimulator {
      * @param type  Mob type. Never null.
      * @param setup Level, position, actor, flags and forced Looting of the simulation. Never null.
      * @return The simulator.
-     * @throws IllegalArgumentException If the type or the killer type is not a living entity, the actor is an
+     * @throws InvalidSimulationException If the type or the killer type is not a living entity, the actor is an
      *                                  explosion, or {@code sneaking} is set without a killer.
      */
     public static MobDropSimulator create(EntityType<?> type, SimulationSetup setup) {
-        LivingEntity mob = createLiving(type, setup, "has no drops");
+        LivingEntity mob = createLiving(type, setup, "no_drops");
         if (setup.has(SimulationFlag.BURNING)) mob.setRemainingFireTicks(BURNING_TICKS);
         return new MobDropSimulator(setup, mob, createKiller(setup));
     }
@@ -81,22 +83,22 @@ public final class MobDropSimulator implements IDropSimulator {
      *
      * @param setup Setup of the simulation. Never null.
      * @return The killer, or null for nobody.
-     * @throws IllegalArgumentException If the actor cannot kill a mob, or {@code sneaking} is set without a killer.
+     * @throws InvalidSimulationException If the actor cannot kill a mob, or {@code sneaking} is set without a killer.
      */
     @Nullable
     private static LivingEntity createKiller(SimulationSetup setup) {
         SimulationActor actor = setup.actor();
         if (actor instanceof SimulationActor.AsPlayer player) return setup.createPlayer(player);
         if (actor instanceof SimulationActor.AsEntity entity) {
-            LivingEntity killer = createLiving(entity.type(), setup, "cannot be a killer");
+            LivingEntity killer = createLiving(entity.type(), setup, "not_a_killer");
             if (setup.has(SimulationFlag.SNEAKING)) killer.setPose(Pose.CROUCHING);
             return killer;
         }
         if (actor instanceof SimulationActor.Explosion) {
-            throw new IllegalArgumentException("'by explosion' only applies to blocks");
+            throw new InvalidSimulationException(IDropSimulator.setupText("explosion_on_mob"));
         }
         if (setup.has(SimulationFlag.SNEAKING)) {
-            throw new IllegalArgumentException("'sneaking' needs a killer: use 'by player' or 'by <entity>'");
+            throw new InvalidSimulationException(IDropSimulator.setupText("sneaking_without_killer"));
         }
         return null;
     }
@@ -106,14 +108,14 @@ public final class MobDropSimulator implements IDropSimulator {
      *
      * @param type    Entity type. Never null.
      * @param setup   Setup of the simulation. Never null.
-     * @param problem End of the error message when the type is not living, such as {@code "has no drops"}. Never null.
+     * @param problem Key of the error when the type is not living, such as {@code no_drops}. Never null.
      * @return The entity.
-     * @throws IllegalArgumentException If the type is not a living entity.
+     * @throws InvalidSimulationException If the type is not a living entity.
      */
     private static LivingEntity createLiving(EntityType<?> type, SimulationSetup setup, String problem) {
         Entity entity = type.create(setup.level());
         if (!(entity instanceof LivingEntity living)) {
-            throw new IllegalArgumentException(ForgeRegistries.ENTITY_TYPES.getKey(type) + " is not a living entity, it " + problem);
+            throw new InvalidSimulationException(IDropSimulator.setupText(problem, ForgeRegistries.ENTITY_TYPES.getKey(type)));
         }
         living.moveTo(setup.origin().x, setup.origin().y, setup.origin().z, 0.0F, 0.0F);
         return living;
@@ -204,17 +206,17 @@ public final class MobDropSimulator implements IDropSimulator {
      * @return Such as {@code "killer: Dev, sneaking, Looting 3"} or {@code "killer: Wolf (no experience), Looting 0"}.
      */
     @Override
-    public String describeSetup() {
-        StringBuilder text = new StringBuilder();
+    public Component describeSetup() {
+        MutableComponent text;
         if (killer == null) {
-            text.append("no killer (no experience)");
+            text = IDropSimulator.setupText("no_killer");
         } else {
-            text.append("killer: ").append(killer.getName().getString());
-            if (!(killer instanceof Player)) text.append(" (no experience)");
-            if (setup.has(SimulationFlag.SNEAKING)) text.append(", sneaking");
+            text = IDropSimulator.setupText("killer", killer.getName());
+            if (!(killer instanceof Player)) text.append(" ").append(IDropSimulator.setupText("no_experience"));
+            if (setup.has(SimulationFlag.SNEAKING)) text.append(", ").append(IDropSimulator.setupText("sneaking"));
         }
-        if (setup.has(SimulationFlag.BURNING)) text.append(", mob on fire");
+        if (setup.has(SimulationFlag.BURNING)) text.append(", ").append(IDropSimulator.setupText("burning"));
         int looting = LootingOverride.INSTANCE.runWith(mob, setup.enchantLevel(), this::lootingLevel);
-        return text.append(", Looting ").append(looting).toString();
+        return text.append(", ").append(IDropSimulator.setupText("looting", looting));
     }
 }

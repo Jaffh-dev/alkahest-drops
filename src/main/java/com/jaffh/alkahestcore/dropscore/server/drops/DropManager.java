@@ -302,7 +302,7 @@ public abstract class DropManager<T> extends SimpleJsonResourceReloadListener {
             }
             return target;
         } catch (DropDataException e) {
-            log.report(e.toIssue("file skipped"));
+            log.report(e.toIssue("file"));
             return null;
         }
     }

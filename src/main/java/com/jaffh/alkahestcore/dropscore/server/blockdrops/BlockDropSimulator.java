@@ -2,6 +2,7 @@ package com.jaffh.alkahestcore.dropscore.server.blockdrops;
 
 import com.jaffh.alkahestcore.dropscore.server.drops.DropTable;
 import com.jaffh.alkahestcore.dropscore.server.drops.IDropSimulator;
+import com.jaffh.alkahestcore.dropscore.server.drops.InvalidSimulationException;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulatedDrop;
 import com.jaffh.alkahestcore.dropscore.server.drops.TrackedDropRecorder;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulationActor;
@@ -9,6 +10,7 @@ import com.jaffh.alkahestcore.dropscore.server.drops.SimulationFlag;
 import com.jaffh.alkahestcore.dropscore.server.drops.SimulationSetup;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -79,7 +81,7 @@ public final class BlockDropSimulator implements IDropSimulator {
      * @param state Block state to break. Never null.
      * @param setup Level, position, actor, flags and forced Fortune of the simulation. Never null.
      * @return The simulator.
-     * @throws IllegalArgumentException If the setup does not fit a block break: an entity actor, {@code burning},
+     * @throws InvalidSimulationException If the setup does not fit a block break: an entity actor, {@code burning},
      *                                  {@code sneaking} without a player, or Fortune without a tool.
      */
     public static BlockDropSimulator create(BlockState state, SimulationSetup setup) {
@@ -88,7 +90,7 @@ public final class BlockDropSimulator implements IDropSimulator {
         Player player = actor instanceof SimulationActor.AsPlayer asPlayer ? setup.createPlayer(asPlayer) : null;
         ItemStack tool = toolOf(actor, player);
         if (setup.enchantLevel().isPresent()) {
-            if (tool.isEmpty()) throw new IllegalArgumentException("Fortune needs a tool: hold one in the main hand");
+            if (tool.isEmpty()) throw new InvalidSimulationException(IDropSimulator.setupText("fortune_without_tool"));
             setFortune(tool, setup.enchantLevel().getAsInt());
         }
         return new BlockDropSimulator(setup, state, player, tool);
@@ -99,15 +101,15 @@ public final class BlockDropSimulator implements IDropSimulator {
      *
      * @param setup Setup of the simulation. Never null.
      * @return The actor: a player, nobody or an explosion.
-     * @throws IllegalArgumentException If the actor is an entity, {@code burning} is set, or {@code sneaking} is set
+     * @throws InvalidSimulationException If the actor is an entity, {@code burning} is set, or {@code sneaking} is set
      *                                  without a player.
      */
     private static SimulationActor getActor(SimulationSetup setup) {
         SimulationActor actor = setup.actor();
-        if (actor instanceof SimulationActor.AsEntity) throw new IllegalArgumentException("blocks are broken by 'player', 'none' or 'explosion'");
-        if (setup.has(SimulationFlag.BURNING)) throw new IllegalArgumentException("'burning' only applies to mobs");
+        if (actor instanceof SimulationActor.AsEntity) throw new InvalidSimulationException(IDropSimulator.setupText("entity_breaker"));
+        if (setup.has(SimulationFlag.BURNING)) throw new InvalidSimulationException(IDropSimulator.setupText("burning_block"));
         if (setup.has(SimulationFlag.SNEAKING) && !(actor instanceof SimulationActor.AsPlayer)) {
-            throw new IllegalArgumentException("'sneaking' needs a player: use 'by player'");
+            throw new InvalidSimulationException(IDropSimulator.setupText("sneaking_without_player"));
         }
         return actor;
     }
@@ -228,21 +230,23 @@ public final class BlockDropSimulator implements IDropSimulator {
      * @return Such as {@code "player: Dev, sneaking, tool: Diamond Pickaxe, Fortune 3"} or {@code "TNT explosion"}.
      */
     @Override
-    public String describeSetup() {
+    public Component describeSetup() {
         if (actor instanceof SimulationActor.Explosion) {
-            return "TNT explosion (no tool, no experience, drop decay " + (hasTntDropDecay() ? "on" : "off") + ")";
+            return IDropSimulator.setupText(hasTntDropDecay() ? "explosion.decay_on" : "explosion.decay_off");
         }
 
-        StringBuilder text = new StringBuilder();
+        MutableComponent text;
         if (player != null) {
-            text.append("player: ").append(player.getName().getString());
-            if (player.isCrouching()) text.append(", sneaking");
+            text = IDropSimulator.setupText("player", player.getName());
+            if (player.isCrouching()) text.append(", ").append(IDropSimulator.setupText("sneaking"));
         } else {
-            text.append("no player (no experience)");
+            text = IDropSimulator.setupText("no_player");
         }
-        text.append(", tool: ").append(tool.isEmpty() ? "empty hand" : tool.getHoverName().getString())
-                .append(", Fortune ").append(EnchantmentHelper.getItemEnchantmentLevel(Enchantments.BLOCK_FORTUNE, tool));
-        if (!canHarvest) text.append(", cannot harvest it: nothing drops");
-        return text.toString();
+        Component toolName = tool.isEmpty() ? IDropSimulator.setupText("empty_hand") : tool.getHoverName();
+        text.append(", ").append(IDropSimulator.setupText("tool", toolName))
+                .append(", ").append(IDropSimulator.setupText("fortune",
+                        EnchantmentHelper.getItemEnchantmentLevel(Enchantments.BLOCK_FORTUNE, tool)));
+        if (!canHarvest) text.append(", ").append(IDropSimulator.setupText("cannot_harvest"));
+        return text;
     }
 }

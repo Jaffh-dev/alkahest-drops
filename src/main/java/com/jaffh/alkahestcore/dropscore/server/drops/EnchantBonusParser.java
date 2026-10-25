@@ -47,7 +47,7 @@ public final class EnchantBonusParser {
     public EnchantBonus parse(@Nullable EnchantBonusJson json, ParseContext ctx) throws DropDataException {
         if (json == null) return EnchantBonus.NONE;
         if (json.bonusChance == null && json.bonusRoll == null && json.bonusCount == null) {
-            throw ctx.error("needs at least one of bonus_chance, bonus_roll, bonus_count");
+            throw ctx.error("needs_one_of", "bonus_chance, bonus_roll, bonus_count");
         }
         return new EnchantBonus(
                 parseChanceBonus(json.bonusChance, ctx.at("bonus_chance")),
@@ -82,7 +82,7 @@ public final class EnchantBonusParser {
     private EnchantBonus.RollBonus parseRollBonus(@Nullable BonusRollJson json, ParseContext ctx) throws DropDataException {
         if (json == null) return EnchantBonus.RollBonus.NONE;
         if (json.bonusRollsPerLevel == null && json.bonusRollChancePerLevel == null && json.bonusIncrementPerLevel == null) {
-            throw ctx.error("needs at least one of bonus_rolls_per_level, bonus_roll_chance_per_level, bonus_increment_per_level");
+            throw ctx.error("needs_one_of", "bonus_rolls_per_level, bonus_roll_chance_per_level, bonus_increment_per_level");
         }
         IntBonusValue rollsValue = parseIntPair(json.bonusRollsPerLevel, json.maxBonusRolls, rolls, ctx);
         ChanceBonusValue chanceValue = parseChancePair(json.bonusRollChancePerLevel, json.maxBonusRollChance, ROLL_CHANCE, ctx);
@@ -105,7 +105,7 @@ public final class EnchantBonusParser {
     private EnchantBonus.CountBonus parseCountBonus(@Nullable BonusCountJson json, ParseContext ctx) throws DropDataException {
         if (json == null) return EnchantBonus.CountBonus.NONE;
         if (json.bonusMinPerLevel == null && json.bonusMaxPerLevel == null) {
-            throw ctx.error("needs at least one of bonus_min_per_level, bonus_max_per_level");
+            throw ctx.error("needs_one_of", "bonus_min_per_level, bonus_max_per_level");
         }
         IntBonusValue minValue = parseIntPair(json.bonusMinPerLevel, json.maxBonusMin, countMin, ctx);
         IntBonusValue maxValue = parseIntPair(json.bonusMaxPerLevel, json.maxBonusMax, countMax, ctx);
@@ -127,7 +127,7 @@ public final class EnchantBonusParser {
         ParseContext perLevelCtx = ctx.at(spec.perLevelKey());
         ParseContext maxCtx = ctx.at(spec.maxKey());
         if (perLevel == null) {
-            if (max != null) throw maxCtx.error("needs " + spec.perLevelKey());
+            if (max != null) throw maxCtx.error("needs_key", spec.perLevelKey());
             return IntBonusValue.NONE;
         }
         perLevelCtx.requireAtLeast(perLevel, spec.lowestPerLevel());
@@ -153,14 +153,14 @@ public final class EnchantBonusParser {
         ParseContext perLevelCtx = ctx.at(spec.perLevelKey());
         ParseContext maxCtx = ctx.at(spec.maxKey());
         if (perLevel == null) {
-            if (max != null) throw maxCtx.error("needs " + spec.perLevelKey());
+            if (max != null) throw maxCtx.error("needs_key", spec.perLevelKey());
             return ChanceBonusValue.NONE;
         }
         perLevelCtx.requirePositive(perLevel);
         double resolvedPerLevel = perLevelCtx.clampAtMost(perLevel, 1.0);
         if (max == null) return new ChanceBonusValue(resolvedPerLevel, 1.0);
 
-        if (Double.isNaN(max)) throw maxCtx.error("must be a number, got NaN");
+        if (Double.isNaN(max)) throw maxCtx.error("not_a_number");
         double resolvedMax = maxCtx.clampAtLeast(max, resolvedPerLevel);
         return new ChanceBonusValue(resolvedPerLevel, maxCtx.clampAtMost(resolvedMax, 1.0));
     }

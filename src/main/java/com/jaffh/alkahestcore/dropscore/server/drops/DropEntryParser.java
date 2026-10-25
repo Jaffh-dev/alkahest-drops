@@ -65,22 +65,20 @@ public final class DropEntryParser {
         DropEntryJson drop = DropValues.readObject(element, DropEntryJson.class, ctx);
         boolean isExperience = Boolean.TRUE.equals(drop.experience);
         if (isExperience && drop.item != null) {
-            throw ctx.at("experience").error("cannot be used with 'item'; a drop gives either an item or experience");
+            throw ctx.at("experience").error("experience_with_item");
         }
-        if (isExperience && drop.nbt != null) ctx.at("nbt").warn("is ignored by experience drops");
-        if (isExperience && drop.functions != null) ctx.at("functions").warn("is ignored by experience drops");
+        if (isExperience && drop.nbt != null) ctx.at("nbt").warn("ignored_by_experience");
+        if (isExperience && drop.functions != null) ctx.at("functions").warn("ignored_by_experience");
         ParseContext itemCtx = ctx.at("item");
         EnchantBonusJson bonusJson = format.enchantBonusOf(drop);
         DropFileFormat other = format.other();
         if (other.enchantBonusOf(drop) != null) {
-            ctx.at(other.bonusKey()).warn("is a key of " + other.filesName() + "; only this bonus is ignored, the drop "
-                    + "still loads without it; " + format.filesName() + " use '" + format.bonusKey() + "'");
+            ctx.at(other.bonusKey()).warn("other_bonus_key", other.filesName(), format.filesName(), format.bonusKey());
         }
         EnchantBonus bonus = bonusParser.parse(bonusJson, ctx.at(format.bonusKey()));
         DropBehavior behavior = parseBehavior(drop.dropBehavior, bonusJson, ctx.at("drop_behavior"));
         if (!behavior.type().needsRollSettings() && bonusJson != null && bonusJson.bonusRoll != null) {
-            ctx.at(format.bonusKey()).at("bonus_roll").warn("has no effect with drop_behavior type '"
-                    + behavior.type().name().toLowerCase(Locale.ROOT) + "'");
+            ctx.at(format.bonusKey()).at("bonus_roll").warn("bonus_roll_unused", behavior.type().name().toLowerCase(Locale.ROOT));
         }
 
         Item item = isExperience ? null : DropValues.resolveItem(itemCtx.require(drop.item), itemCtx);
@@ -134,8 +132,7 @@ public final class DropEntryParser {
         boolean isFirstDrop = Boolean.TRUE.equals(format.firstDropOf(drop));
         DropFileFormat other = format.other();
         if (other.firstDropOf(drop) != null) {
-            ctx.at(other.firstDropKey()).warn("is a key of " + other.filesName() + " and is ignored; "
-                    + format.filesName() + " use '" + format.firstDropKey() + "'");
+            ctx.at(other.firstDropKey()).warn("other_first_drop_key", other.filesName(), format.filesName(), format.firstDropKey());
         }
         boolean isPerPlayer = Boolean.TRUE.equals(drop.isPerPlayer);
         int pity = 0;
@@ -143,24 +140,23 @@ public final class DropEntryParser {
             ParseContext pityCtx = ctx.at("pity");
             pityCtx.requireAtLeast(drop.pity, 1);
             if (isFirstDrop) {
-                pityCtx.warn("is ignored with '" + format.firstDropKey() + "', which always drops the first time");
+                pityCtx.warn("pity_with_first_drop", format.firstDropKey());
             } else {
                 pity = drop.pity;
                 if (!canMiss) {
-                    pityCtx.warn("has no effect: with chance 1 and a count of at least 1 the drop never misses, "
-                            + "and pity only counts misses");
+                    pityCtx.warn("pity_never_misses");
                 }
             }
         }
         if (isPerPlayer && !format.canRollPerPlayer()) {
-            ctx.at("per_player").warn("has no effect in " + format.filesName() + "; only the breaker gets the drop");
+            ctx.at("per_player").warn("per_player_unused", format.filesName());
             isPerPlayer = false;
         } else if (isPerPlayer && isExperience) {
-            ctx.at("per_player").warn("is ignored by experience drops, which cannot be locked to a player");
+            ctx.at("per_player").warn("per_player_experience");
             isPerPlayer = false;
         }
         if (id != null && pity == 0 && !isFirstDrop) {
-            ctx.at("id").warn("has no effect without 'pity' or '" + format.firstDropKey() + "'");
+            ctx.at("id").warn("id_unused", format.firstDropKey());
         }
         return new DropTracking(format.progressKey(ctx.fileId(), id, index), pity, isFirstDrop, isPerPlayer);
     }
@@ -178,7 +174,7 @@ public final class DropEntryParser {
     private static String parseId(@Nullable String id, ParseContext ctx) throws DropDataException {
         if (id == null) return null;
         if (!ID_PATTERN.matcher(id).matches()) {
-            throw ctx.error("'" + id + "' must use only lowercase letters, digits, '_', '-', '.' and '/'");
+            throw ctx.error("bad_drop_id", id);
         }
         return id;
     }
@@ -211,7 +207,7 @@ public final class DropEntryParser {
         double value = ctx.require(chance);
         ctx.requireAtLeast(value, 0.0);
         if (value == 0 && (bonusJson == null || bonusJson.bonusChance == null)) {
-            throw ctx.error("is 0 without " + format.bonusKey() + ".bonus_chance, so the drop could never happen");
+            throw ctx.error("zero_chance", format.bonusKey());
         }
         return ctx.clampAtMost(value, 1.0);
     }
@@ -234,10 +230,9 @@ public final class DropEntryParser {
         int min = minCtx.require(json.min);
         int max = maxCtx.require(json.max);
         minCtx.requireAtLeast(min, 0);
-        if (min > max) throw ctx.error("min (" + min + ") is greater than max (" + max + ")");
+        if (min > max) throw ctx.error("min_above_max", min, max);
         if (max == 0 && !raisesBothCountEnds(bonusJson)) {
-            throw ctx.error("min and max are 0 without " + format.bonusKey()
-                    + ".bonus_count raising both, so the drop would always be empty");
+            throw ctx.error("zero_count", format.bonusKey());
         }
         return new DropCount(minCtx.clampAtMost(min, limits.maxCount()), maxCtx.clampAtMost(max, limits.maxCount()));
     }
@@ -271,12 +266,12 @@ public final class DropEntryParser {
         ParseContext typeCtx = ctx.at("type");
         String typeId = typeCtx.require(json.type);
         DropBehaviorType type = DropBehaviorType.fromId(typeId)
-                .orElseThrow(() -> typeCtx.error("unknown type '" + typeId + "'"));
+                .orElseThrow(() -> typeCtx.error("unknown_type", typeId));
 
         if (type.isScaled()) {
             if (type != format.scaleType()) {
-                throw typeCtx.error("'" + typeId + "' is only valid in " + format.other().filesName() + "; "
-                        + format.filesName() + " use '" + format.scaleType().name().toLowerCase(Locale.ROOT) + "'");
+                throw typeCtx.error("wrong_scale_type", typeId, format.other().filesName(), format.filesName(),
+                        format.scaleType().name().toLowerCase(Locale.ROOT));
             }
             warnIgnoredRollSettings(json, typeId, ctx);
             return DropBehavior.ofScale(type, parseScaleFormula(json, ctx));
@@ -305,10 +300,9 @@ public final class DropEntryParser {
      * @param ctx    Context of {@code drop_behavior}. Never null.
      */
     private static void warnIgnoredRollSettings(DropBehaviorJson json, String typeId, ParseContext ctx) {
-        String message = "is ignored by type '" + typeId + "'";
-        if (json.rolls != null) ctx.at("rolls").warn(message);
-        if (json.chancePerRoll != null) ctx.at("chance_per_roll").warn(message);
-        if (json.incrementValue != null) ctx.at("increment_value").warn(message);
+        if (json.rolls != null) ctx.at("rolls").warn("ignored_by_type", typeId);
+        if (json.chancePerRoll != null) ctx.at("chance_per_roll").warn("ignored_by_type", typeId);
+        if (json.incrementValue != null) ctx.at("increment_value").warn("ignored_by_type", typeId);
     }
 
     /**
@@ -319,10 +313,9 @@ public final class DropEntryParser {
      * @param ctx    Context of {@code drop_behavior}. Never null.
      */
     private static void warnIgnoredScaleSettings(DropBehaviorJson json, String typeId, ParseContext ctx) {
-        String message = "is ignored by type '" + typeId + "'";
-        if (json.function != null) ctx.at("function").warn(message);
-        if (json.multiplier != null) ctx.at("multiplier").warn(message);
-        if (json.divisor != null) ctx.at("divisor").warn(message);
+        if (json.function != null) ctx.at("function").warn("ignored_by_type", typeId);
+        if (json.multiplier != null) ctx.at("multiplier").warn("ignored_by_type", typeId);
+        if (json.divisor != null) ctx.at("divisor").warn("ignored_by_type", typeId);
     }
 
     /**
@@ -340,7 +333,7 @@ public final class DropEntryParser {
         if (json.function != null) {
             ParseContext functionCtx = ctx.at("function");
             function = ScaleFunction.fromId(json.function)
-                    .orElseThrow(() -> functionCtx.error("unknown function '" + json.function + "', expected 'linear' or 'log'"));
+                    .orElseThrow(() -> functionCtx.error("unknown_function", json.function));
         }
         double multiplier = json.multiplier != null ? json.multiplier : defaults.multiplier();
         double divisor = json.divisor != null ? json.divisor : defaults.divisor();
@@ -363,7 +356,7 @@ public final class DropEntryParser {
         int value = ctx.require(rolls);
         ctx.requireAtLeast(value, 0);
         if (value == 0 && !hasRollBonus) {
-            ctx.warn("is 0 without " + format.bonusKey() + ".bonus_roll.bonus_rolls_per_level; clamped to 1");
+            ctx.warn("zero_rolls", format.bonusKey());
             return 1;
         }
         return ctx.clampAtMost(value, limits.maxRolls());
@@ -383,7 +376,7 @@ public final class DropEntryParser {
         double value = ctx.require(chance);
         ctx.requireAtLeast(value, 0.0);
         if (value == 0 && !hasRollChanceBonus) {
-            throw ctx.error("is 0 without " + format.bonusKey() + ".bonus_roll.bonus_roll_chance_per_level, so no roll could succeed");
+            throw ctx.error("zero_roll_chance", format.bonusKey());
         }
         return ctx.clampAtMost(value, 1.0);
     }
@@ -402,7 +395,7 @@ public final class DropEntryParser {
         int value = ctx.require(increment);
         ctx.requireAtLeast(value, 0);
         if (value == 0 && !hasIncrementBonus) {
-            ctx.warn("is 0 without " + format.bonusKey() + ".bonus_roll.bonus_increment_per_level; clamped to 1");
+            ctx.warn("zero_increment", format.bonusKey());
             return 1;
         }
         return ctx.clampAtMost(value, limits.maxIncrement());

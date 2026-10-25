@@ -1,5 +1,6 @@
 package com.jaffh.alkahestcore.dropscore.server.drops;
 
+import com.jaffh.alkahestcore.dropscore.server.lang.Localizer;
 import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
 
@@ -15,16 +16,17 @@ public final class DropIssueLog {
     private final List<DropIssue> issues = new ArrayList<>();
 
     /**
-     * Records a problem and logs it as {@code [dropscore] <file>: <problem>}.
+     * Records a problem and logs it in English as {@code [dropscore] <file>: <problem>}.
      *
      * @param issue Problem to record. Never null.
      */
     public void report(DropIssue issue) {
         issues.add(issue);
+        String problem = Localizer.english().text(issue.describe());
         if (issue.severity() == DropIssue.Severity.ERROR) {
-            LOGGER.error("[dropscore] {}: {}", issue.fileId(), issue.describe());
+            LOGGER.error("[dropscore] {}: {}", issue.fileId(), problem);
         } else {
-            LOGGER.warn("[dropscore] {}: {}", issue.fileId(), issue.describe());
+            LOGGER.warn("[dropscore] {}: {}", issue.fileId(), problem);
         }
     }
 

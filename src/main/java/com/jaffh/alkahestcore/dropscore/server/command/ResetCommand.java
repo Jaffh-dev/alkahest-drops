@@ -16,6 +16,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.commands.arguments.selector.EntitySelector;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -75,11 +76,11 @@ final class ResetCommand {
      */
     private static <T extends ArgumentBuilder<CommandSourceStack, T>> T withTargets(T node, ResetMode mode) {
         return node
-                .executes(context -> reset(context, mode, new Selection("everything", key -> true)))
+                .executes(context -> reset(context, mode, new Selection(CommandText.lang("reset.selection.all"), key -> true)))
                 .then(Commands.literal("entities")
-                        .executes(context -> reset(context, mode, Selection.ofFormat("every mob", DropFileFormat.MOB))))
+                        .executes(context -> reset(context, mode, Selection.ofFormat(CommandText.lang("reset.selection.mobs"), DropFileFormat.MOB))))
                 .then(Commands.literal("blocks")
-                        .executes(context -> reset(context, mode, Selection.ofFormat("every block", DropFileFormat.BLOCK))))
+                        .executes(context -> reset(context, mode, Selection.ofFormat(CommandText.lang("reset.selection.blocks"), DropFileFormat.BLOCK))))
                 .then(Commands.argument(TARGET, ResourceLocationArgument.id())
                         .suggests(TRACKED_TARGETS)
                         .executes(context -> reset(context, mode,
@@ -110,7 +111,9 @@ final class ResetCommand {
             }
             if (mode.resetsPity()) pityCounters += progress.resetMisses(keys);
         }
-        String who = targets.size() == 1 ? targets.iterator().next().getGameProfile().getName() : targets.size() + " players";
+        Component who = targets.size() == 1
+                ? CommandText.text(targets.iterator().next().getGameProfile().getName())
+                : CommandText.lang("reset.players", targets.size());
         MutableComponent message = message(selection.label(), who, firstKills, firstBreaks, pityCounters);
         context.getSource().sendSuccess(() -> message, true);
         return firstKills + firstBreaks + pityCounters;
@@ -120,34 +123,31 @@ final class ResetCommand {
      * Builds the report of a reset, naming only the counts above 0.
      *
      * @param label        What was reset, such as {@code minecraft:zombie}. Never null.
-     * @param who          Name of the reset player, or such as {@code 3 players}. Never null.
+     * @param who          Name of the reset player, or such as "3 players". Never null.
      * @param firstKills   One-time mob drops reset.
      * @param firstBreaks  One-time block drops reset.
      * @param pityCounters Pity counters reset.
      * @return Such as "Reset 1 first kill and 2 pity counters for minecraft:zombie of Steve.", or
      *         "Nothing to reset ..." when every count is 0.
      */
-    private static MutableComponent message(String label, String who, int firstKills, int firstBreaks, int pityCounters) {
-        List<String> parts = new ArrayList<>();
-        if (firstKills > 0) parts.add(CommandText.count(firstKills, "first kill"));
-        if (firstBreaks > 0) parts.add(CommandText.count(firstBreaks, "first break"));
-        if (pityCounters > 0) parts.add(CommandText.count(pityCounters, "pity counter"));
+    private static MutableComponent message(Component label, Component who, int firstKills, int firstBreaks, int pityCounters) {
+        List<MutableComponent> parts = new ArrayList<>();
+        if (firstKills > 0) parts.add(CommandText.plural("count.first_kill", firstKills));
+        if (firstBreaks > 0) parts.add(CommandText.plural("count.first_break", firstBreaks));
+        if (pityCounters > 0) parts.add(CommandText.plural("count.pity_counter", pityCounters));
 
-        MutableComponent message;
+        Component shownLabel = label.copy().withStyle(ChatFormatting.YELLOW);
+        Component shownWho = who.copy().withStyle(ChatFormatting.YELLOW);
         if (parts.isEmpty()) {
-            message = CommandText.text("Nothing to reset", ChatFormatting.GRAY);
-        } else {
-            message = CommandText.text("Reset ", ChatFormatting.GRAY);
-            for (int i = 0; i < parts.size(); i++) {
-                if (i > 0) message.append(CommandText.text(i == parts.size() - 1 ? " and " : ", ", ChatFormatting.GRAY));
-                message.append(CommandText.bold(parts.get(i), ChatFormatting.GREEN));
-            }
+            return CommandText.lang("reset.nothing", shownLabel, shownWho).withStyle(ChatFormatting.GRAY);
         }
-        return message.append(CommandText.text(" for ", ChatFormatting.GRAY))
-                .append(CommandText.text(label, ChatFormatting.YELLOW))
-                .append(CommandText.text(" of ", ChatFormatting.GRAY))
-                .append(CommandText.text(who, ChatFormatting.YELLOW))
-                .append(CommandText.text(".", ChatFormatting.GRAY));
+        MutableComponent list = CommandText.text("");
+        for (int i = 0; i < parts.size(); i++) {
+            if (i > 0 && i == parts.size() - 1) list.append(" ").append(CommandText.lang("reset.and")).append(" ");
+            else if (i > 0) list.append(", ");
+            list.append(parts.get(i).withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
+        }
+        return CommandText.lang("reset.done", list, shownLabel, shownWho).withStyle(ChatFormatting.GRAY);
     }
 
     /**
@@ -156,7 +156,7 @@ final class ResetCommand {
      * @param label What is reset, for the report. Never null.
      * @param keys  Which progress keys to reset. Never null.
      */
-    private record Selection(String label, Predicate<String> keys) {
+    private record Selection(Component label, Predicate<String> keys) {
         /**
          * Selects every drop of one module.
          *
@@ -164,7 +164,7 @@ final class ResetCommand {
          * @param format Format of the module's files. Never null.
          * @return The selection.
          */
-        static Selection ofFormat(String label, DropFileFormat format) {
+        static Selection ofFormat(Component label, DropFileFormat format) {
             return new Selection(label, format::ownsProgressKey);
         }
 
@@ -181,7 +181,7 @@ final class ResetCommand {
             Set<String> keys = new HashSet<>();
             if (lookup.entity() != null) keys.addAll(MobDropManager.getTable(lookup.entity()).progressKeys());
             if (lookup.block() != null) keys.addAll(BlockDropManager.getTable(lookup.block()).progressKeys());
-            return new Selection(id.toString(), keys::contains);
+            return new Selection(CommandText.text(id.toString()), keys::contains);
         }
     }
 

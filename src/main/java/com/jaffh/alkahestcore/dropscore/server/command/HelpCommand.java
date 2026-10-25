@@ -14,7 +14,7 @@ import java.util.List;
  * with one, explains its syntax, each argument and examples.
  */
 final class HelpCommand {
-    private static final String TITLE = "HELP";
+    private static final Component TITLE = CommandText.lang("help.title");
     private static final String COMMAND = "/dropscore help";
 
     /**
@@ -46,14 +46,14 @@ final class HelpCommand {
      * @return The number of topics.
      */
     private static int runIndex(CommandSourceStack source, int page) {
-        Component intro = CommandText.text("Dropscore commands, click one to see how it works:", ChatFormatting.BLUE);
+        Component intro = CommandText.lang("help.intro").withStyle(ChatFormatting.BLUE);
         List<Component> lines = new ArrayList<>();
         for (HelpTopic topic : HelpTopic.values()) {
             lines.add(CommandText.text("")
-                    .append(CommandText.runnable(topic.keyword(), "Show the help of /dropscore " + topic.keyword(),
+                    .append(CommandText.runnable(topic.keyword(), CommandText.lang("help.show", "/dropscore " + topic.keyword()),
                             COMMAND + " " + topic.keyword()))
                     .append(CommandText.text(": ", ChatFormatting.GREEN))
-                    .append(CommandText.text(topic.summary(), ChatFormatting.WHITE)));
+                    .append(topic.summary().copy().withStyle(ChatFormatting.WHITE)));
         }
         PagedOutput.send(source, TITLE, List.of(intro), lines, page, COMMAND);
         return lines.size();
@@ -68,13 +68,12 @@ final class HelpCommand {
      * @return The number of body lines.
      */
     private static int runTopic(CommandSourceStack source, HelpTopic topic, int page) {
-        Component intro = CommandText.text("")
-                .append(CommandText.text("Help of ", ChatFormatting.BLUE))
-                .append(CommandText.bold("/dropscore " + topic.keyword(), ChatFormatting.BLUE));
+        Component intro = CommandText.lang("help.topic", CommandText.bold("/dropscore " + topic.keyword(), ChatFormatting.BLUE))
+                .withStyle(ChatFormatting.BLUE);
         List<Component> lines = new ArrayList<>();
-        lines.add(CommandText.text(topic.summary(), ChatFormatting.WHITE));
+        lines.add(topic.summary().copy().withStyle(ChatFormatting.WHITE));
         for (HelpSection section : topic.sections()) {
-            lines.add(CommandText.text(section.title() + ":", ChatFormatting.BLUE));
+            lines.add(section.title().copy().append(":").withStyle(ChatFormatting.BLUE));
             for (IHelpLine line : section.lines()) lines.add(line.render());
         }
         PagedOutput.send(source, TITLE, List.of(intro), lines, page, COMMAND + " " + topic.keyword());

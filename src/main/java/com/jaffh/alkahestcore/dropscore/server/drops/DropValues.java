@@ -44,12 +44,12 @@ public final class DropValues {
      * @throws DropDataException If the value is not an object or a key has the wrong type.
      */
     public static <T> T readObject(JsonElement element, Class<T> type, ParseContext ctx) throws DropDataException {
-        if (!element.isJsonObject()) throw ctx.error("must be a JSON object");
+        if (!element.isJsonObject()) throw ctx.error("not_object");
         try {
             return GSON.fromJson(element, type);
         } catch (JsonParseException | NumberFormatException e) {
             // Reading from a JsonElement tree, Gson throws a bare NumberFormatException for "chance": "half".
-            throw ctx.error("wrong value type (" + e.getMessage() + ")");
+            throw ctx.error("wrong_value_type", e.getMessage());
         }
     }
 
@@ -67,7 +67,7 @@ public final class DropValues {
             return List.of(LOOT_GSON.fromJson(conditions, LootItemCondition[].class));
         } catch (RuntimeException e) {
             // Vanilla condition serializers also throw non-Gson exceptions, such as ResourceLocationException for bad ids.
-            throw ctx.error("invalid loot condition (" + e.getMessage() + ")");
+            throw ctx.error("invalid_condition", e.getMessage());
         }
     }
 
@@ -84,7 +84,7 @@ public final class DropValues {
         try {
             return List.of(LOOT_GSON.fromJson(functions, LootItemFunction[].class));
         } catch (RuntimeException e) {
-            throw ctx.error("invalid loot function (" + e.getMessage() + ")");
+            throw ctx.error("invalid_function", e.getMessage());
         }
     }
 
@@ -98,7 +98,7 @@ public final class DropValues {
      */
     public static ResourceLocation parseId(String id, ParseContext ctx) throws DropDataException {
         ResourceLocation location = ResourceLocation.tryParse(id);
-        if (location == null) throw ctx.error("'" + id + "' is not a valid id");
+        if (location == null) throw ctx.error("invalid_id", id);
         return location;
     }
 
@@ -112,7 +112,7 @@ public final class DropValues {
      */
     public static Item resolveItem(String id, ParseContext ctx) throws DropDataException {
         ResourceLocation location = parseId(id, ctx);
-        if (!ForgeRegistries.ITEMS.containsKey(location)) throw ctx.unknownId("'" + id + "' is not a registered item");
+        if (!ForgeRegistries.ITEMS.containsKey(location)) throw ctx.unknownId("unknown_item", id);
         return ForgeRegistries.ITEMS.getValue(location);
     }
 
@@ -148,7 +148,7 @@ public final class DropValues {
         try {
             return TagParser.parseTag(snbt);
         } catch (CommandSyntaxException e) {
-            throw ctx.error("invalid NBT (" + e.getMessage() + ")");
+            throw ctx.error("invalid_nbt", e.getMessage());
         }
     }
 }

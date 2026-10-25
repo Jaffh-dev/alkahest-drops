@@ -1,5 +1,6 @@
 package com.jaffh.alkahestcore.dropscore.server.drops;
 
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraftforge.registries.IForgeRegistry;
@@ -23,7 +24,7 @@ public final class TargetMatcher<T> {
     private final IForgeRegistry<T> registry;
     private final BiPredicate<T, TagKey<T>> tagTest;
     private final Predicate<T> canMatchPattern;
-    private final String entryName;
+    private final Component entryName;
 
     /**
      * Creates a matcher for one registry.
@@ -37,7 +38,7 @@ public final class TargetMatcher<T> {
         this.registry = registry;
         this.tagTest = tagTest;
         this.canMatchPattern = canMatchPattern;
-        this.entryName = registry.getRegistryName().getPath().replace('_', ' ');
+        this.entryName = DropIssue.text("registry." + registry.getRegistryName().getPath());
     }
 
     /**
@@ -58,7 +59,7 @@ public final class TargetMatcher<T> {
         if (raw.endsWith(NAMESPACE_SUFFIX)) return parseNamespace(raw.substring(0, raw.length() - NAMESPACE_SUFFIX.length()), ctx);
 
         ResourceLocation id = DropValues.parseId(raw, ctx);
-        if (!registry.containsKey(id)) throw ctx.unknownId("'" + id + "' is not a registered " + entryName);
+        if (!registry.containsKey(id)) throw ctx.unknownId("unknown_target", id, entryName);
         return new Target.Values<>(List.of(registry.getValue(id)));
     }
 
@@ -73,12 +74,12 @@ public final class TargetMatcher<T> {
     private Target<T> parseNamespace(String namespace, ParseContext ctx) throws DropDataException {
         ResourceLocation probe = ResourceLocation.tryParse(namespace + ":probe");
         if (probe == null || !probe.getNamespace().equals(namespace)) {
-            throw ctx.error("'" + namespace + "' is not a valid namespace");
+            throw ctx.error("invalid_namespace", namespace);
         }
 
         boolean hasEntry = registry.getEntries().stream()
                 .anyMatch(entry -> entry.getKey().location().getNamespace().equals(namespace) && canMatchPattern.test(entry.getValue()));
-        if (!hasEntry) throw ctx.unknownId("no " + entryName + " is registered in namespace '" + namespace + "'");
+        if (!hasEntry) throw ctx.unknownId("empty_namespace", entryName, namespace);
         return new Target.Namespace<>(namespace);
     }
 
