@@ -367,6 +367,10 @@ public class MobDropGameTests {
         DropTestKit.assertIssue(issues, "function_warnings", "drops[1].functions[0]", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "function_warnings", "drops[2].functions[0]", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "function_warnings", "drops[4].functions[0]", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "on_drop_issues", "drops[0].on_drop", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "on_drop_issues", "drops[1].on_drop.run_function", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(issues, "on_drop_issues", "drops[2].on_drop.run_function", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(issues, "on_drop_issues", "drops[3].on_drop", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "tracking_issues", "drops[0].pity", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "tracking_issues", "drops[1].pity", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "tracking_issues", "drops[2].per_player", DropIssue.Severity.WARNING);

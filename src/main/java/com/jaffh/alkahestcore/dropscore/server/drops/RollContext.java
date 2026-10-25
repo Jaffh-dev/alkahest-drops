@@ -1,5 +1,6 @@
 package com.jaffh.alkahestcore.dropscore.server.drops;
 
+import com.jaffh.alkahestcore.dropscore.api.DropOrigin;
 import com.jaffh.alkahestcore.dropscore.server.progress.DropProgress;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
@@ -15,9 +16,23 @@ import javax.annotation.Nullable;
  * @param random        Random source of the level. Never null.
  * @param player        Player whose pity and one-time drop progress the roll uses and who owns per-player drops, or
  *                      null without a player (pity is then ignored and one-time drops never happen).
+ * @param origin        Mob or block the drops spawn from, or null in simulations, whose drops never spawn as rolled.
  */
 public record RollContext(EnchantLevels enchantLevels, float scaleValue, float damageTaken, RandomSource random,
-                          @Nullable Player player) {
+                          @Nullable Player player, @Nullable DropOrigin origin) {
+    /**
+     * Creates the context of a roll without an origin.
+     *
+     * @param enchantLevels Enchantment levels of the roll. Never null.
+     * @param scaleValue    Max health of the mob or hardness of the block.
+     * @param damageTaken   Damage the mob took from the hit, 0 outside hit drops.
+     * @param random        Random source of the level. Never null.
+     * @param player        Player of the roll, or null.
+     */
+    public RollContext(EnchantLevels enchantLevels, float scaleValue, float damageTaken, RandomSource random, @Nullable Player player) {
+        this(enchantLevels, scaleValue, damageTaken, random, player, null);
+    }
+
     /**
      * Creates the context of a roll that took no damage (every trigger but hit).
      *
@@ -28,6 +43,16 @@ public record RollContext(EnchantLevels enchantLevels, float scaleValue, float d
      */
     public RollContext(EnchantLevels enchantLevels, float scaleValue, RandomSource random, @Nullable Player player) {
         this(enchantLevels, scaleValue, 0.0F, random, player);
+    }
+
+    /**
+     * Returns this context with the mob or block its drops spawn from.
+     *
+     * @param dropOrigin Origin of the drops. Never null.
+     * @return A new context with the origin set.
+     */
+    public RollContext withOrigin(DropOrigin dropOrigin) {
+        return new RollContext(enchantLevels, scaleValue, damageTaken, random, player, dropOrigin);
     }
 
     /**

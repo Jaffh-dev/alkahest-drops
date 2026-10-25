@@ -1,5 +1,6 @@
 package com.jaffh.alkahestcore.dropscore.server.blockdrops;
 
+import com.jaffh.alkahestcore.dropscore.api.DropOrigin;
 import com.jaffh.alkahestcore.dropscore.server.drops.DropTable;
 import com.jaffh.alkahestcore.dropscore.server.drops.EnchantLevels;
 import com.jaffh.alkahestcore.dropscore.server.drops.RollContext;
@@ -40,17 +41,21 @@ final class BlockDropApplier {
     }
 
     /**
-     * Builds the roll context of a block: the enchantments of the tool, the block's hardness and the breaking player.
+     * Builds the roll context of a block: the enchantments of the tool, the block's hardness, the breaking player and
+     * the block the drops spawn from.
      *
      * @param context Loot context of the block, with a block state and an origin. Never null.
-     * @return The roll context; no enchantment without a tool (explosions, pistons), and the player is null without
-     *         a breaking player.
+     * @return The roll context; no enchantment without a tool (explosions, pistons), the player is null without a
+     *         breaking player, and the origin is null without a block state or position.
      */
     static RollContext rollContextOf(LootContext context) {
         ItemStack tool = context.getParamOrNull(LootContextParams.TOOL);
         EnchantLevels levels = tool != null ? EnchantLevels.ofItem(tool) : EnchantLevels.NONE;
         Player player = context.getParamOrNull(LootContextParams.THIS_ENTITY) instanceof Player breaker ? breaker : null;
-        return new RollContext(levels, hardnessOf(context), context.getRandom(), player);
+        RollContext roll = new RollContext(levels, hardnessOf(context), context.getRandom(), player);
+        BlockState state = context.getParamOrNull(LootContextParams.BLOCK_STATE);
+        Vec3 origin = context.getParamOrNull(LootContextParams.ORIGIN);
+        return state != null && origin != null ? roll.withOrigin(new DropOrigin.Block(state, BlockPos.containing(origin))) : roll;
     }
 
     /**

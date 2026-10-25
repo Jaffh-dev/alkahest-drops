@@ -37,7 +37,7 @@ final class DropTestKit {
     /** Template every dropscore test runs in: a 9×5×9 stone floor. */
     static final String ARENA = "dropscore_arena";
 
-    private static final BlockPos CENTER = new BlockPos(4, 1, 4);
+    static final BlockPos CENTER = new BlockPos(4, 1, 4);
     private static final BlockPos FAR_CORNER = new BlockPos(9, 5, 9);
     private static final float LETHAL_DAMAGE = 10_000.0F;
     private static final float SMALL_EXPLOSION_POWER = 1.0F;

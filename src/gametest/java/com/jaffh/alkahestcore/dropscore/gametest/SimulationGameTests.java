@@ -250,6 +250,21 @@ public class SimulationGameTests {
     }
 
     /**
+     * Simulated drops spawned by {@code drop} run no on_drop actions: the silverfish's emerald does not glow.
+     *
+     * @param helper Helper of the test.
+     */
+    @GameTest(template = DropTestKit.ARENA)
+    public static void simulatedDropsRunNoDropActions(GameTestHelper helper) {
+        runCommand(helper, "dropscore simulate entity minecraft:silverfish 2 by none drop");
+        helper.runAfterDelay(1, () -> {
+            DropTestKit.assertItemCount(helper, Items.EMERALD, 2);
+            OnDropGameTests.assertGlowing(helper, Items.EMERALD, false);
+            helper.succeed();
+        });
+    }
+
+    /**
      * The report lists the enchantments the runs read, and invalid enchantment lists, unknown ids, repeated ids,
      * levels above 255 and enchantments on a trigger that reads none are refused.
      *

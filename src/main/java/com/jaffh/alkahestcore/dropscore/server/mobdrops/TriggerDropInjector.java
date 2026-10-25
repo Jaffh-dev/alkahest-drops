@@ -1,5 +1,6 @@
 package com.jaffh.alkahestcore.dropscore.server.mobdrops;
 
+import com.jaffh.alkahestcore.dropscore.api.DropOrigin;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropEntry;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropTrigger;
 import com.jaffh.alkahestcore.dropscore.server.drops.DropTable;
@@ -152,7 +153,8 @@ public class TriggerDropInjector {
         LootContext lootContext = table.needsLootContext() ? MobDropInjector.createLootContext(level, mob, cause.source()) : null;
         Player player = cause.player();
         EnchantLevels levels = cause.trigger().hasEnchantBonus() ? EnchantLevels.ofItem(cause.heldItem()) : EnchantLevels.NONE;
-        RollContext rollContext = new RollContext(levels, mob.getMaxHealth(), cause.damageTaken(), level.getRandom(), player);
+        RollContext rollContext = new RollContext(levels, mob.getMaxHealth(), cause.damageTaken(), level.getRandom(), player)
+                .withOrigin(new DropOrigin.Mob(mob));
 
         TriggeredDrops drops = table.rollTriggered(lootContext, rollContext, isDue);
         if (drops.isEmpty()) return List.of();

@@ -39,6 +39,15 @@ public final class TrackedDropRecorder {
     }
 
     /**
+     * Tells whether a simulated roll is running.
+     *
+     * @return True inside {@link #recordRoll}.
+     */
+    boolean isRecording() {
+        return isRecording;
+    }
+
+    /**
      * Records the settings of the drop a stack was rolled from, while a simulated roll is running.
      *
      * @param stack    Rolled stack. Never null.

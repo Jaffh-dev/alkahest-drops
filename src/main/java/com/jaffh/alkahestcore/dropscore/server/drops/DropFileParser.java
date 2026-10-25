@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.Set;
 
 /**
@@ -37,11 +38,12 @@ public final class DropFileParser {
      * @param format Format of the files being read. Never null.
      * @param limits Config limits of the reload. Never null.
      * @param log    Problem collector of the reload. Never null.
+     * @param isKnownFunction Tells whether a datapack function of the same reload exists. Never null.
      */
-    public DropFileParser(DropFileFormat format, DropLimits limits, DropIssueLog log) {
+    public DropFileParser(DropFileFormat format, DropLimits limits, DropIssueLog log, Predicate<ResourceLocation> isKnownFunction) {
         this.format = format;
         this.log = log;
-        this.entryParser = new DropEntryParser(format, limits);
+        this.entryParser = new DropEntryParser(format, limits, isKnownFunction);
     }
 
     /**
