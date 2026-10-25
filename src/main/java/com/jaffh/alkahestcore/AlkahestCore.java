@@ -1,10 +1,13 @@
 package com.jaffh.alkahestcore;
 
 
+import com.jaffh.alkahestcore.dropscore.client.events.DropscoreClientEvents;
 import com.jaffh.alkahestcore.dropscore.common.events.DropscoreCommonEvents;
 import com.jaffh.alkahestcore.dropscore.server.events.DropscoreServerEvents;
 import com.mojang.logging.LogUtils;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -27,6 +30,7 @@ public class AlkahestCore
 
         DropscoreCommonEvents.register(context, modEventBus, ID);
         DropscoreServerEvents.register(modEventBus, MinecraftForge.EVENT_BUS);
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> DropscoreClientEvents.register(modEventBus, MinecraftForge.EVENT_BUS));
 
         // Register the setup method for modloading
         modEventBus.addListener(this::setup);

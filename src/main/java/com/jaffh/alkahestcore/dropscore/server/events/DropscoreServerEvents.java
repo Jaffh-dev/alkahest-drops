@@ -1,5 +1,6 @@
 package com.jaffh.alkahestcore.dropscore.server.events;
 
+import com.jaffh.alkahestcore.dropscore.common.network.DropscoreNetwork;
 import com.jaffh.alkahestcore.dropscore.server.blockdrops.BlockBreakHandler;
 import com.jaffh.alkahestcore.dropscore.server.blockdrops.BlockDropManager;
 import com.jaffh.alkahestcore.dropscore.server.command.DropscoreCommand;
@@ -9,6 +10,7 @@ import com.jaffh.alkahestcore.dropscore.server.mobdrops.MobDropInjector;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.MobDropManager;
 import com.jaffh.alkahestcore.dropscore.server.progress.DropProgressEvents;
 import com.jaffh.alkahestcore.dropscore.server.progress.ProgressPruner;
+import com.jaffh.alkahestcore.dropscore.server.sync.DropRulesSender;
 import net.minecraft.world.entity.Entity;
 import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -16,7 +18,7 @@ import net.minecraftforge.eventbus.api.IEventBus;
 
 /**
  * Registers the event handlers of dropscore's logical server: datapack loading, mob and block drops, the
- * {@code /dropscore} command and player progress. They are registered on both physical sides, because singleplayer
+ * {@code /dropscore} command, player progress and the drop summary sent to clients. They are registered on both physical sides, because singleplayer
  * runs the logical server inside the client.
  */
 public final class DropscoreServerEvents {
@@ -28,7 +30,8 @@ public final class DropscoreServerEvents {
     }
 
     /**
-     * Registers every handler of the module.
+     * Registers every handler of the module. The drop summary sender is only registered when the network channel
+     * exists (call after the channel is registered).
      *
      * @param modEventBus   Event bus of the mod. Never null.
      * @param forgeEventBus Forge event bus of gameplay events. Never null.
@@ -49,6 +52,9 @@ public final class DropscoreServerEvents {
         forgeEventBus.addGenericListener(Entity.class, DropProgressEvents::onAttachCapabilities);
         forgeEventBus.addListener(DropProgressEvents::onPlayerClone);
         forgeEventBus.addListener(ProgressPruner::onDatapackSync);
+        if (DropscoreNetwork.isEnabled()) {
+            forgeEventBus.addListener(new DropRulesSender()::onDatapackSync);
+        }
     }
 
     /**

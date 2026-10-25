@@ -2,6 +2,7 @@ package com.jaffh.alkahestcore.dropscore.server.command;
 
 import com.jaffh.alkahestcore.dropscore.common.drops.DropBehaviorType;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropEntry;
+import com.jaffh.alkahestcore.dropscore.common.drops.DropNumbers;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropTracking;
 import com.jaffh.alkahestcore.dropscore.server.drops.DropFileFormat;
 import com.jaffh.alkahestcore.dropscore.server.drops.DropManager;
@@ -51,9 +52,7 @@ final class RuleText {
      *         {@code "1 (50%), functions, pity 20, per player, conditional"}.
      */
     static String describeDrop(DropEntry entry, DropFileFormat format, boolean isConditional) {
-        int min = entry.count().min();
-        int max = entry.count().max();
-        StringBuilder text = new StringBuilder(min == max ? String.valueOf(min) : min + "–" + max);
+        StringBuilder text = new StringBuilder(DropNumbers.range(entry.count()));
         if (entry.isExperience()) text.append(" XP");
         text.append(" (").append(CommandText.percent(entry.chance())).append(")");
         DropBehaviorType type = entry.behavior().type();
