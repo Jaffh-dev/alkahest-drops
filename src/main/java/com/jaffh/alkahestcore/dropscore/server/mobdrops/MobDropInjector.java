@@ -1,5 +1,6 @@
 package com.jaffh.alkahestcore.dropscore.server.mobdrops;
 
+import com.jaffh.alkahestcore.dropscore.api.DropOrigin;
 import com.jaffh.alkahestcore.dropscore.server.drops.DropTable;
 import com.jaffh.alkahestcore.dropscore.server.drops.RemovalRule;
 import com.jaffh.alkahestcore.dropscore.server.drops.EnchantLevels;
@@ -76,8 +77,9 @@ public class MobDropInjector {
         event.getDrops().removeIf(drop -> table.removesEventDrop(drop.getItem().getItem(), activeRemovals));
 
         Entity killer = event.getSource().getEntity();
+        DropOrigin origin = new DropOrigin.Mob(entity);
         RollContext rollContext = new RollContext(killLevelsOf(killer, event.getLootingLevel()), entity.getMaxHealth(),
-                level.getRandom(), playerOf(killer));
+                level.getRandom(), playerOf(killer)).withOrigin(origin);
         List<RollContext> attackerRolls = table.hasPerPlayerDrops()
                 ? attackerRollsOf(entity, level, killer, event.getLootingLevel())
                 : List.of();
@@ -102,7 +104,7 @@ public class MobDropInjector {
         List<RollContext> rolls = new ArrayList<>();
         for (ServerPlayer player : HitTracker.onlineAttackersOf(entity, level.getServer(), killer)) {
             EnchantLevels levels = player == killer ? killLevelsOf(killer, killerLooting) : EnchantLevels.ofItem(player.getMainHandItem());
-            rolls.add(new RollContext(levels, entity.getMaxHealth(), level.getRandom(), player));
+            rolls.add(new RollContext(levels, entity.getMaxHealth(), level.getRandom(), player).withOrigin(new DropOrigin.Mob(entity)));
         }
         return rolls;
     }

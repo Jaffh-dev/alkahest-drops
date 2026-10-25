@@ -24,6 +24,8 @@ import java.util.List;
  *                     empty for experience. Immutable, never null.
  * @param tracking     Per-player settings: pity, first kill and per-player rolls. Never null.
  * @param trigger      What makes the drop happen, death by default; always death for blocks. Never null.
+ * @param onDrop       What happens when the dropped item spawns, {@link DropActions#NONE} for nothing (always none
+ *                     for experience). Never null.
  */
 public record DropEntry(
         @Nullable Item item,
@@ -35,7 +37,8 @@ public record DropEntry(
         List<LootItemCondition> conditions,
         List<LootItemFunction> functions,
         DropTracking tracking,
-        TriggerSettings trigger
+        TriggerSettings trigger,
+        DropActions onDrop
 ) {
     /**
      * Creates a drop entry and stores immutable copies of the conditions and functions.

@@ -4,6 +4,7 @@ import com.jaffh.alkahestcore.dropscore.common.network.DropscoreNetwork;
 import com.jaffh.alkahestcore.dropscore.server.blockdrops.BlockBreakHandler;
 import com.jaffh.alkahestcore.dropscore.server.blockdrops.BlockDropManager;
 import com.jaffh.alkahestcore.dropscore.server.command.DropscoreCommand;
+import com.jaffh.alkahestcore.dropscore.server.drops.DropSpawnEvents;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.HitTracker;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.LootingOverride;
 import com.jaffh.alkahestcore.dropscore.server.mobdrops.MobDropInjector;
@@ -45,6 +46,7 @@ public final class DropscoreServerEvents {
         forgeEventBus.addListener(DropscoreServerEvents::onAddReloadListener);
         forgeEventBus.register(new MobDropInjector());
         forgeEventBus.register(new TriggerDropInjector());
+        forgeEventBus.register(new DropSpawnEvents());
         forgeEventBus.addListener(MobDropManager.INSTANCE::onTagsUpdated);
         forgeEventBus.register(new BlockBreakHandler());
         forgeEventBus.addListener(BlockDropManager.INSTANCE::onTagsUpdated);
@@ -65,6 +67,8 @@ public final class DropscoreServerEvents {
      * @param event Reload listener event of the Forge bus.
      */
     private static void onAddReloadListener(AddReloadListenerEvent event) {
+        MobDropManager.INSTANCE.useFunctionLibrary(event.getServerResources().getFunctionLibrary());
+        BlockDropManager.INSTANCE.useFunctionLibrary(event.getServerResources().getFunctionLibrary());
         event.addListener(MobDropManager.INSTANCE);
         event.addListener(BlockDropManager.INSTANCE);
     }

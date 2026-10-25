@@ -8,6 +8,7 @@ import com.jaffh.alkahestcore.dropscore.common.drops.DropEntry;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropTrigger;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.ServerFunctionLibrary;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
@@ -22,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * Datapack reload listener shared by the drop modules. Reads drop and removal files of one folder into an
@@ -42,6 +44,8 @@ public abstract class DropManager<T> extends SimpleJsonResourceReloadListener {
     private volatile DropLoadReport report = DropLoadReport.EMPTY;
     private volatile Map<ResourceLocation, TargetMatcher.Target<T>> fileTargets = Map.of();
     private volatile boolean isLoaded;
+    /** Tells whether a datapack function of the reload being applied exists; every id passes until one is set. */
+    private volatile Predicate<ResourceLocation> isKnownFunction = id -> true;
     /** Progress keys of every pity and one-time drop of the last load. */
     private volatile Set<String> liveProgressKeys = Set.of();
     /** Files of the last load that were skipped or lost some drops, whose progress must never be pruned. */
@@ -99,6 +103,17 @@ public abstract class DropManager<T> extends SimpleJsonResourceReloadListener {
      */
     public TriggerTables triggerTablesOf(T value) {
         return rules.triggerTablesOf(value);
+    }
+
+    /**
+     * Sets the function library of the reload about to run, so {@code on_drop} functions are checked against it.
+     * Vanilla applies its function library before the reload listeners Forge adds, so the library is filled by the
+     * time the drop files are read.
+     *
+     * @param library Function library of the reload. Never null.
+     */
+    public void useFunctionLibrary(ServerFunctionLibrary library) {
+        isKnownFunction = id -> library.getFunction(id).isPresent();
     }
 
     /**
@@ -247,7 +262,7 @@ public abstract class DropManager<T> extends SimpleJsonResourceReloadListener {
      */
     private void load(Map<ResourceLocation, JsonElement> resources, DropLimits limits) {
         DropIssueLog log = new DropIssueLog();
-        DropFileParser parser = new DropFileParser(format, limits, log);
+        DropFileParser parser = new DropFileParser(format, limits, log, isKnownFunction);
         DropRuleSet.Builder<T> builder = new DropRuleSet.Builder<>(matcher);
         List<ParsedDropFile> loadedFiles = new ArrayList<>();
         Map<ResourceLocation, TargetMatcher.Target<T>> targets = new HashMap<>();

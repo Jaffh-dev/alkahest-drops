@@ -9,7 +9,7 @@ import com.google.gson.annotations.SerializedName;
  * {@code enchant_bonus} is a list of {@link EnchantBonusEntryJson}, read by hand so a bad entry is reported at its
  * own path. Mob files read {@code first_kill}, block files read {@code first_break}. An experience drop sets
  * {@code experience} to true instead of {@code item}. {@code on} picks the trigger (mob files only), with its tick
- * setting {@code interval} (periodic) or {@code cooldown} (hit).
+ * setting {@code interval} (periodic) or {@code cooldown} (hit). {@code on_drop} holds what happens when the item spawns.
  */
 public class DropEntryJson {
     public String id;
@@ -41,4 +41,7 @@ public class DropEntryJson {
     public String on;
     public Integer interval;
     public Integer cooldown;
+
+    @SerializedName("on_drop")
+    public DropActionsJson onDrop;
 }

@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "entity": "minecraft:silverfish",
+  "drops": [
+    { "item": "minecraft:emerald", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" },
+      "on_drop": { "glow": true, "run_function": "dstest_a:on_drop/mark" } },
+    { "item": "minecraft:gold_nugget", "chance": 1.0, "count": { "min": 1, "max": 1 }, "drop_behavior": { "type": "uniform" } }
+  ]
+}

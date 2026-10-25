@@ -1,5 +1,6 @@
 package com.jaffh.alkahestcore.dropscore.server.command;
 
+import com.jaffh.alkahestcore.dropscore.common.drops.DropActions;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropBehaviorType;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropEntry;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropNumbers;
@@ -15,6 +16,8 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -52,7 +55,8 @@ final class RuleText {
      * @param format        Format of the drop's file, which names its one-time drops. Never null.
      * @param isConditional Whether the file or the drop has conditions.
      * @return Such as "1–3 (5%)", "3–7 XP (100%), max_health" or
-     *         "1 (50%), functions, pity 20, per player, on shear, conditional", in the player's language.
+     *         "1 (50%), functions, pity 20, per player, on shear, on drop: glow, conditional", in the player's
+     *         language.
      */
     static MutableComponent describeDrop(DropEntry entry, DropFileFormat format, boolean isConditional) {
         MutableComponent text = CommandText.text(DropNumbers.range(entry.count()));
@@ -66,8 +70,22 @@ final class RuleText {
         if (tracking.isFirstDrop()) text.append(", ").append(CommandText.lang("rule." + format.firstDropKey()));
         if (tracking.isPerPlayer()) text.append(", ").append(CommandText.lang("rule.per_player"));
         if (!entry.trigger().isDeath()) text.append(", ").append(trigger(entry.trigger()));
+        if (entry.onDrop().hasActions()) text.append(", ").append(CommandText.lang("rule.on_drop", actionNames(entry.onDrop())));
         if (isConditional) text.append(", ").append(conditional());
         return text;
+    }
+
+    /**
+     * Lists the actions a drop runs when it spawns.
+     *
+     * @param actions Actions of the drop, with at least one on. Never null.
+     * @return Such as "glow, run_function mypack:rare_drop".
+     */
+    private static String actionNames(DropActions actions) {
+        List<String> names = new ArrayList<>(2);
+        if (actions.shouldGlow()) names.add("glow");
+        if (actions.runFunction() != null) names.add("run_function " + actions.runFunction());
+        return String.join(", ", names);
     }
 
     /**

@@ -319,7 +319,7 @@ public record DropTable(
 
     /**
      * Rolls one drop and keeps the stack when it is not empty; a stack of a pity or one-time drop is also given to
-     * the simulation recorder.
+     * the simulation recorder, and every stack is queued until it spawns, for {@code on_drop} and the drop event.
      *
      * @param drops       Receives the rolled drop. Never null.
      * @param entry       Item drop to roll. Never null.
@@ -333,6 +333,7 @@ public record DropTable(
         if (stack.isEmpty()) return;
         drops.add(new RolledDrop(stack, owner));
         if (entry.tracking().needsProgress()) TrackedDropRecorder.INSTANCE.recordStack(stack, entry.tracking());
+        SpawningDropQueue.INSTANCE.add(stack, entry, rollContext);
     }
 
     /**

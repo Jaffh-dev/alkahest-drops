@@ -3,6 +3,7 @@ package com.jaffh.alkahestcore.dropscore.server.drops;
 import com.google.gson.JsonElement;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropBehavior;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropBehaviorType;
+import com.jaffh.alkahestcore.dropscore.common.drops.DropActions;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropCount;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropEntry;
 import com.jaffh.alkahestcore.dropscore.common.drops.DropTracking;
@@ -13,9 +14,11 @@ import com.jaffh.alkahestcore.dropscore.common.drops.ScaleFormula;
 import com.jaffh.alkahestcore.dropscore.common.drops.ScaleFunction;
 import com.jaffh.alkahestcore.dropscore.common.drops.TriggerSettings;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.CountJson;
+import com.jaffh.alkahestcore.dropscore.server.drops.json.DropActionsJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.DropBehaviorJson;
 import com.jaffh.alkahestcore.dropscore.server.drops.json.DropEntryJson;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 
@@ -31,7 +34,7 @@ import java.util.regex.Pattern;
  * values are clamped with a warning when the intent is clear and rejected otherwise. {@code functions} are optional
  * vanilla loot functions; {@code enchant_bonus} lists the bonus of each enchantment; {@code pity}, {@code first_kill} / {@code first_break} and {@code per_player} are
  * optional per-player settings; {@code on} (mob files only) picks the trigger, with {@code interval} for periodic drops
- * and {@code cooldown} for hit drops.
+ * and {@code cooldown} for hit drops; {@code on_drop} holds optional actions run when the item spawns.
  */
 public final class DropEntryParser {
     /** Characters a drop {@code id} may use, the same as a resource path. */
@@ -43,15 +46,18 @@ public final class DropEntryParser {
     private final DropLimits limits;
     private final EnchantBonusParser bonusParser;
     private final LootFunctionChecker functionChecker;
+    private final Predicate<ResourceLocation> isKnownFunction;
 
     /**
      * Creates a parser for one file format and the given limits.
      *
-     * @param format Format of the files being read. Never null.
-     * @param limits Config limits of the reload. Never null.
+     * @param format          Format of the files being read. Never null.
+     * @param limits          Config limits of the reload. Never null.
+     * @param isKnownFunction Tells whether a datapack function of the same reload exists. Never null.
      */
-    public DropEntryParser(DropFileFormat format, DropLimits limits) {
+    public DropEntryParser(DropFileFormat format, DropLimits limits, Predicate<ResourceLocation> isKnownFunction) {
         this.format = format;
+        this.isKnownFunction = isKnownFunction;
         this.limits = limits;
         this.bonusParser = new EnchantBonusParser(limits);
         this.functionChecker = new LootFunctionChecker(format);
@@ -74,6 +80,7 @@ public final class DropEntryParser {
         }
         if (isExperience && drop.nbt != null) ctx.at("nbt").warn("ignored_by_experience");
         if (isExperience && drop.functions != null) ctx.at("functions").warn("ignored_by_experience");
+        if (isExperience && drop.onDrop != null) ctx.at("on_drop").warn("ignored_by_experience");
         ParseContext itemCtx = ctx.at("item");
         TriggerSettings trigger = parseTrigger(drop, ctx);
         JsonElement bonusJson = drop.enchantBonus;
@@ -102,8 +109,48 @@ public final class DropEntryParser {
                 DropValues.parseConditions(drop.conditions, ctx.at("conditions")),
                 isExperience ? List.of() : parseFunctions(drop, bonuses, ctx),
                 restrictToTrigger(tracking, trigger.trigger(), ctx),
-                trigger
+                trigger,
+                isExperience ? DropActions.NONE : parseOnDrop(drop.onDrop, ctx.at("on_drop"))
         );
+    }
+
+    /**
+     * Resolves {@code on_drop}: {@code glow} and {@code run_function} are optional and off when missing. A function
+     * no datapack defines is ignored with a warning, and an object turning no action on is ignored with a warning.
+     *
+     * @param json Gson DTO, or null when missing.
+     * @param ctx  Context of {@code on_drop}. Never null.
+     * @return The actions, {@link DropActions#NONE} when missing or empty.
+     * @throws DropDataException If the function id is malformed.
+     */
+    private DropActions parseOnDrop(@Nullable DropActionsJson json, ParseContext ctx) throws DropDataException {
+        if (json == null) return DropActions.NONE;
+        DropActions actions = new DropActions(Boolean.TRUE.equals(json.shouldGlow),
+                parseFunctionId(json.runFunction, ctx.at("run_function")));
+        if (!actions.hasActions()) {
+            ctx.warn("no_drop_actions");
+            return DropActions.NONE;
+        }
+        return actions;
+    }
+
+    /**
+     * Resolves the datapack function of {@code on_drop}.
+     *
+     * @param id  Raw function id, or null when missing.
+     * @param ctx Context of {@code run_function}. Never null.
+     * @return The function id, or null when missing or not defined by any datapack (reported as a warning).
+     * @throws DropDataException If the id is malformed.
+     */
+    @Nullable
+    private ResourceLocation parseFunctionId(@Nullable String id, ParseContext ctx) throws DropDataException {
+        if (id == null) return null;
+        ResourceLocation location = DropValues.parseId(id, ctx);
+        if (!isKnownFunction.test(location)) {
+            ctx.warn("unknown_function_id", id);
+            return null;
+        }
+        return location;
     }
 
     /**
