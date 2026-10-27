@@ -1,0 +1,260 @@
+package com.jaffh.alkahestdrops.server.blockdrops;
+
+import com.jaffh.alkahestdrops.server.drops.DropTable;
+import com.jaffh.alkahestdrops.server.drops.IDropSimulator;
+import com.jaffh.alkahestdrops.server.drops.InvalidSimulationException;
+import com.jaffh.alkahestdrops.server.drops.SimulatedDrop;
+import com.jaffh.alkahestdrops.server.drops.TrackedDropRecorder;
+import com.jaffh.alkahestdrops.server.drops.SimulationActor;
+import com.jaffh.alkahestdrops.server.drops.SimulationFlag;
+import com.jaffh.alkahestdrops.server.drops.SimulationSetup;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.loot.BuiltInLootTables;
+import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Simulates breaks of one block state without placing it: the block's loot table (with loot modifiers, the mod's
+ * included) or, for blocks without a loot table, the player-break fallback, then the experience. The breaker is a
+ * fake player holding a copy of the real player's tool, nobody (a netherite pickaxe, no player) or a TNT explosion.
+ * A tool that cannot harvest the block drops nothing, as in survival. Creative mode is ignored.
+ */
+public final class BlockDropSimulator implements IDropSimulator {
+    /** Radius of a TNT explosion; with drop decay on, {@code survives_explosion} keeps a drop with a chance of 1 / radius. */
+    private static final float TNT_EXPLOSION_RADIUS = 4.0F;
+
+    private final ServerLevel level;
+    private final BlockPos pos;
+    private final BlockState state;
+    private final SimulationActor actor;
+    @Nullable
+    private final Player player;
+    private final ItemStack tool;
+    @Nullable
+    private final LootTable lootTable;
+    private final DropTable table;
+    private final boolean canHarvest;
+
+    /**
+     * Creates a simulator from its resolved parts.
+     *
+     * @param setup  Level, position and actor of the simulation. Never null.
+     * @param state  Broken block state. Never null.
+     * @param player Breaking player, or null for nobody or an explosion.
+     * @param tool   Tool of every break, with the forced enchantments applied; empty for an explosion. Never null.
+     */
+    private BlockDropSimulator(SimulationSetup setup, BlockState state, @Nullable Player player, ItemStack tool) {
+        this.level = setup.level();
+        this.pos = BlockPos.containing(setup.origin());
+        this.state = state;
+        this.actor = setup.actor();
+        this.player = player;
+        this.tool = tool;
+        this.lootTable = state.getBlock().getLootTable() == BuiltInLootTables.EMPTY
+                ? null
+                : level.getServer().getLootData().getLootTable(state.getBlock().getLootTable());
+        this.table = BlockDropManager.getTable(state.getBlock());
+        this.canHarvest = actor instanceof SimulationActor.Explosion || canHarvest(player, tool);
+    }
+
+    /**
+     * Creates a simulator for a block state.
+     *
+     * @param state Block state to break. Never null.
+     * @param setup Level, position, actor, flags and forced enchantments of the simulation. Never null.
+     * @return The simulator.
+     * @throws InvalidSimulationException If the setup does not fit a block break: an entity actor, {@code burning},
+     *                                  {@code sneaking} without a player, or enchantments without a tool.
+     */
+    public static BlockDropSimulator create(BlockState state, SimulationSetup setup) {
+        SimulationActor actor = getActor(setup);
+
+        Player player = actor instanceof SimulationActor.AsPlayer asPlayer ? setup.createPlayer(asPlayer) : null;
+        ItemStack tool = toolOf(actor, player);
+        if (!setup.enchantments().isEmpty()) {
+            if (tool.isEmpty()) throw new InvalidSimulationException(IDropSimulator.setupText("enchant_without_tool"));
+            applyEnchantments(tool, setup.enchantments());
+        }
+        return new BlockDropSimulator(setup, state, player, tool);
+    }
+
+    /**
+     * Returns the actor of the setup after checking that it and the flags fit a block break.
+     *
+     * @param setup Setup of the simulation. Never null.
+     * @return The actor: a player, nobody or an explosion.
+     * @throws InvalidSimulationException If the actor is an entity, {@code burning} is set, or {@code sneaking} is set
+     *                                  without a player.
+     */
+    private static SimulationActor getActor(SimulationSetup setup) {
+        SimulationActor actor = setup.actor();
+        if (actor instanceof SimulationActor.AsEntity) throw new InvalidSimulationException(IDropSimulator.setupText("entity_breaker"));
+        if (setup.has(SimulationFlag.BURNING)) throw new InvalidSimulationException(IDropSimulator.setupText("burning_block"));
+        if (setup.has(SimulationFlag.SNEAKING) && !(actor instanceof SimulationActor.AsPlayer)) {
+            throw new InvalidSimulationException(IDropSimulator.setupText("sneaking_without_player"));
+        }
+        return actor;
+    }
+
+    /**
+     * Returns the tool of the actor. A player's tool is the fake player's own main-hand stack, so equipment
+     * conditions see the same enchantments as the loot context.
+     *
+     * @param actor  Actor of the simulation. Never null.
+     * @param player Fake player of a player actor, or null.
+     * @return The tool; a netherite pickaxe for nobody, empty for an explosion.
+     */
+    private static ItemStack toolOf(SimulationActor actor, @Nullable Player player) {
+        if (player != null) return player.getMainHandItem();
+        if (actor instanceof SimulationActor.Explosion) return ItemStack.EMPTY;
+        return new ItemStack(Items.NETHERITE_PICKAXE);
+    }
+
+    /**
+     * Puts the forced enchantments on a tool, replacing the levels it has, so vanilla {@code apply_bonus},
+     * {@code match_tool} and the block's experience read them too.
+     *
+     * @param tool   Tool to enchant. Never null, not empty.
+     * @param forced Levels to set; a level of 0 removes the enchantment. Never null.
+     */
+    private static void applyEnchantments(ItemStack tool, Map<Enchantment, Integer> forced) {
+        Map<Enchantment, Integer> enchantments = EnchantmentHelper.getEnchantments(tool);
+        forced.forEach((enchantment, level) -> {
+            if (level > 0) {
+                enchantments.put(enchantment, level);
+            } else {
+                enchantments.remove(enchantment);
+            }
+        });
+        EnchantmentHelper.setEnchantments(enchantments, tool);
+    }
+
+    /**
+     * Tells whether the breaker gets drops, as in survival.
+     *
+     * @param player Breaking player, or null.
+     * @param tool   Tool of the break. Never null.
+     * @return True when the block needs no tool or the tool is correct (with Forge's harvest check for players).
+     */
+    private boolean canHarvest(@Nullable Player player, ItemStack tool) {
+        if (player != null) return state.canHarvestBlock(level, pos, player);
+        return !state.requiresCorrectToolForDrops() || tool.isCorrectToolForDrops(state);
+    }
+
+    /**
+     * Rolls one break: nothing when the tool cannot harvest the block, otherwise the drops and the experience.
+     *
+     * @return The items and experience of the break.
+     */
+    @Override
+    public SimulatedDrop simulateOnce() {
+        if (!canHarvest) return SimulatedDrop.NOTHING;
+
+        LootParams.Builder params = BlockBreakHandler.lootParamsBuilder(level, pos, state, player, tool);
+        if (actor instanceof SimulationActor.Explosion && hasTntDropDecay()) {
+            params.withParameter(LootContextParams.EXPLOSION_RADIUS, TNT_EXPLOSION_RADIUS);
+        }
+        LootContext context = BlockBreakHandler.toLootContext(params);
+        return TrackedDropRecorder.INSTANCE.recordRoll(() -> rollItems(context), () -> rollExperience(context));
+    }
+
+    /**
+     * Tells whether TNT destroys some of the drops it frees, as the {@code tntExplosionDropDecay} game rule decides.
+     *
+     * @return True when a TNT explosion keeps each drop with a chance of 1 / radius.
+     */
+    private boolean hasTntDropDecay() {
+        return level.getGameRules().getBoolean(GameRules.RULE_TNT_EXPLOSION_DROP_DECAY);
+    }
+
+    /**
+     * Rolls the items of one break. The loot table runs loot modifiers, so the mod's own modifier applies the
+     * block's drop table; blocks without a loot table use the fallback of player breaks.
+     *
+     * @param context Loot context of the break. Never null.
+     * @return The dropped stacks.
+     */
+    private List<ItemStack> rollItems(LootContext context) {
+        if (lootTable != null) {
+            List<ItemStack> items = new ArrayList<>();
+            lootTable.getRandomItems(context, items::add);
+            return items;
+        }
+        if (player == null || table.dropFiles().isEmpty()) return List.of();
+        return BlockDropApplier.apply(table, List.of(), context);
+    }
+
+    /**
+     * Returns the experience of one break. As in vanilla, only player breaks give experience.
+     *
+     * @param context Loot context of the break. Never null.
+     * @return The experience, 0 without a player.
+     */
+    private int rollExperience(LootContext context) {
+        if (player == null) return 0;
+        int fortuneLevel = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.BLOCK_FORTUNE, tool);
+        int silkTouchLevel = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.SILK_TOUCH, tool);
+        int experience = state.getExpDrop(level, level.getRandom(), pos, fortuneLevel, silkTouchLevel);
+        if (!table.affectsExperience()) return experience;
+        return table.applyExperience(experience, context, BlockDropApplier.rollContextOf(context));
+    }
+
+    /**
+     * Names one run: a block break.
+     *
+     * @return {@code break}.
+     */
+    @Override
+    public String runNoun() {
+        return "break";
+    }
+
+    @Override
+    public Component targetName() {
+        return state.getBlock().getName();
+    }
+
+    /**
+     * Describes the breaker, the tool and its enchantments, and warns when the tool cannot harvest the block.
+     *
+     * @return Such as {@code "player: Dev, sneaking, tool: Diamond Pickaxe, enchantments: Fortune 3"} or
+     *         {@code "TNT explosion"}.
+     */
+    @Override
+    public Component describeSetup() {
+        if (actor instanceof SimulationActor.Explosion) {
+            return IDropSimulator.setupText(hasTntDropDecay() ? "explosion.decay_on" : "explosion.decay_off");
+        }
+
+        MutableComponent text;
+        if (player != null) {
+            text = IDropSimulator.setupText("player", player.getName());
+            if (player.isCrouching()) text.append(", ").append(IDropSimulator.setupText("sneaking"));
+        } else {
+            text = IDropSimulator.setupText("no_player");
+        }
+        Component toolName = tool.isEmpty() ? IDropSimulator.setupText("empty_hand") : tool.getHoverName();
+        text.append(", ").append(IDropSimulator.setupText("tool", toolName))
+                .append(", ").append(IDropSimulator.enchantmentsText(EnchantmentHelper.getEnchantments(tool)));
+        if (!canHarvest) text.append(", ").append(IDropSimulator.setupText("cannot_harvest"));
+        return text;
+    }
+}

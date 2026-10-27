@@ -1,6 +1,6 @@
 {
   "replace": false,
   "entries": [
-    "alkahestcore:block_drops"
+    "alkahestdrops:block_drops"
   ]
 }
