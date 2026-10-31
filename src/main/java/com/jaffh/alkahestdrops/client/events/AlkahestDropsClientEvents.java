@@ -14,8 +14,7 @@ public final class AlkahestDropsClientEvents {
     /**
      * Prevents instantiation of this utility class.
      */
-    private AlkahestDropsClientEvents() {
-    }
+    private AlkahestDropsClientEvents() {}
 
     /**
      * Registers every client handler of the module. Without JEI the client has no channel and receives no drop

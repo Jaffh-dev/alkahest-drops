@@ -1,19 +1,18 @@
 package com.jaffh.alkahestdrops.server.sync;
 
 import com.jaffh.alkahestdrops.common.drops.SyncedDropRules;
-import com.jaffh.alkahestdrops.common.network.DropRulesSyncPacket;
 import com.jaffh.alkahestdrops.common.network.AlkahestDropsNetwork;
+import com.jaffh.alkahestdrops.common.network.DropRulesSyncPacket;
 import com.jaffh.alkahestdrops.server.blockdrops.BlockDropManager;
 import com.jaffh.alkahestdrops.server.drops.DropLoadReport;
 import com.jaffh.alkahestdrops.server.mobdrops.MobDropManager;
 import com.mojang.logging.LogUtils;
+import java.util.List;
+import javax.annotation.Nullable;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.OnDatapackSyncEvent;
 import org.slf4j.Logger;
-
-import javax.annotation.Nullable;
-import java.util.List;
 
 /**
  * Sends the drop summary to clients that have the Alkahest Drops channel (clients with JEI), on login and after every
@@ -22,6 +21,7 @@ import java.util.List;
  */
 public final class DropRulesSender {
     private static final Logger LOGGER = LogUtils.getLogger();
+
     @Nullable
     private CachedRules cached;
 
@@ -34,7 +34,8 @@ public final class DropRulesSender {
     public void onDatapackSync(OnDatapackSyncEvent event) {
         if (!AlkahestDropsNetwork.isEnabled()) return;
         ServerPlayer joining = event.getPlayer();
-        List<ServerPlayer> players = joining != null ? List.of(joining) : event.getPlayerList().getPlayers();
+        List<ServerPlayer> players =
+                joining != null ? List.of(joining) : event.getPlayerList().getPlayers();
         List<DropRulesSyncPacket> packets = null;
         for (ServerPlayer player : players) {
             if (!AlkahestDropsNetwork.canReceive(player)) continue;
@@ -56,9 +57,13 @@ public final class DropRulesSender {
         if (current == null || current.mobs() != mobs || current.blocks() != blocks) {
             long start = System.nanoTime();
             SyncedDropRules rules = SyncedDropFactory.rulesOf(server);
-            LOGGER.debug("[alkahestdrops] Built the JEI drop summary of {} mobs and {} blocks in {} ms.",
-                    rules.mobs().size(), rules.blocks().size(), (System.nanoTime() - start) / 1_000_000);
-            current = new CachedRules(mobs, blocks, DropRulesSyncPacket.split(rules, DropRulesSyncPacket.MAX_BATCH_BYTES));
+            LOGGER.debug(
+                    "[alkahestdrops] Built the JEI drop summary of {} mobs and {} blocks in {} ms.",
+                    rules.mobs().size(),
+                    rules.blocks().size(),
+                    (System.nanoTime() - start) / 1_000_000);
+            current = new CachedRules(
+                    mobs, blocks, DropRulesSyncPacket.split(rules, DropRulesSyncPacket.MAX_BATCH_BYTES));
             cached = current;
         }
         return current.packets();
@@ -71,6 +76,5 @@ public final class DropRulesSender {
      * @param blocks  Block report the summary was built from. Never null.
      * @param packets Batches of the built summary. Never null.
      */
-    private record CachedRules(DropLoadReport mobs, DropLoadReport blocks, List<DropRulesSyncPacket> packets) {
-    }
+    private record CachedRules(DropLoadReport mobs, DropLoadReport blocks, List<DropRulesSyncPacket> packets) {}
 }

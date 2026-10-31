@@ -2,6 +2,10 @@ package com.jaffh.alkahestdrops.server.mobdrops;
 
 import com.jaffh.alkahestdrops.AlkahestDrops;
 import com.jaffh.alkahestdrops.server.drops.RealPlayers;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import javax.annotation.Nullable;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
@@ -15,11 +19,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
 
 /**
  * Records every player who damages a mob with per-player drops, in the mob's persistent data so the record survives

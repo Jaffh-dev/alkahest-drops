@@ -1,10 +1,9 @@
 package com.jaffh.alkahestdrops.server.drops;
 
+import java.util.List;
+import javax.annotation.Nullable;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-
-import javax.annotation.Nullable;
-import java.util.List;
 
 /**
  * Represents one entry of a removal file's {@code removals} list: items to remove, or the experience

@@ -10,6 +10,8 @@ import com.jaffh.alkahestdrops.server.drops.RemovalRule;
 import com.jaffh.alkahestdrops.server.mobdrops.MobDropManager;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -17,13 +19,10 @@ import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * {@code /alkdrops drops <entity | block> [page <n>]}: every drop and removal entry Alkahest Drops applies to one mob or
- * block, from files that name it by id, {@code mod:*}, {@code #tag} or {@code *}. Like {@code sources}, but looked up
- * by target instead of by item. An id naming both a mob and a block (such as {@code minecraft:tnt}) shows both.
+ * {@code /alkdrops drops <entity | block> [page <n>]}: every drop and removal entry Alkahest Drops applies to one mob
+ * or block, from files that name it by id, {@code mod:*}, {@code #tag} or {@code *}. Like {@code sources}, but looked
+ * up by target instead of by item. An id naming both a mob and a block (such as {@code minecraft:tnt}) shows both.
  */
 final class DropsCommand {
     private static final String TARGET = "target";
@@ -36,8 +35,7 @@ final class DropsCommand {
     /**
      * Prevents instantiation of this utility class.
      */
-    private DropsCommand() {
-    }
+    private DropsCommand() {}
 
     /**
      * Builds the {@code drops} node.
@@ -46,8 +44,12 @@ final class DropsCommand {
      */
     static LiteralArgumentBuilder<CommandSourceStack> build() {
         return Commands.literal("drops")
-                .then(PagedOutput.withPages(Commands.argument(TARGET, ResourceLocationArgument.id()).suggests(TARGETS_WITH_RULES),
-                        (context, page) -> run(context.getSource(), TargetLookup.of(ResourceLocationArgument.getId(context, TARGET)), page)));
+                .then(PagedOutput.withPages(
+                        Commands.argument(TARGET, ResourceLocationArgument.id()).suggests(TARGETS_WITH_RULES),
+                        (context, page) -> run(
+                                context.getSource(),
+                                TargetLookup.of(ResourceLocationArgument.getId(context, TARGET)),
+                                page)));
     }
 
     /**
@@ -74,7 +76,8 @@ final class DropsCommand {
 
         List<Component> lines = new ArrayList<>(addLines);
         lines.addAll(removeLines);
-        Component title = CommandText.lang("drops.header", name).withStyle(ChatFormatting.BLUE)
+        Component title = CommandText.lang("drops.header", name)
+                .withStyle(ChatFormatting.BLUE)
                 .append(CommandText.text(": ", ChatFormatting.YELLOW))
                 .append(RuleText.counts(addLines.size(), removeLines.size()));
         PagedOutput.send(source, TITLE, List.of(title), lines, page, command);
@@ -108,8 +111,8 @@ final class DropsCommand {
      * @param removeLines Receives the removal lines. Never null.
      * @param <T>         Registry entry type of the module.
      */
-    private static <T> void collect(DropManager<T> manager, T value,
-                                    List<Component> addLines, List<Component> removeLines) {
+    private static <T> void collect(
+            DropManager<T> manager, T value, List<Component> addLines, List<Component> removeLines) {
         for (ParsedDropFile file : manager.report().files()) {
             if (!manager.doesFileApplyTo(file.fileId(), value)) continue;
             if (file instanceof ParsedDropFile.Drops drops) {
@@ -131,14 +134,13 @@ final class DropsCommand {
         DropFile file = drops.file();
         for (DropEntry entry : file.entries()) {
             boolean isConditional = file.hasGlobalConditions() || entry.hasConditions();
-            Component what = entry.isExperience()
-                    ? CommandText.experienceName()
-                    : CommandText.itemName(entry.item());
+            Component what = entry.isExperience() ? CommandText.experienceName() : CommandText.itemName(entry.item());
             lines.add(RuleText.fileLine("+ ", ChatFormatting.GREEN, drops, manager)
                     .append(CommandText.text(": ", ChatFormatting.WHITE))
                     .append(what)
                     .append(CommandText.text(" ", ChatFormatting.WHITE))
-                    .append(RuleText.describeDrop(entry, manager.format(), isConditional).withStyle(ChatFormatting.WHITE)));
+                    .append(RuleText.describeDrop(entry, manager.format(), isConditional)
+                            .withStyle(ChatFormatting.WHITE)));
         }
     }
 
@@ -149,15 +151,21 @@ final class DropsCommand {
      * @param manager  Module of the file. Never null.
      * @param lines    Receives the lines. Never null.
      */
-    private static void collectRemovals(ParsedDropFile.Removals removals, DropManager<?> manager, List<Component> lines) {
+    private static void collectRemovals(
+            ParsedDropFile.Removals removals, DropManager<?> manager, List<Component> lines) {
         RemovalRule rule = removals.rule();
         for (RemovalEntry entry : rule.entries()) {
             boolean isConditional = rule.hasGlobalConditions() || entry.hasConditions();
             lines.add(RuleText.fileLine("- ", ChatFormatting.RED, removals, manager)
                     .append(CommandText.text(": ", ChatFormatting.WHITE))
-                    .append(CommandText.lang("rule.removes", RuleText.removedThing(entry)).withStyle(ChatFormatting.WHITE))
+                    .append(CommandText.lang("rule.removes", RuleText.removedThing(entry))
+                            .withStyle(ChatFormatting.WHITE))
                     .append(RuleText.removalTrigger(rule.trigger()))
-                    .append(isConditional ? CommandText.text(", ", ChatFormatting.WHITE).append(RuleText.conditional()) : CommandText.text("")));
+                    .append(
+                            isConditional
+                                    ? CommandText.text(", ", ChatFormatting.WHITE)
+                                            .append(RuleText.conditional())
+                                    : CommandText.text("")));
         }
     }
 }

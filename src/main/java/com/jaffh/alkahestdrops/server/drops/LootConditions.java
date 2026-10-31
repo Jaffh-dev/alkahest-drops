@@ -1,10 +1,9 @@
 package com.jaffh.alkahestdrops.server.drops;
 
+import java.util.List;
+import javax.annotation.Nullable;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-
-import javax.annotation.Nullable;
-import java.util.List;
 
 /**
  * Tests lists of vanilla loot conditions for drop and removal rules of both modules.
@@ -14,8 +13,7 @@ public final class LootConditions {
     /**
      * Prevents instantiation of this utility class.
      */
-    private LootConditions() {
-    }
+    private LootConditions() {}
 
     /**
      * Tests every condition against a loot context.

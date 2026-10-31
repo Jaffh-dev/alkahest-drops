@@ -10,15 +10,14 @@ import com.jaffh.alkahestdrops.server.drops.json.BonusCountJson;
 import com.jaffh.alkahestdrops.server.drops.json.BonusRollJson;
 import com.jaffh.alkahestdrops.server.drops.json.EnchantBonusEntryJson;
 import com.jaffh.alkahestdrops.server.drops.json.EnchantBonusJson;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraftforge.registries.ForgeRegistries;
-
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import javax.annotation.Nullable;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraftforge.registries.ForgeRegistries;
 
 /**
  * Validates the {@code enchant_bonus} list of a drop and resolves it into {@link EnchantBonuses}: each entry names an
@@ -75,7 +74,8 @@ public final class EnchantBonusParser {
             if (!seen.add(id)) throw enchantCtx.error("duplicate_enchantment", id);
             ParseContext bonusCtx = entryCtx.at("on_enchant");
             EnchantBonus bonus = parse(bonusCtx.require(json.onEnchant), bonusCtx);
-            if (!readsRolls && json.onEnchant.bonusRoll != null) bonusCtx.at("bonus_roll").warn("bonus_roll_unused", typeId);
+            if (!readsRolls && json.onEnchant.bonusRoll != null)
+                bonusCtx.at("bonus_roll").warn("bonus_roll_unused", typeId);
             Enchantment enchantment = ForgeRegistries.ENCHANTMENTS.getValue(id);
             if (enchantment == null || !ForgeRegistries.ENCHANTMENTS.containsKey(id)) {
                 ctx.log().report(enchantCtx.unknownId("unknown_enchantment", id).toIssue("entry"));
@@ -102,8 +102,7 @@ public final class EnchantBonusParser {
         return new EnchantBonus(
                 parseChanceBonus(json.bonusChance, ctx.at("bonus_chance")),
                 parseRollBonus(json.bonusRoll, ctx.at("bonus_roll")),
-                parseCountBonus(json.bonusCount, ctx.at("bonus_count"))
-        );
+                parseCountBonus(json.bonusCount, ctx.at("bonus_count")));
     }
 
     /**
@@ -114,7 +113,8 @@ public final class EnchantBonusParser {
      * @return {@link EnchantBonus.ChanceBonus#NONE} when missing, otherwise the resolved bonus.
      * @throws DropDataException If {@code bonus_chance_per_level} is missing or not above 0.
      */
-    private EnchantBonus.ChanceBonus parseChanceBonus(@Nullable BonusChanceJson json, ParseContext ctx) throws DropDataException {
+    private EnchantBonus.ChanceBonus parseChanceBonus(@Nullable BonusChanceJson json, ParseContext ctx)
+            throws DropDataException {
         if (json == null) return EnchantBonus.ChanceBonus.NONE;
         ctx.at(DROP_CHANCE.perLevelKey()).require(json.bonusChancePerLevel);
         ChanceBonusValue value = parseChancePair(json.bonusChancePerLevel, json.maxBonusChance, DROP_CHANCE, ctx);
@@ -129,19 +129,24 @@ public final class EnchantBonusParser {
      * @return {@link EnchantBonus.RollBonus#NONE} when missing, otherwise the resolved bonus.
      * @throws DropDataException If no per-level key is set or a value is invalid.
      */
-    private EnchantBonus.RollBonus parseRollBonus(@Nullable BonusRollJson json, ParseContext ctx) throws DropDataException {
+    private EnchantBonus.RollBonus parseRollBonus(@Nullable BonusRollJson json, ParseContext ctx)
+            throws DropDataException {
         if (json == null) return EnchantBonus.RollBonus.NONE;
-        if (json.bonusRollsPerLevel == null && json.bonusRollChancePerLevel == null && json.bonusIncrementPerLevel == null) {
-            throw ctx.error("needs_one_of", "bonus_rolls_per_level, bonus_roll_chance_per_level, bonus_increment_per_level");
+        if (json.bonusRollsPerLevel == null
+                && json.bonusRollChancePerLevel == null
+                && json.bonusIncrementPerLevel == null) {
+            throw ctx.error(
+                    "needs_one_of", "bonus_rolls_per_level, bonus_roll_chance_per_level, bonus_increment_per_level");
         }
         IntBonusValue rollsValue = parseIntPair(json.bonusRollsPerLevel, json.maxBonusRolls, rolls, ctx);
-        ChanceBonusValue chanceValue = parseChancePair(json.bonusRollChancePerLevel, json.maxBonusRollChance, ROLL_CHANCE, ctx);
-        IntBonusValue incrementValue = parseIntPair(json.bonusIncrementPerLevel, json.maxBonusIncrement, increment, ctx);
+        ChanceBonusValue chanceValue =
+                parseChancePair(json.bonusRollChancePerLevel, json.maxBonusRollChance, ROLL_CHANCE, ctx);
+        IntBonusValue incrementValue =
+                parseIntPair(json.bonusIncrementPerLevel, json.maxBonusIncrement, increment, ctx);
         return new EnchantBonus.RollBonus(
                 rollsValue.perLevel(), chanceValue.perLevel(),
                 rollsValue.max(), chanceValue.max(),
-                incrementValue.perLevel(), incrementValue.max()
-        );
+                incrementValue.perLevel(), incrementValue.max());
     }
 
     /**
@@ -152,7 +157,8 @@ public final class EnchantBonusParser {
      * @return {@link EnchantBonus.CountBonus#NONE} when missing, otherwise the resolved bonus.
      * @throws DropDataException If no per-level key is set or a value is invalid.
      */
-    private EnchantBonus.CountBonus parseCountBonus(@Nullable BonusCountJson json, ParseContext ctx) throws DropDataException {
+    private EnchantBonus.CountBonus parseCountBonus(@Nullable BonusCountJson json, ParseContext ctx)
+            throws DropDataException {
         if (json == null) return EnchantBonus.CountBonus.NONE;
         if (json.bonusMinPerLevel == null && json.bonusMaxPerLevel == null) {
             throw ctx.error("needs_one_of", "bonus_min_per_level, bonus_max_per_level");
@@ -173,7 +179,9 @@ public final class EnchantBonusParser {
      * @return {@link IntBonusValue#NONE} when both are missing, otherwise the resolved pair.
      * @throws DropDataException If the cap is set without its per-level key, or the per-level value is too low.
      */
-    private static IntBonusValue parseIntPair(@Nullable Integer perLevel, @Nullable Integer max, IntBonusSpec spec, ParseContext ctx) throws DropDataException {
+    private static IntBonusValue parseIntPair(
+            @Nullable Integer perLevel, @Nullable Integer max, IntBonusSpec spec, ParseContext ctx)
+            throws DropDataException {
         ParseContext perLevelCtx = ctx.at(spec.perLevelKey());
         ParseContext maxCtx = ctx.at(spec.maxKey());
         if (perLevel == null) {
@@ -199,7 +207,9 @@ public final class EnchantBonusParser {
      * @return {@link ChanceBonusValue#NONE} when both are missing, otherwise the resolved pair.
      * @throws DropDataException If the cap is set without its per-level key, or the per-level chance is not above 0.
      */
-    private static ChanceBonusValue parseChancePair(@Nullable Double perLevel, @Nullable Double max, ChanceBonusSpec spec, ParseContext ctx) throws DropDataException {
+    private static ChanceBonusValue parseChancePair(
+            @Nullable Double perLevel, @Nullable Double max, ChanceBonusSpec spec, ParseContext ctx)
+            throws DropDataException {
         ParseContext perLevelCtx = ctx.at(spec.perLevelKey());
         ParseContext maxCtx = ctx.at(spec.maxKey());
         if (perLevel == null) {
@@ -223,8 +233,7 @@ public final class EnchantBonusParser {
      * @param lowestPerLevel Lowest allowed per-level value.
      * @param limit          Config limit of the per-level value and the cap.
      */
-    private record IntBonusSpec(String perLevelKey, String maxKey, int lowestPerLevel, int limit) {
-    }
+    private record IntBonusSpec(String perLevelKey, String maxKey, int lowestPerLevel, int limit) {}
 
     /**
      * Describes a chance bonus pair, whose range is always (0, 1].
@@ -232,8 +241,7 @@ public final class EnchantBonusParser {
      * @param perLevelKey JSON key of the per-level chance.
      * @param maxKey      JSON key of the cap.
      */
-    private record ChanceBonusSpec(String perLevelKey, String maxKey) {
-    }
+    private record ChanceBonusSpec(String perLevelKey, String maxKey) {}
 
     /**
      * Represents a resolved whole-number bonus pair.

@@ -1,12 +1,11 @@
 package com.jaffh.alkahestdrops.api;
 
+import javax.annotation.Nullable;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.registries.ForgeRegistries;
-
-import javax.annotation.Nullable;
 
 /**
  * Represents one entry of an Alkahest Drops removal file that applies to a mob or block. It removes matching drops of

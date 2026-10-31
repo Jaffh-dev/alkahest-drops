@@ -3,22 +3,21 @@ package com.jaffh.alkahestdrops.server.drops;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.jaffh.alkahestdrops.common.drops.DropEntry;
 import com.jaffh.alkahestdrops.api.DropTrigger;
+import com.jaffh.alkahestdrops.common.drops.DropEntry;
 import com.jaffh.alkahestdrops.server.drops.json.DropFileJson;
 import com.jaffh.alkahestdrops.server.drops.json.RemovalEntryJson;
 import com.mojang.logging.LogUtils;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-import org.slf4j.Logger;
-
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Predicate;
 import java.util.Set;
+import java.util.function.Predicate;
+import javax.annotation.Nullable;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+import org.slf4j.Logger;
 
 /**
  * Reads one Alkahest Drops file (mob or block, per {@link DropFileFormat}) into a {@link ParsedDropFile}, reporting
@@ -40,7 +39,8 @@ public final class DropFileParser {
      * @param log    Problem collector of the reload. Never null.
      * @param isKnownFunction Tells whether a datapack function of the same reload exists. Never null.
      */
-    public DropFileParser(DropFileFormat format, DropLimits limits, DropIssueLog log, Predicate<ResourceLocation> isKnownFunction) {
+    public DropFileParser(
+            DropFileFormat format, DropLimits limits, DropIssueLog log, Predicate<ResourceLocation> isKnownFunction) {
         this.format = format;
         this.log = log;
         this.entryParser = new DropEntryParser(format, limits, isKnownFunction);
@@ -90,7 +90,8 @@ public final class DropFileParser {
 
         DropFileFormat other = format.other();
         if (format.targetOf(file) == null && other.targetOf(file) != null) {
-            throw ctx.at(other.targetKey()).error("other_target_key", other.filesName(), format.filesName(), format.targetKey());
+            throw ctx.at(other.targetKey())
+                    .error("other_target_key", other.filesName(), format.filesName(), format.targetKey());
         }
         String target = ctx.at(format.targetKey()).require(format.targetOf(file));
         List<LootItemCondition> globalConditions = DropValues.parseConditions(file.conditions, ctx.at("conditions"));
@@ -109,8 +110,9 @@ public final class DropFileParser {
      * @return The drop file.
      * @throws DropDataException If no drop is valid.
      */
-    private ParsedDropFile parseDropFile(DropFileJson file, String target, List<LootItemCondition> globalConditions,
-                                         ParseContext ctx) throws DropDataException {
+    private ParsedDropFile parseDropFile(
+            DropFileJson file, String target, List<LootItemCondition> globalConditions, ParseContext ctx)
+            throws DropDataException {
         if (file.on != null) ctx.at("on").warn("trigger_on_drop_file");
         List<DropEntry> entries = new ArrayList<>(file.drops.size());
         Set<String> progressKeys = new HashSet<>();
@@ -143,8 +145,9 @@ public final class DropFileParser {
      * @return The removal file.
      * @throws DropDataException If no entry is valid.
      */
-    private ParsedDropFile parseRemovalFile(DropFileJson file, String target, List<LootItemCondition> globalConditions,
-                                            ParseContext ctx) throws DropDataException {
+    private ParsedDropFile parseRemovalFile(
+            DropFileJson file, String target, List<LootItemCondition> globalConditions, ParseContext ctx)
+            throws DropDataException {
         JsonArray removals = file.removals;
         DropTrigger trigger = parseFileTrigger(file.on, ctx);
         List<RemovalEntry> entries = new ArrayList<>(removals.size());
@@ -219,6 +222,7 @@ public final class DropFileParser {
 
         ParseContext itemCtx = ctx.at("item");
         ItemTarget target = DropValues.parseItemTarget(itemCtx.require(entry.item), itemCtx);
-        return new RemovalEntry(target, DropValues.parseConditions(conditionsCtx.require(entry.conditions), conditionsCtx));
+        return new RemovalEntry(
+                target, DropValues.parseConditions(conditionsCtx.require(entry.conditions), conditionsCtx));
     }
 }

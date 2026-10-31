@@ -26,7 +26,10 @@ public class DropDataException extends Exception {
      * @return A new issue whose message ends with the consequence, such as {@code ", drop skipped"}.
      */
     public DropIssue toIssue(String skipped) {
-        return new DropIssue(issue.fileId(), issue.field(),
-                issue.message().copy().append(", ").append(DropIssue.text("skipped." + skipped)), issue.severity());
+        return new DropIssue(
+                issue.fileId(),
+                issue.field(),
+                issue.message().copy().append(", ").append(DropIssue.text("skipped." + skipped)),
+                issue.severity());
     }
 }

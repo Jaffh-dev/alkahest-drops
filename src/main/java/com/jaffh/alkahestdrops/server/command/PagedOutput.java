@@ -5,27 +5,21 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * Sends command results in a frame, one page at a time, so chat is not flooded:
- * <pre>
- * ===========[TITLE]===========
- * intro lines (on every page)
- * body lines of the page
- * ====[&lt;]==[PAGE X/Y]==[&gt;]====
- * </pre>
- * Every line is first translated into the language of whoever runs the command, so the layout measures the text
- * the player will read. A page holds at most {@link #MAX_LINES} chat lines, frame included, counting the lines a
- * long message wraps into; an entry that does not fit moves to the next page. The bars are padded with {@code =} to fill a chat line, with
- * their label centered. The arrows run the command for the other pages.
+ * Sends command results in a frame, one page at a time, so chat is not flooded: <pre> ===========[TITLE]===========
+ * intro lines (on every page) body lines of the page ====[&lt;]==[PAGE X/Y]==[&gt;]==== </pre> Every line is first
+ * translated into the language of whoever runs the command, so the layout measures the text the player will read. A
+ * page holds at most {@link #MAX_LINES} chat lines, frame included, counting the lines a long message wraps into; an
+ * entry that does not fit moves to the next page. The bars are padded with {@code =} to fill a chat line, with their
+ * label centered. The arrows run the command for the other pages.
  */
 final class PagedOutput {
     /** Chat lines of one page, frame included. */
@@ -38,14 +32,13 @@ final class PagedOutput {
     /**
      * Prevents instantiation of this utility class.
      */
-    private PagedOutput() {
-    }
+    private PagedOutput() {}
 
     /**
      * Runs a command for one page of its output.
      */
     @FunctionalInterface
-    interface PageAction {
+    interface IPageAction {
         /**
          * Sends one page.
          *
@@ -65,11 +58,12 @@ final class PagedOutput {
      * @param <T>    Builder type.
      * @return The node.
      */
-    static <T extends ArgumentBuilder<CommandSourceStack, T>> T withPages(T node, PageAction action) {
+    static <T extends ArgumentBuilder<CommandSourceStack, T>> T withPages(T node, IPageAction action) {
         return node.executes(context -> action.run(context, 1))
                 .then(Commands.literal("page")
                         .then(Commands.argument("page", IntegerArgumentType.integer(1))
-                                .executes(context -> action.run(context, IntegerArgumentType.getInteger(context, "page")))));
+                                .executes(context ->
+                                        action.run(context, IntegerArgumentType.getInteger(context, "page")))));
     }
 
     /**
@@ -84,11 +78,18 @@ final class PagedOutput {
      * @param command Command that sends this output, without the page suffix, such as {@code /alkdrops validate}.
      *                Never null.
      */
-    static void send(CommandSourceStack source, Component title, List<? extends Component> intro,
-                     List<? extends Component> lines, int page, String command) {
+    static void send(
+            CommandSourceStack source,
+            Component title,
+            List<? extends Component> intro,
+            List<? extends Component> lines,
+            int page,
+            String command) {
         Localizer lang = Localizer.forSource(source);
-        List<Component> shownIntro = intro.stream().<Component>map(lang::localize).toList();
-        List<Component> shownLines = lines.stream().<Component>map(lang::localize).toList();
+        List<Component> shownIntro =
+                intro.stream().<Component>map(lang::localize).toList();
+        List<Component> shownLines =
+                lines.stream().<Component>map(lang::localize).toList();
         List<Integer> pageStarts = splitIntoPages(shownLines, MAX_LINES - FRAME_LINES - countChatLines(shownIntro));
         int pageCount = pageStarts.size();
         int shownPage = Math.min(page, pageCount);
@@ -194,6 +195,7 @@ final class PagedOutput {
      */
     private static MutableComponent arrow(String label, int targetPage, int pageCount, String command, Localizer lang) {
         if (targetPage < 1 || targetPage > pageCount) return CommandText.text(label, ChatFormatting.DARK_GRAY);
-        return lang.localize(CommandText.runnable(label, CommandText.lang("page.show", targetPage), command + " page " + targetPage));
+        return lang.localize(CommandText.runnable(
+                label, CommandText.lang("page.show", targetPage), command + " page " + targetPage));
     }
 }

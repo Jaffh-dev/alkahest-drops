@@ -1,13 +1,20 @@
 package com.jaffh.alkahestdrops.server.mobdrops;
 
-import com.jaffh.alkahestdrops.common.drops.TriggerRules;
 import com.jaffh.alkahestdrops.api.DropOrigin;
-import com.jaffh.alkahestdrops.common.drops.DropEntry;
 import com.jaffh.alkahestdrops.api.DropTrigger;
+import com.jaffh.alkahestdrops.common.drops.DropEntry;
+import com.jaffh.alkahestdrops.common.drops.TriggerRules;
 import com.jaffh.alkahestdrops.server.drops.DropTable;
 import com.jaffh.alkahestdrops.server.drops.EnchantLevels;
 import com.jaffh.alkahestdrops.server.drops.RollContext;
 import com.jaffh.alkahestdrops.server.drops.TriggeredDrops;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
+import java.util.function.Predicate;
+import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
@@ -22,27 +29,23 @@ import net.minecraft.world.item.ShearsItem;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraftforge.common.IForgeShearable;
 import net.minecraftforge.event.entity.EntityStruckByLightningEvent;
-import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
+import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.WeakHashMap;
-import java.util.function.Predicate;
-
 /**
- * Drops the mob drops of the triggers other than death: shear, hit, lightning and periodic. Each handler reads only
- * its trigger's table, so mobs without such drops cost one table lookup. Drops spawn at the mob, with the Looting of
- * the acting player's main hand on hit (the only trigger besides death with a weapon); removal files of the same trigger remove drops of other namespaces.
+ * Drops the mob drops of the triggers other than death: shear, hit, lightning and periodic. Each handler reads only its
+ * trigger's table, so mobs without such drops cost one table lookup. Drops spawn at the mob, with the Looting of the
+ * acting player's main hand on hit (the only trigger besides death with a weapon); removal files of the same trigger
+ * remove drops of other namespaces.
  */
 public class TriggerDropInjector {
-    /** Items and orbs a lightning drop spawned, with their bolt, so the same bolt does not burn them; server thread only. */
+    /**
+     * Items and orbs a lightning drop spawned, with their bolt, so the same bolt does not burn them; server thread
+     * only.
+     */
     private final Map<Entity, LightningBolt> spawnedByBolt = new WeakHashMap<>();
 
     /**
@@ -63,7 +66,11 @@ public class TriggerDropInjector {
         if (!(stack.getItem() instanceof ShearsItem)) return;
         if (!shearable.isShearable(stack, level, BlockPos.containing(mob.position()))) return;
         Player player = event.getEntity();
-        drop(new TriggerCause(DropTrigger.SHEAR, mob, level.damageSources().playerAttack(player), player, stack, 0.0F), table, entry -> true);
+        drop(
+                new TriggerCause(
+                        DropTrigger.SHEAR, mob, level.damageSources().playerAttack(player), player, stack, 0.0F),
+                table,
+                entry -> true);
     }
 
     /**
@@ -83,8 +90,17 @@ public class TriggerDropInjector {
         if (table.dropFiles().isEmpty()) return;
 
         Set<DropEntry> due = DropTimers.collectDue(mob, table, mob.level().getGameTime());
-        if (!due.isEmpty()) drop(new TriggerCause(DropTrigger.HIT, mob, event.getSource(), player, player.getMainHandItem(),
-                damageTakenOf(mob, event.getAmount())), table, due::contains);
+        if (!due.isEmpty())
+            drop(
+                    new TriggerCause(
+                            DropTrigger.HIT,
+                            mob,
+                            event.getSource(),
+                            player,
+                            player.getMainHandItem(),
+                            damageTakenOf(mob, event.getAmount())),
+                    table,
+                    due::contains);
     }
 
     /**
@@ -118,7 +134,11 @@ public class TriggerDropInjector {
         if (table.dropFiles().isEmpty()) return;
         if (bolt.getHitEntities().anyMatch(hit -> hit == mob)) return;
 
-        for (Entity spawned : drop(new TriggerCause(DropTrigger.LIGHTNING, mob, level.damageSources().lightningBolt()), table, entry -> true)) {
+        for (Entity spawned : drop(
+                new TriggerCause(
+                        DropTrigger.LIGHTNING, mob, level.damageSources().lightningBolt()),
+                table,
+                entry -> true)) {
             spawnedByBolt.put(spawned, bolt);
         }
     }
@@ -137,7 +157,12 @@ public class TriggerDropInjector {
         if (table.dropFiles().isEmpty() || !mob.isAlive()) return;
 
         Set<DropEntry> due = DropTimers.collectDue(mob, table, level.getGameTime());
-        if (!due.isEmpty()) drop(new TriggerCause(DropTrigger.PERIODIC, mob, level.damageSources().generic()), table, due::contains);
+        if (!due.isEmpty())
+            drop(
+                    new TriggerCause(
+                            DropTrigger.PERIODIC, mob, level.damageSources().generic()),
+                    table,
+                    due::contains);
     }
 
     /**
@@ -151,10 +176,14 @@ public class TriggerDropInjector {
     private static List<Entity> drop(TriggerCause cause, DropTable table, Predicate<DropEntry> isDue) {
         LivingEntity mob = cause.mob();
         ServerLevel level = (ServerLevel) mob.level();
-        LootContext lootContext = table.needsLootContext() ? MobDropInjector.createLootContext(level, mob, cause.source()) : null;
+        LootContext lootContext =
+                table.needsLootContext() ? MobDropInjector.createLootContext(level, mob, cause.source()) : null;
         Player player = cause.player();
-        EnchantLevels levels = TriggerRules.of(cause.trigger()).hasEnchantBonus() ? EnchantLevels.ofItem(cause.heldItem()) : EnchantLevels.NONE;
-        RollContext rollContext = new RollContext(levels, mob.getMaxHealth(), cause.damageTaken(), level.getRandom(), player)
+        EnchantLevels levels = TriggerRules.of(cause.trigger()).hasEnchantBonus()
+                ? EnchantLevels.ofItem(cause.heldItem())
+                : EnchantLevels.NONE;
+        RollContext rollContext = new RollContext(
+                        levels, mob.getMaxHealth(), cause.damageTaken(), level.getRandom(), player)
                 .withOrigin(new DropOrigin.Mob(mob));
 
         TriggeredDrops drops = table.rollTriggered(lootContext, rollContext, isDue);
@@ -186,8 +215,13 @@ public class TriggerDropInjector {
      *                    Never null.
      * @param damageTaken Health the mob lost from a hit; 0 for the other triggers.
      */
-    private record TriggerCause(DropTrigger trigger, LivingEntity mob, DamageSource source, @Nullable Player player,
-                                ItemStack heldItem, float damageTaken) {
+    private record TriggerCause(
+            DropTrigger trigger,
+            LivingEntity mob,
+            DamageSource source,
+            @Nullable Player player,
+            ItemStack heldItem,
+            float damageTaken) {
         /**
          * Creates the cause of a trigger without player.
          *

@@ -16,8 +16,7 @@ public final class AlkahestDropsCommonEvents {
     /**
      * Prevents instantiation of this utility class.
      */
-    private AlkahestDropsCommonEvents() {
-    }
+    private AlkahestDropsCommonEvents() {}
 
     /**
      * Registers the config, the registry entries and the network channel of Alkahest Drops.

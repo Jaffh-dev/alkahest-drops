@@ -62,8 +62,7 @@ public record EnchantBonus(ChanceBonus chance, RollBonus roll, CountBonus count)
             int maxBonusRolls,
             double maxBonusRollChance,
             int bonusIncrementPerLevel,
-            int maxBonusIncrement
-    ) {
+            int maxBonusIncrement) {
         /** No roll bonus. */
         public static final RollBonus NONE = new RollBonus(0, 0.0, 0, 0.0, 0, 0);
 

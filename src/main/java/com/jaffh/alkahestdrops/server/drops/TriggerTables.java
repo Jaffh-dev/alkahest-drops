@@ -1,8 +1,7 @@
 package com.jaffh.alkahestdrops.server.drops;
 
-import com.jaffh.alkahestdrops.common.drops.DropEntry;
 import com.jaffh.alkahestdrops.api.DropTrigger;
-
+import com.jaffh.alkahestdrops.common.drops.DropEntry;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashSet;
@@ -40,7 +39,8 @@ public final class TriggerTables {
         EnumMap<DropTrigger, DropTable> tables = new EnumMap<>(DropTrigger.class);
         for (DropTrigger trigger : DropTrigger.values()) {
             List<DropFile> files = filesOf(dropFiles, trigger);
-            List<RemovalRule> rules = removals.stream().filter(rule -> rule.trigger() == trigger).toList();
+            List<RemovalRule> rules =
+                    removals.stream().filter(rule -> rule.trigger() == trigger).toList();
             if (!files.isEmpty() || !rules.isEmpty()) tables.put(trigger, DropTable.build(files, rules));
         }
         return new TriggerTables(tables);

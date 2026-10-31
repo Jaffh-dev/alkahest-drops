@@ -4,12 +4,11 @@ import com.jaffh.alkahestdrops.server.blockdrops.BlockDropManager;
 import com.jaffh.alkahestdrops.server.drops.DropManager;
 import com.jaffh.alkahestdrops.server.mobdrops.MobDropManager;
 import com.mojang.logging.LogUtils;
+import java.util.List;
+import java.util.function.Predicate;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.OnDatapackSyncEvent;
 import org.slf4j.Logger;
-
-import java.util.List;
-import java.util.function.Predicate;
 
 /**
  * Removes from players' drop progress the entries of drops that no longer exist, so deleted drops leave nothing
@@ -23,8 +22,7 @@ public final class ProgressPruner {
     /**
      * Prevents instantiation of this utility class.
      */
-    private ProgressPruner() {
-    }
+    private ProgressPruner() {}
 
     /**
      * Prunes the joining player on login, or every online player after a reload.
@@ -34,13 +32,17 @@ public final class ProgressPruner {
     public static void onDatapackSync(OnDatapackSyncEvent event) {
         if (!canPrune()) return;
         ServerPlayer joining = event.getPlayer();
-        List<ServerPlayer> players = joining != null ? List.of(joining) : event.getPlayerList().getPlayers();
+        List<ServerPlayer> players =
+                joining != null ? List.of(joining) : event.getPlayerList().getPlayers();
         for (ServerPlayer player : players) {
             DropProgress progress = DropProgress.of(player);
             if (progress == null) continue;
             int pruned = prune(progress);
             if (pruned > 0) {
-                LOGGER.info("[alkahestdrops] Removed {} progress entries of deleted drops from {}.", pruned, player.getGameProfile().getName());
+                LOGGER.info(
+                        "[alkahestdrops] Removed {} progress entries of deleted drops from {}.",
+                        pruned,
+                        player.getGameProfile().getName());
             }
         }
     }

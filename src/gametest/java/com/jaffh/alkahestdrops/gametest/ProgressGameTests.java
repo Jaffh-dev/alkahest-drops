@@ -9,6 +9,10 @@ import com.jaffh.alkahestdrops.server.mobdrops.HitTracker;
 import com.jaffh.alkahestdrops.server.mobdrops.MobDropManager;
 import com.jaffh.alkahestdrops.server.progress.DropProgress;
 import com.jaffh.alkahestdrops.server.progress.ProgressPruner;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -26,16 +30,11 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 /**
- * GameTests for bad-luck protection ({@code pity}), one-time drops ({@code first_kill}) and per-player drops
- * ({@code per_player}), and {@code /alkdrops reset}. Rules live in {@code dstest_a}: a rabbit dragon's breath with
- * chance 0 and pity 5, a clay nautilus shell with pity 3, a fox totem on the first kill (with an {@code id}, so its key uses it), a melon totem on the first
- * break and a polar bear heart of the sea per player.
+ * GameTests for bad-luck protection ({@code pity}), one-time drops ({@code first_kill}) and per-player drops ({@code
+ * per_player}), and {@code /alkdrops reset}. Rules live in {@code dstest_a}: a rabbit dragon's breath with chance 0 and
+ * pity 5, a clay nautilus shell with pity 3, a fox totem on the first kill (with an {@code id}, so its key uses it), a
+ * melon totem on the first break and a polar bear heart of the sea per player.
  */
 @GameTestHolder(AlkahestDrops.ID)
 @PrefixGameTestTemplate(false)
@@ -193,8 +192,10 @@ public class ProgressGameTests {
     public static void resetEverythingAndFailures(GameTestHelper helper) {
         ServerPlayer player = DropTestKit.fakePlayer(helper);
         givenFullProgress(player);
-        DropTestKit.check(runCommandAs(helper, player, "alkdrops reset @s minecraft:not_a_thing") == 0, "unknown id accepted");
-        DropTestKit.check(runCommandAs(helper, player, "alkdrops reset") == 0, "reset without a player argument accepted");
+        DropTestKit.check(
+                runCommandAs(helper, player, "alkdrops reset @s minecraft:not_a_thing") == 0, "unknown id accepted");
+        DropTestKit.check(
+                runCommandAs(helper, player, "alkdrops reset") == 0, "reset without a player argument accepted");
         DropTestKit.check(runCommandAs(helper, player, "alkdrops reset @s") == 3, "expected 3 resets");
         helper.succeed();
     }
@@ -208,7 +209,8 @@ public class ProgressGameTests {
     public static void resetFirstKeepsPity(GameTestHelper helper) {
         ServerPlayer player = DropTestKit.fakePlayer(helper);
         DropProgress progress = givenFullProgress(player);
-        DropTestKit.check(runCommandAs(helper, player, "alkdrops reset @s first") == 2, "expected 2 one-time drop resets");
+        DropTestKit.check(
+                runCommandAs(helper, player, "alkdrops reset @s first") == 2, "expected 2 one-time drop resets");
         DropTestKit.check(progress.missesOf(RABBIT_PITY_KEY) == 1, "pity reset by 'first'");
         DropTestKit.check(progress.claimFirstDrop(FOX_FIRST_KILL_KEY), "fox first kill not reset");
         helper.succeed();
@@ -224,7 +226,8 @@ public class ProgressGameTests {
     public static void resetPlayerPityOfEntities(GameTestHelper helper) {
         ServerPlayer player = DropTestKit.fakePlayer(helper);
         DropProgress progress = givenFullProgress(player);
-        DropTestKit.check(runCommandAs(helper, player, "alkdrops reset @s pity entities") == 1, "expected 1 pity reset");
+        DropTestKit.check(
+                runCommandAs(helper, player, "alkdrops reset @s pity entities") == 1, "expected 1 pity reset");
         DropTestKit.check(progress.missesOf(RABBIT_PITY_KEY) == 0, "rabbit pity not reset");
         DropTestKit.check(!progress.claimFirstDrop(FOX_FIRST_KILL_KEY), "fox first kill reset by 'pity'");
         helper.succeed();
@@ -264,7 +267,8 @@ public class ProgressGameTests {
         DropTestKit.check(pruned == 3, "expected 3 pruned entries, got " + pruned);
         DropTestKit.check(progress.missesOf(RABBIT_PITY_KEY) == 1, "live pity counter pruned");
         DropTestKit.check(!progress.claimFirstDrop(MELON_FIRST_BREAK_KEY), "live first break pruned");
-        DropTestKit.check(!progress.claimFirstDrop("mob:dstest_c:tracking_issues@ghost"), "file with skipped drops pruned");
+        DropTestKit.check(
+                !progress.claimFirstDrop("mob:dstest_c:tracking_issues@ghost"), "file with skipped drops pruned");
         DropTestKit.check(progress.missesOf("mob:dstest_c:version_missing#0") == 1, "skipped file pruned");
         helper.succeed();
     }
@@ -292,7 +296,9 @@ public class ProgressGameTests {
      * @return The command result, 0 when it failed.
      */
     private static int runCommandAs(GameTestHelper helper, ServerPlayer player, String command) {
-        CommandSourceStack source = helper.getLevel().getServer().createCommandSourceStack()
+        CommandSourceStack source = helper.getLevel()
+                .getServer()
+                .createCommandSourceStack()
                 .withLevel(helper.getLevel())
                 .withSuppressedOutput();
         if (player != null) source = source.withEntity(player);
@@ -329,7 +335,8 @@ public class ProgressGameTests {
      */
     @GameTest(template = DropTestKit.ARENA)
     public static void killedByRealPlayerCondition(GameTestHelper helper) {
-        DropTestKit.killByPlayer(DropTestKit.spawnMob(helper, EntityType.DONKEY), DropTestKit.playerHolding(helper, ItemStack.EMPTY));
+        DropTestKit.killByPlayer(
+                DropTestKit.spawnMob(helper, EntityType.DONKEY), DropTestKit.playerHolding(helper, ItemStack.EMPTY));
         DropTestKit.killByPlayer(DropTestKit.spawnMob(helper, EntityType.DONKEY), DropTestKit.machinePlayer(helper));
         DropTestKit.killWithoutPlayer(DropTestKit.spawnMob(helper, EntityType.DONKEY));
         helper.runAfterDelay(1, () -> {
@@ -423,12 +430,17 @@ public class ProgressGameTests {
         Player first = DropTestKit.playerHolding(helper, ItemStack.EMPTY);
         Player second = DropTestKit.playerHolding(helper, ItemStack.EMPTY);
         DropTable table = MobDropManager.getTable(EntityType.POLAR_BEAR);
-        List<RolledDrop> drops = table.rollDrops(List.of(), null, rollOf(helper, null), List.of(rollOf(helper, first), rollOf(helper, second)))
-                .stream().filter(drop -> drop.stack().is(Items.HEART_OF_THE_SEA)).toList();
+        List<RolledDrop> drops = table
+                .rollDrops(
+                        List.of(), null, rollOf(helper, null), List.of(rollOf(helper, first), rollOf(helper, second)))
+                .stream()
+                .filter(drop -> drop.stack().is(Items.HEART_OF_THE_SEA))
+                .toList();
 
         Set<UUID> owners = drops.stream().map(RolledDrop::owner).collect(Collectors.toSet());
         DropTestKit.check(drops.size() == 2, "expected 2 hearts, got " + drops.size());
-        DropTestKit.check(owners.equals(Set.of(first.getUUID(), second.getUUID())), "hearts not locked to their attackers");
+        DropTestKit.check(
+                owners.equals(Set.of(first.getUUID(), second.getUUID())), "hearts not locked to their attackers");
         helper.succeed();
     }
 
@@ -440,11 +452,14 @@ public class ProgressGameTests {
      */
     @GameTest(template = DropTestKit.ARENA)
     public static void perPlayerSharedRollWithoutAttackers(GameTestHelper helper) {
-        DropTestKit.killByPlayer(DropTestKit.spawnMob(helper, EntityType.POLAR_BEAR), DropTestKit.playerHolding(helper, ItemStack.EMPTY));
+        DropTestKit.killByPlayer(
+                DropTestKit.spawnMob(helper, EntityType.POLAR_BEAR),
+                DropTestKit.playerHolding(helper, ItemStack.EMPTY));
         helper.runAfterDelay(1, () -> {
             DropTestKit.assertItemCount(helper, Items.HEART_OF_THE_SEA, 1);
             List<ItemEntity> hearts = DropTestKit.droppedItems(helper, Items.HEART_OF_THE_SEA);
-            DropTestKit.check(hearts.stream().allMatch(item -> item.getOwner() == null), "shared roll is locked to a player");
+            DropTestKit.check(
+                    hearts.stream().allMatch(item -> item.getOwner() == null), "shared roll is locked to a player");
             helper.succeed();
         });
     }
@@ -464,7 +479,8 @@ public class ProgressGameTests {
         hitOnce(bear, first);
 
         List<UUID> attackers = HitTracker.attackerIdsOf(bear);
-        DropTestKit.check(attackers.equals(List.of(first.getUUID(), second.getUUID())), "unexpected attackers " + attackers);
+        DropTestKit.check(
+                attackers.equals(List.of(first.getUUID(), second.getUUID())), "unexpected attackers " + attackers);
         helper.succeed();
     }
 

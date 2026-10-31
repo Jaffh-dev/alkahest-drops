@@ -12,6 +12,12 @@ import com.jaffh.alkahestdrops.server.drops.SimulationFlag;
 import com.jaffh.alkahestdrops.server.drops.SimulationSetup;
 import com.jaffh.alkahestdrops.server.mobdrops.MobDropManager;
 import com.jaffh.alkahestdrops.server.mobdrops.MobDropSimulator;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.gametest.framework.GameTest;
@@ -21,21 +27,14 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 import net.minecraftforge.registries.ForgeRegistries;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Stream;
 
 /**
  * GameTests for the {@code /alkdrops} commands: the mob and block simulators, the simulation filter, the
@@ -70,7 +69,8 @@ public class SimulationGameTests {
      */
     @GameTest(template = DropTestKit.ARENA)
     public static void simulateMobForcesLooting(GameTestHelper helper) {
-        DropSimulation simulation = simulateMob(helper, EntityType.WITCH, null, Map.of(Enchantments.MOB_LOOTING, 3), SimulationFilter.ALL);
+        DropSimulation simulation =
+                simulateMob(helper, EntityType.WITCH, null, Map.of(Enchantments.MOB_LOOTING, 3), SimulationFilter.ALL);
         assertTotal(simulation, Items.AMETHYST_SHARD, 4L * RUNS);
         helper.succeed();
     }
@@ -86,9 +86,12 @@ public class SimulationGameTests {
         Player player = DropTestKit.playerHolding(helper, ItemStack.EMPTY);
         DropSimulation simulation = simulateMob(helper, EntityType.RABBIT, player, Map.of(), SimulationFilter.ALL);
         DropSimulation.ItemResult breath = singleResult(simulation, Items.DRAGON_BREATH);
-        DropTestKit.check(breath.total() == RUNS / 5, "expected " + RUNS / 5 + " dragon's breath, got " + breath.total());
-        DropTestKit.check(breath.tracking() != null && breath.tracking().pity() == 5, "dragon's breath line has no pity 5");
-        DropTestKit.check(singleResult(simulation, Items.NAUTILUS_SHELL).tracking() == null, "untracked drop has settings");
+        DropTestKit.check(
+                breath.total() == RUNS / 5, "expected " + RUNS / 5 + " dragon's breath, got " + breath.total());
+        DropTestKit.check(
+                breath.tracking() != null && breath.tracking().pity() == 5, "dragon's breath line has no pity 5");
+        DropTestKit.check(
+                singleResult(simulation, Items.NAUTILUS_SHELL).tracking() == null, "untracked drop has settings");
         helper.succeed();
     }
 
@@ -103,13 +106,22 @@ public class SimulationGameTests {
         Player player = DropTestKit.playerHolding(helper, ItemStack.EMPTY);
         DropSimulation simulation = simulateMob(helper, EntityType.LLAMA, player, Map.of(), SimulationFilter.ALL);
         List<DropSimulation.ExperienceResult> tracked = simulation.experienceResults().stream()
-                .filter(result -> result.tracking() != null).toList();
+                .filter(result -> result.tracking() != null)
+                .toList();
         DropTestKit.check(tracked.size() == 1, "expected 1 tracked experience line, got " + tracked.size());
-        DropTestKit.check(tracked.get(0).total() == 10L * RUNS / 5, "expected " + 10 * RUNS / 5 + " pity experience, got " + tracked.get(0).total());
-        DropTestKit.check(tracked.get(0).runsWithDrop() == RUNS / 5, "expected pity experience on " + RUNS / 5 + " kills");
-        long plain = simulation.experienceResults().stream().filter(result -> result.tracking() == null)
-                .mapToLong(DropSimulation.ExperienceResult::total).sum();
-        DropTestKit.check(plain + tracked.get(0).total() == simulation.experience(), "experience lines do not add up to the total");
+        DropTestKit.check(
+                tracked.get(0).total() == 10L * RUNS / 5,
+                "expected " + 10 * RUNS / 5 + " pity experience, got "
+                        + tracked.get(0).total());
+        DropTestKit.check(
+                tracked.get(0).runsWithDrop() == RUNS / 5, "expected pity experience on " + RUNS / 5 + " kills");
+        long plain = simulation.experienceResults().stream()
+                .filter(result -> result.tracking() == null)
+                .mapToLong(DropSimulation.ExperienceResult::total)
+                .sum();
+        DropTestKit.check(
+                plain + tracked.get(0).total() == simulation.experience(),
+                "experience lines do not add up to the total");
         DropTestKit.check(plain > 0, "expected the vanilla experience on its own line");
         helper.succeed();
     }
@@ -123,9 +135,14 @@ public class SimulationGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void simulatedPlayerIsReal(GameTestHelper helper) {
         Player player = DropTestKit.playerHolding(helper, ItemStack.EMPTY);
-        assertTotal(simulateMob(helper, EntityType.DONKEY, player, Map.of(), SimulationFilter.ALL), Items.DIAMOND_BLOCK, RUNS);
-        assertTotal(simulateMob(helper, EntityType.DONKEY, null, Map.of(), SimulationFilter.ALL), Items.DIAMOND_BLOCK, 0);
-        IDropSimulator blockSimulator = BlockDropSimulator.create(Blocks.HAY_BLOCK.defaultBlockState(), setup(helper, player, Map.of()));
+        assertTotal(
+                simulateMob(helper, EntityType.DONKEY, player, Map.of(), SimulationFilter.ALL),
+                Items.DIAMOND_BLOCK,
+                RUNS);
+        assertTotal(
+                simulateMob(helper, EntityType.DONKEY, null, Map.of(), SimulationFilter.ALL), Items.DIAMOND_BLOCK, 0);
+        IDropSimulator blockSimulator =
+                BlockDropSimulator.create(Blocks.HAY_BLOCK.defaultBlockState(), setup(helper, player, Map.of()));
         assertTotal(DropSimulation.run(blockSimulator, RUNS, SimulationFilter.ALL, false), Items.DIAMOND_BLOCK, RUNS);
         helper.succeed();
     }
@@ -138,7 +155,8 @@ public class SimulationGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void simulateFirstBreakHasOwnLine(GameTestHelper helper) {
         Player player = DropTestKit.playerHolding(helper, ItemStack.EMPTY);
-        IDropSimulator simulator = BlockDropSimulator.create(Blocks.MELON.defaultBlockState(), setup(helper, player, Map.of()));
+        IDropSimulator simulator =
+                BlockDropSimulator.create(Blocks.MELON.defaultBlockState(), setup(helper, player, Map.of()));
         DropSimulation simulation = DropSimulation.run(simulator, RUNS, SimulationFilter.ALL, false);
         DropSimulation.ItemResult totem = singleResult(simulation, Items.TOTEM_OF_UNDYING);
         DropTestKit.check(totem.total() == 1, "expected 1 totem, got " + totem.total());
@@ -156,7 +174,9 @@ public class SimulationGameTests {
     public static void simulateMobExperience(GameTestHelper helper) {
         Player player = DropTestKit.playerHolding(helper, ItemStack.EMPTY);
         DropSimulation simulation = simulateMob(helper, EntityType.PIG, player, Map.of(), SimulationFilter.ALL);
-        DropTestKit.check(simulation.experience() == 6L * RUNS, "expected " + 6 * RUNS + " experience, got " + simulation.experience());
+        DropTestKit.check(
+                simulation.experience() == 6L * RUNS,
+                "expected " + 6 * RUNS + " experience, got " + simulation.experience());
         DropTestKit.check(simulation.runsWithExperience() == RUNS, "expected experience in every run");
         helper.succeed();
     }
@@ -181,9 +201,11 @@ public class SimulationGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void simulateFilterShowsOnlyMatches(GameTestHelper helper) {
         Player player = DropTestKit.playerHolding(helper, ItemStack.EMPTY);
-        SimulationFilter filter = SimulationFilter.ofItems("minecraft:rotten_flesh", stack -> stack.is(Items.ROTTEN_FLESH));
+        SimulationFilter filter =
+                SimulationFilter.ofItems("minecraft:rotten_flesh", stack -> stack.is(Items.ROTTEN_FLESH));
         DropSimulation simulation = simulateMob(helper, EntityType.HUSK, player, Map.of(), filter);
-        DropTestKit.check(simulation.itemResults().size() == 1, "expected only rotten flesh, got " + simulation.itemResults());
+        DropTestKit.check(
+                simulation.itemResults().size() == 1, "expected only rotten flesh, got " + simulation.itemResults());
         assertTotal(simulation, Items.ROTTEN_FLESH, 3L * RUNS);
         DropTestKit.check(simulation.experience() == 0, "expected the experience to be hidden");
         helper.succeed();
@@ -197,11 +219,13 @@ public class SimulationGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void simulateBlockWithPickaxe(GameTestHelper helper) {
         Player player = DropTestKit.playerHolding(helper, new ItemStack(Items.IRON_PICKAXE));
-        IDropSimulator simulator = BlockDropSimulator.create(Blocks.SANDSTONE.defaultBlockState(), setup(helper, player, Map.of()));
+        IDropSimulator simulator =
+                BlockDropSimulator.create(Blocks.SANDSTONE.defaultBlockState(), setup(helper, player, Map.of()));
         DropSimulation simulation = DropSimulation.run(simulator, RUNS, SimulationFilter.ALL, true);
         assertTotal(simulation, Items.DIAMOND, RUNS);
         assertTotal(simulation, Items.SANDSTONE, RUNS);
-        DropTestKit.check(simulation.keptStacks().size() == 2, "expected two merged stacks, got " + simulation.keptStacks());
+        DropTestKit.check(
+                simulation.keptStacks().size() == 2, "expected two merged stacks, got " + simulation.keptStacks());
         helper.succeed();
     }
 
@@ -213,8 +237,11 @@ public class SimulationGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void simulateBlockWithoutHarvestTool(GameTestHelper helper) {
         Player player = DropTestKit.playerHolding(helper, ItemStack.EMPTY);
-        IDropSimulator simulator = BlockDropSimulator.create(Blocks.SANDSTONE.defaultBlockState(), setup(helper, player, Map.of()));
-        DropTestKit.check(DropSimulation.run(simulator, RUNS, SimulationFilter.ALL, false).isEmpty(), "expected no drops by hand");
+        IDropSimulator simulator =
+                BlockDropSimulator.create(Blocks.SANDSTONE.defaultBlockState(), setup(helper, player, Map.of()));
+        DropTestKit.check(
+                DropSimulation.run(simulator, RUNS, SimulationFilter.ALL, false).isEmpty(),
+                "expected no drops by hand");
         helper.succeed();
     }
 
@@ -226,9 +253,12 @@ public class SimulationGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void simulateBlockForcesFortune(GameTestHelper helper) {
         Player player = DropTestKit.playerHolding(helper, new ItemStack(Items.IRON_PICKAXE));
-        IDropSimulator simulator = BlockDropSimulator.create(Blocks.BRICKS.defaultBlockState(), setup(helper, player, Map.of(Enchantments.BLOCK_FORTUNE, 2)));
+        IDropSimulator simulator = BlockDropSimulator.create(
+                Blocks.BRICKS.defaultBlockState(), setup(helper, player, Map.of(Enchantments.BLOCK_FORTUNE, 2)));
         DropSimulation simulation = DropSimulation.run(simulator, RUNS, SimulationFilter.EXPERIENCE, false);
-        DropTestKit.check(simulation.experience() == 9L * RUNS, "expected " + 9 * RUNS + " experience, got " + simulation.experience());
+        DropTestKit.check(
+                simulation.experience() == 9L * RUNS,
+                "expected " + 9 * RUNS + " experience, got " + simulation.experience());
         DropTestKit.check(simulation.itemResults().isEmpty(), "expected the items to be hidden");
         helper.succeed();
     }
@@ -241,7 +271,9 @@ public class SimulationGameTests {
      */
     @GameTest(template = DropTestKit.ARENA)
     public static void simulateBlockForcesAnyEnchantment(GameTestHelper helper) {
-        runCommand(helper, "alkdrops simulate block minecraft:glass 3 enchant [{id:\"minecraft:silk_touch\",lvl:1}] by none drop");
+        runCommand(
+                helper,
+                "alkdrops simulate block minecraft:glass 3 enchant [{id:\"minecraft:silk_touch\",lvl:1}] by none drop");
         helper.runAfterDelay(1, () -> {
             DropTestKit.assertItemCount(helper, Items.EMERALD, 3);
             DropTestKit.assertItemCount(helper, Items.GLASS, 3);
@@ -272,17 +304,29 @@ public class SimulationGameTests {
      */
     @GameTest(template = DropTestKit.ARENA)
     public static void simulateEnchantClauseChecks(GameTestHelper helper) {
-        List<String> report = runCommandCapturing(helper, "alkdrops simulate entity minecraft:witch 2 "
-                + "enchant [{id:\"minecraft:looting\",lvl:3},{id:\"minecraft:sharpness\",lvl:5}] by none");
-        DropTestKit.check(report.stream().anyMatch(line -> line.contains("enchantments: Looting 3, Sharpness 5")),
+        List<String> report = runCommandCapturing(
+                helper,
+                "alkdrops simulate entity minecraft:witch 2 "
+                        + "enchant [{id:\"minecraft:looting\",lvl:3},{id:\"minecraft:sharpness\",lvl:5}] by none");
+        DropTestKit.check(
+                report.stream().anyMatch(line -> line.contains("enchantments: Looting 3, Sharpness 5")),
                 "expected the enchantments in the report, got " + report);
-        for (String enchant : List.of("{id:\"minecraft:looting\",lvl:3}", "[{id:\"dstest_missing:luck\",lvl:1}]",
-                "[{id:\"minecraft:looting\",lvl:1},{id:\"minecraft:looting\",lvl:2}]", "[{id:\"minecraft:looting\",lvl:300}]")) {
-            DropTestKit.check(runCommand(helper, "alkdrops simulate entity minecraft:witch 2 enchant " + enchant) == 0,
+        for (String enchant : List.of(
+                "{id:\"minecraft:looting\",lvl:3}",
+                "[{id:\"dstest_missing:luck\",lvl:1}]",
+                "[{id:\"minecraft:looting\",lvl:1},{id:\"minecraft:looting\",lvl:2}]",
+                "[{id:\"minecraft:looting\",lvl:300}]")) {
+            DropTestKit.check(
+                    runCommand(helper, "alkdrops simulate entity minecraft:witch 2 enchant " + enchant) == 0,
                     "expected " + enchant + " to be refused");
         }
-        DropTestKit.check(runCommand(helper, "alkdrops simulate entity minecraft:turtle on periodic 20 "
-                + "enchant [{id:\"minecraft:looting\",lvl:1}]") == 0, "expected enchantments on periodic to be refused");
+        DropTestKit.check(
+                runCommand(
+                                helper,
+                                "alkdrops simulate entity minecraft:turtle on periodic 20 "
+                                        + "enchant [{id:\"minecraft:looting\",lvl:1}]")
+                        == 0,
+                "expected enchantments on periodic to be refused");
         helper.succeed();
     }
 
@@ -295,7 +339,8 @@ public class SimulationGameTests {
     public static void simulateFortuneNeedsTool(GameTestHelper helper) {
         Player player = DropTestKit.playerHolding(helper, ItemStack.EMPTY);
         try {
-            BlockDropSimulator.create(Blocks.BRICKS.defaultBlockState(), setup(helper, player, Map.of(Enchantments.BLOCK_FORTUNE, 1)));
+            BlockDropSimulator.create(
+                    Blocks.BRICKS.defaultBlockState(), setup(helper, player, Map.of(Enchantments.BLOCK_FORTUNE, 1)));
             helper.fail("expected Fortune with an empty hand to be refused");
         } catch (IllegalArgumentException e) {
             helper.succeed();
@@ -361,8 +406,12 @@ public class SimulationGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void periodicRatesFollowEachInterval(GameTestHelper helper) {
         List<String> output = runCommandCapturing(helper, "alkdrops simulate entity minecraft:turtle on periodic 20");
-        DropTestKit.check(output.stream().anyMatch(line -> line.contains("Slimeball: 120 per minute (every 10 ticks)")), "slime ball line " + output);
-        DropTestKit.check(output.stream().anyMatch(line -> line.contains("Clay Ball: 80 per minute (every 15 ticks)")), "clay ball line " + output);
+        DropTestKit.check(
+                output.stream().anyMatch(line -> line.contains("Slimeball: 120 per minute (every 10 ticks)")),
+                "slime ball line " + output);
+        DropTestKit.check(
+                output.stream().anyMatch(line -> line.contains("Clay Ball: 80 per minute (every 15 ticks)")),
+                "clay ball line " + output);
         helper.succeed();
     }
 
@@ -374,33 +423,55 @@ public class SimulationGameTests {
      */
     @GameTest(template = DropTestKit.ARENA)
     public static void damageTakenReadsPerDamage(GameTestHelper helper) {
-        List<String> output = runCommandCapturing(helper, "alkdrops simulate entity minecraft:vindicator on hit 100 by player");
+        List<String> output =
+                runCommandCapturing(helper, "alkdrops simulate entity minecraft:vindicator on hit 100 by player");
         DropTestKit.check(output.stream().anyMatch(line -> line.contains("1 damage per hit")), "setup line " + output);
-        DropTestKit.check(output.stream().anyMatch(line -> line.contains("[100 total] Gold Ingot: 1 per damage in 100% of hits")),
+        DropTestKit.check(
+                output.stream().anyMatch(line -> line.contains("[100 total] Gold Ingot: 1 per damage in 100% of hits")),
                 "gold ingot line " + output);
         helper.succeed();
     }
 
     /**
      * Setups that do not fit a trigger are refused: shear without a player, {@code by} on a trigger without player,
-     * enchantments on lightning, an unknown trigger. Enchantments on hit and shear are accepted, and no {@code on} means death. A blank player's
-     * bare-hand hit deals 1 damage, so the vindicator's {@code damage_taken} drop gives 1 gold ingot per hit.
+     * enchantments on lightning, an unknown trigger. Enchantments on hit and shear are accepted, and no {@code on}
+     * means death. A blank player's bare-hand hit deals 1 damage, so the vindicator's {@code damage_taken} drop gives 1
+     * gold ingot per hit.
      *
      * @param helper Helper of the test.
      */
     @GameTest(template = DropTestKit.ARENA)
     public static void simulateTriggerSetupChecks(GameTestHelper helper) {
-        DropTestKit.check(runCommand(helper, "alkdrops simulate entity minecraft:sheep on shear 2") == 0, "shear without player");
-        DropTestKit.check(runCommand(helper, "alkdrops simulate entity minecraft:turtle on periodic 2 by player") == 0, "periodic by player");
-        DropTestKit.check(runCommand(helper, "alkdrops simulate entity minecraft:iron_golem on lightning 2 enchant [{id:\"minecraft:looting\",lvl:3}]") == 0,
+        DropTestKit.check(
+                runCommand(helper, "alkdrops simulate entity minecraft:sheep on shear 2") == 0, "shear without player");
+        DropTestKit.check(
+                runCommand(helper, "alkdrops simulate entity minecraft:turtle on periodic 2 by player") == 0,
+                "periodic by player");
+        DropTestKit.check(
+                runCommand(
+                                helper,
+                                "alkdrops simulate entity minecraft:iron_golem on lightning 2 enchant [{id:\"minecraft:looting\",lvl:3}]")
+                        == 0,
                 "enchantments on lightning");
-        DropTestKit.check(runCommand(helper, "alkdrops simulate entity minecraft:sheep on shear 2 enchant [{id:\"minecraft:looting\",lvl:3}] by player") == 2,
+        DropTestKit.check(
+                runCommand(
+                                helper,
+                                "alkdrops simulate entity minecraft:sheep on shear 2 enchant [{id:\"minecraft:looting\",lvl:3}] by player")
+                        == 2,
                 "enchantments on shear");
-        DropTestKit.check(runCommand(helper, "alkdrops simulate entity minecraft:sheep on dance 2") == 0, "unknown trigger");
-        DropTestKit.check(runCommand(helper, "alkdrops simulate entity minecraft:cave_spider on hit 2 enchant [{id:\"minecraft:looting\",lvl:3}] by player") == 2,
+        DropTestKit.check(
+                runCommand(helper, "alkdrops simulate entity minecraft:sheep on dance 2") == 0, "unknown trigger");
+        DropTestKit.check(
+                runCommand(
+                                helper,
+                                "alkdrops simulate entity minecraft:cave_spider on hit 2 enchant [{id:\"minecraft:looting\",lvl:3}] by player")
+                        == 2,
                 "enchantments on hit");
-        DropTestKit.check(runCommand(helper, "alkdrops simulate entity minecraft:zombie on death 2") == 2, "explicit death");
-        DropTestKit.check(runCommand(helper, "alkdrops simulate entity minecraft:vindicator on hit 2 by player drop") == 2, "damage taken");
+        DropTestKit.check(
+                runCommand(helper, "alkdrops simulate entity minecraft:zombie on death 2") == 2, "explicit death");
+        DropTestKit.check(
+                runCommand(helper, "alkdrops simulate entity minecraft:vindicator on hit 2 by player drop") == 2,
+                "damage taken");
         helper.runAfterDelay(1, () -> {
             DropTestKit.assertItemCount(helper, Items.GOLD_INGOT, 2);
             helper.succeed();
@@ -467,8 +538,11 @@ public class SimulationGameTests {
         rule.set(dropDecay, helper.getLevel().getServer());
         try {
             SimulationSetup setup = setup(helper, new SimulationActor.Explosion(), Set.of(), Map.of());
-            return DropSimulation.run(BlockDropSimulator.create(Blocks.DIRT.defaultBlockState(), setup),
-                    EXPLOSION_RUNS, SimulationFilter.ALL, false);
+            return DropSimulation.run(
+                    BlockDropSimulator.create(Blocks.DIRT.defaultBlockState(), setup),
+                    EXPLOSION_RUNS,
+                    SimulationFilter.ALL,
+                    false);
         } finally {
             rule.set(previous, helper.getLevel().getServer());
         }
@@ -482,8 +556,10 @@ public class SimulationGameTests {
      * @return The total count.
      */
     private static long totalOf(DropSimulation simulation, Item item) {
-        return simulation.itemResults().stream().filter(result -> result.item() == item)
-                .mapToLong(DropSimulation.ItemResult::total).sum();
+        return simulation.itemResults().stream()
+                .filter(result -> result.item() == item)
+                .mapToLong(DropSimulation.ItemResult::total)
+                .sum();
     }
 
     /**
@@ -494,13 +570,24 @@ public class SimulationGameTests {
      */
     @GameTest(template = DropTestKit.ARENA)
     public static void simulateBlockSneaking(GameTestHelper helper) {
-        SimulationActor actor = new SimulationActor.AsPlayer(DropTestKit.playerHolding(helper, new ItemStack(Items.IRON_PICKAXE)));
-        DropSimulation standing = DropSimulation.run(BlockDropSimulator.create(Blocks.EMERALD_ORE.defaultBlockState(),
-                setup(helper, actor, Set.of(), Map.of())), RUNS, SimulationFilter.EXPERIENCE, false);
-        DropSimulation sneaking = DropSimulation.run(BlockDropSimulator.create(Blocks.EMERALD_ORE.defaultBlockState(),
-                setup(helper, actor, Set.of(SimulationFlag.SNEAKING), Map.of())), RUNS, SimulationFilter.EXPERIENCE, false);
+        SimulationActor actor =
+                new SimulationActor.AsPlayer(DropTestKit.playerHolding(helper, new ItemStack(Items.IRON_PICKAXE)));
+        DropSimulation standing = DropSimulation.run(
+                BlockDropSimulator.create(
+                        Blocks.EMERALD_ORE.defaultBlockState(), setup(helper, actor, Set.of(), Map.of())),
+                RUNS,
+                SimulationFilter.EXPERIENCE,
+                false);
+        DropSimulation sneaking = DropSimulation.run(
+                BlockDropSimulator.create(
+                        Blocks.EMERALD_ORE.defaultBlockState(),
+                        setup(helper, actor, Set.of(SimulationFlag.SNEAKING), Map.of())),
+                RUNS,
+                SimulationFilter.EXPERIENCE,
+                false);
         DropTestKit.check(standing.experience() > 0, "expected experience when standing");
-        DropTestKit.check(sneaking.experience() == 0, "expected no experience when sneaking, got " + sneaking.experience());
+        DropTestKit.check(
+                sneaking.experience() == 0, "expected no experience when sneaking, got " + sneaking.experience());
         helper.succeed();
     }
 
@@ -513,7 +600,8 @@ public class SimulationGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void simulateMobBurning(GameTestHelper helper) {
         SimulationSetup setup = setup(helper, new SimulationActor.Nobody(), Set.of(SimulationFlag.BURNING), Map.of());
-        DropSimulation simulation = DropSimulation.run(MobDropSimulator.create(EntityType.GOAT, setup), RUNS, SimulationFilter.ALL, false);
+        DropSimulation simulation =
+                DropSimulation.run(MobDropSimulator.create(EntityType.GOAT, setup), RUNS, SimulationFilter.ALL, false);
         assertTotal(simulation, Items.COOKED_BEEF, 2L * RUNS);
         assertTotal(simulation, Items.BEEF, 0);
         helper.succeed();
@@ -527,7 +615,8 @@ public class SimulationGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void simulateMobKilledByEntity(GameTestHelper helper) {
         SimulationSetup setup = setup(helper, new SimulationActor.AsEntity(EntityType.WOLF), Set.of(), Map.of());
-        DropSimulation simulation = DropSimulation.run(MobDropSimulator.create(EntityType.CREEPER, setup), RUNS, SimulationFilter.ALL, false);
+        DropSimulation simulation = DropSimulation.run(
+                MobDropSimulator.create(EntityType.CREEPER, setup), RUNS, SimulationFilter.ALL, false);
         assertTotal(simulation, Items.EMERALD, 0);
         DropTestKit.check(simulation.experience() == 0, "expected no experience without a player killer");
         helper.succeed();
@@ -541,7 +630,8 @@ public class SimulationGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void simulateMobKilledByBlankPlayer(GameTestHelper helper) {
         SimulationSetup setup = setup(helper, new SimulationActor.AsPlayer(null), Set.of(), Map.of());
-        DropSimulation simulation = DropSimulation.run(MobDropSimulator.create(EntityType.CREEPER, setup), RUNS, SimulationFilter.ALL, false);
+        DropSimulation simulation = DropSimulation.run(
+                MobDropSimulator.create(EntityType.CREEPER, setup), RUNS, SimulationFilter.ALL, false);
         assertTotal(simulation, Items.EMERALD, RUNS);
         helper.succeed();
     }
@@ -554,7 +644,9 @@ public class SimulationGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void simulateSneakingNeedsKiller(GameTestHelper helper) {
         try {
-            MobDropSimulator.create(EntityType.SHEEP, setup(helper, new SimulationActor.Nobody(), Set.of(SimulationFlag.SNEAKING), Map.of()));
+            MobDropSimulator.create(
+                    EntityType.SHEEP,
+                    setup(helper, new SimulationActor.Nobody(), Set.of(SimulationFlag.SNEAKING), Map.of()));
             helper.fail("expected sneaking without a killer to be refused");
         } catch (IllegalArgumentException e) {
             helper.succeed();
@@ -583,7 +675,9 @@ public class SimulationGameTests {
      */
     @GameTest(template = DropTestKit.ARENA)
     public static void simulateCommandWithFlags(GameTestHelper helper) {
-        runCommand(helper, "alkdrops simulate entity minecraft:goat 3 enchant [{id:\"minecraft:looting\",lvl:0}] by player sneaking burning drop");
+        runCommand(
+                helper,
+                "alkdrops simulate entity minecraft:goat 3 enchant [{id:\"minecraft:looting\",lvl:0}] by player sneaking burning drop");
         helper.runAfterDelay(1, () -> {
             DropTestKit.assertItemCount(helper, Items.COOKED_BEEF, 6);
             helper.succeed();
@@ -597,7 +691,8 @@ public class SimulationGameTests {
      */
     @GameTest(template = DropTestKit.ARENA)
     public static void simulateCommandDropsWithoutText(GameTestHelper helper) {
-        int result = runCommand(helper, "alkdrops simulate block minecraft:sandstone 2 only minecraft:diamond drop no-text");
+        int result =
+                runCommand(helper, "alkdrops simulate block minecraft:sandstone 2 only minecraft:diamond drop no-text");
         DropTestKit.check(result == 2, "expected 2 runs, got " + result);
         helper.runAfterDelay(1, () -> {
             DropTestKit.assertItemCount(helper, Items.DIAMOND, 2);
@@ -613,7 +708,8 @@ public class SimulationGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void validateFiltersBySeverity(GameTestHelper helper) {
         long expected = Stream.concat(MobDropManager.getIssues().stream(), BlockDropManager.getIssues().stream())
-                .filter(issue -> issue.fileId().getNamespace().equals("dstest_c") && issue.severity() == DropIssue.Severity.ERROR)
+                .filter(issue -> issue.fileId().getNamespace().equals("dstest_c")
+                        && issue.severity() == DropIssue.Severity.ERROR)
                 .count();
         int result = runCommand(helper, "alkdrops validate errors dstest_c");
         DropTestKit.check(expected > 0 && result == expected, "expected " + expected + " errors, got " + result);
@@ -643,7 +739,8 @@ public class SimulationGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void sourcesFindsAddsAndRemovals(GameTestHelper helper) {
         int result = runCommand(helper, "alkdrops sources minecraft:diamond");
-        DropTestKit.check(result >= 3, "expected at least the husk drop, the husk removal and the sandstone drop, got " + result);
+        DropTestKit.check(
+                result >= 3, "expected at least the husk drop, the husk removal and the sandstone drop, got " + result);
         DropTestKit.check(runCommand(helper, "alkdrops sources experience") > 0, "expected experience sources");
         helper.succeed();
     }
@@ -656,8 +753,12 @@ public class SimulationGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void filesListsNamespace(GameTestHelper helper) {
         long expected = Stream.of(MobDropManager.INSTANCE.report(), BlockDropManager.INSTANCE.report())
-                .mapToLong(report -> report.skippedFileIds().stream().filter(id -> id.getNamespace().equals("dstest_c")).count()
-                        + report.files().stream().filter(file -> file.fileId().getNamespace().equals("dstest_c")).count())
+                .mapToLong(report -> report.skippedFileIds().stream()
+                                .filter(id -> id.getNamespace().equals("dstest_c"))
+                                .count()
+                        + report.files().stream()
+                                .filter(file -> file.fileId().getNamespace().equals("dstest_c"))
+                                .count())
                 .sum();
         int result = runCommand(helper, "alkdrops files dstest_c");
         DropTestKit.check(expected > 0 && result == expected, "expected " + expected + " files, got " + result);
@@ -705,7 +806,8 @@ public class SimulationGameTests {
         for (String topic : List.of("drops", "files", "reset", "simulate", "sources", "validate")) {
             DropTestKit.check(runCommand(helper, "alkdrops help " + topic) > 0, "expected a help page for " + topic);
         }
-        DropTestKit.check(runCommand(helper, "alkdrops help simulate page 2") > 0, "expected a second simulate help page");
+        DropTestKit.check(
+                runCommand(helper, "alkdrops help simulate page 2") > 0, "expected a second simulate help page");
         helper.succeed();
     }
 
@@ -717,12 +819,26 @@ public class SimulationGameTests {
      */
     @GameTest(template = DropTestKit.ARENA)
     public static void simulateRunCountDefaultsToOne(GameTestHelper helper) {
-        DropTestKit.check(runCommand(helper, "alkdrops simulate entity minecraft:zombie") == 1, "expected 1 kill without a count");
-        DropTestKit.check(runCommand(helper, "alkdrops simulate block minecraft:stone by none") == 1, "expected 1 break before an option");
-        DropTestKit.check(runCommand(helper, "alkdrops simulate entity minecraft:zombie 3") == 3, "expected a lone number to be the count");
-        DropTestKit.check(runCommand(helper, "alkdrops simulate entity minecraft:zombie 5 enchant [{id:\"minecraft:looting\",lvl:2}] by none") == 5,
+        DropTestKit.check(
+                runCommand(helper, "alkdrops simulate entity minecraft:zombie") == 1,
+                "expected 1 kill without a count");
+        DropTestKit.check(
+                runCommand(helper, "alkdrops simulate block minecraft:stone by none") == 1,
+                "expected 1 break before an option");
+        DropTestKit.check(
+                runCommand(helper, "alkdrops simulate entity minecraft:zombie 3") == 3,
+                "expected a lone number to be the count");
+        DropTestKit.check(
+                runCommand(
+                                helper,
+                                "alkdrops simulate entity minecraft:zombie 5 enchant [{id:\"minecraft:looting\",lvl:2}] by none")
+                        == 5,
                 "expected count then enchantments");
-        DropTestKit.check(runCommand(helper, "alkdrops simulate entity minecraft:zombie enchant [{id:\"minecraft:looting\",lvl:2}]") == 1,
+        DropTestKit.check(
+                runCommand(
+                                helper,
+                                "alkdrops simulate entity minecraft:zombie enchant [{id:\"minecraft:looting\",lvl:2}]")
+                        == 1,
                 "expected enchantments without a count");
         helper.succeed();
     }
@@ -737,8 +853,12 @@ public class SimulationGameTests {
      * @param filter  What to count. Never null.
      * @return The counts of {@link #RUNS} kills.
      */
-    private static DropSimulation simulateMob(GameTestHelper helper, EntityType<?> type, @Nullable Player player,
-                                              Map<Enchantment, Integer> enchantments, SimulationFilter filter) {
+    private static DropSimulation simulateMob(
+            GameTestHelper helper,
+            EntityType<?> type,
+            @Nullable Player player,
+            Map<Enchantment, Integer> enchantments,
+            SimulationFilter filter) {
         IDropSimulator simulator = MobDropSimulator.create(type, setup(helper, player, enchantments));
         return DropSimulation.run(simulator, RUNS, filter, false);
     }
@@ -751,7 +871,9 @@ public class SimulationGameTests {
      * @return The result line.
      */
     private static DropSimulation.ItemResult singleResult(DropSimulation simulation, Item item) {
-        List<DropSimulation.ItemResult> results = simulation.itemResults().stream().filter(result -> result.item() == item).toList();
+        List<DropSimulation.ItemResult> results = simulation.itemResults().stream()
+                .filter(result -> result.item() == item)
+                .toList();
         DropTestKit.check(results.size() == 1, "expected 1 line of " + item + ", got " + results.size());
         return results.get(0);
     }
@@ -764,7 +886,8 @@ public class SimulationGameTests {
      * @param enchantments Forced enchantment levels, empty for none. Never null.
      * @return The setup.
      */
-    private static SimulationSetup setup(GameTestHelper helper, @Nullable Player player, Map<Enchantment, Integer> enchantments) {
+    private static SimulationSetup setup(
+            GameTestHelper helper, @Nullable Player player, Map<Enchantment, Integer> enchantments) {
         SimulationActor actor = player != null ? new SimulationActor.AsPlayer(player) : new SimulationActor.Nobody();
         return setup(helper, actor, Set.of(), enchantments);
     }
@@ -778,8 +901,11 @@ public class SimulationGameTests {
      * @param enchantments Forced enchantment levels, empty for none. Never null.
      * @return The setup.
      */
-    private static SimulationSetup setup(GameTestHelper helper, SimulationActor actor, Set<SimulationFlag> flags,
-                                         Map<Enchantment, Integer> enchantments) {
+    private static SimulationSetup setup(
+            GameTestHelper helper,
+            SimulationActor actor,
+            Set<SimulationFlag> flags,
+            Map<Enchantment, Integer> enchantments) {
         return new SimulationSetup(helper.getLevel(), DropTestKit.arenaCenter(helper), actor, flags, enchantments);
     }
 
@@ -813,7 +939,9 @@ public class SimulationGameTests {
                 return false;
             }
         };
-        CommandSourceStack source = helper.getLevel().getServer().createCommandSourceStack()
+        CommandSourceStack source = helper.getLevel()
+                .getServer()
+                .createCommandSourceStack()
                 .withSource(capture)
                 .withLevel(helper.getLevel())
                 .withPosition(DropTestKit.arenaCenter(helper));
@@ -829,7 +957,9 @@ public class SimulationGameTests {
      * @return The command result, 0 when it failed.
      */
     private static int runCommand(GameTestHelper helper, String command) {
-        CommandSourceStack source = helper.getLevel().getServer().createCommandSourceStack()
+        CommandSourceStack source = helper.getLevel()
+                .getServer()
+                .createCommandSourceStack()
                 .withLevel(helper.getLevel())
                 .withPosition(DropTestKit.arenaCenter(helper))
                 .withSuppressedOutput();
@@ -845,6 +975,8 @@ public class SimulationGameTests {
      */
     private static void assertTotal(DropSimulation simulation, Item item, long expected) {
         long actual = totalOf(simulation, item);
-        DropTestKit.check(actual == expected, "expected " + expected + " " + ForgeRegistries.ITEMS.getKey(item) + ", got " + actual);
+        DropTestKit.check(
+                actual == expected,
+                "expected " + expected + " " + ForgeRegistries.ITEMS.getKey(item) + ", got " + actual);
     }
 }

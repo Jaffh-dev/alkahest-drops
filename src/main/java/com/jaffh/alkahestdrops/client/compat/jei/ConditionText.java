@@ -1,15 +1,14 @@
 package com.jaffh.alkahestdrops.client.compat.jei;
 
 import com.jaffh.alkahestdrops.common.drops.SyncedCondition;
+import java.util.List;
+import java.util.Locale;
+import java.util.function.Function;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.enchantment.Enchantment;
-
-import java.util.List;
-import java.util.Locale;
-import java.util.function.Function;
 
 /**
  * Turns synced conditions into readable text, such as "Killed by player", "Not sneaking" or "Requires Silk Touch".
@@ -20,8 +19,7 @@ final class ConditionText {
     /**
      * Prevents instantiation of this utility class.
      */
-    private ConditionText() {
-    }
+    private ConditionText() {}
 
     /**
      * Describes a condition.
@@ -30,11 +28,15 @@ final class ConditionText {
      * @return The translated text.
      */
     static MutableComponent of(SyncedCondition condition) {
-        String key = "condition." + condition.kind().name().toLowerCase(Locale.ROOT) + (condition.isNegated() ? ".not" : "");
+        String key =
+                "condition." + condition.kind().name().toLowerCase(Locale.ROOT) + (condition.isNegated() ? ".not" : "");
         return switch (condition.kind()) {
-            case TOOL_ITEMS -> DropDisplayFormat.text(key, join(condition.ids(), id -> BuiltInRegistries.ITEM.get(id).getDescription()));
+            case TOOL_ITEMS -> DropDisplayFormat.text(
+                    key,
+                    join(condition.ids(), id -> BuiltInRegistries.ITEM.get(id).getDescription()));
             case TOOL_TAG -> DropDisplayFormat.text(key, "#" + condition.ids().get(0));
-            case TOOL_ENCHANTMENTS -> DropDisplayFormat.text(key, join(condition.ids(), ConditionText::enchantmentName));
+            case TOOL_ENCHANTMENTS -> DropDisplayFormat.text(
+                    key, join(condition.ids(), ConditionText::enchantmentName));
             default -> DropDisplayFormat.text(key);
         };
     }
@@ -47,7 +49,9 @@ final class ConditionText {
      */
     private static Component enchantmentName(ResourceLocation id) {
         Enchantment enchantment = BuiltInRegistries.ENCHANTMENT.get(id);
-        return enchantment != null ? Component.translatable(enchantment.getDescriptionId()) : Component.literal(id.toString());
+        return enchantment != null
+                ? Component.translatable(enchantment.getDescriptionId())
+                : Component.literal(id.toString());
     }
 
     /**

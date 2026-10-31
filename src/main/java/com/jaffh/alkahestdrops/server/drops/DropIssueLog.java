@@ -2,10 +2,9 @@ package com.jaffh.alkahestdrops.server.drops;
 
 import com.jaffh.alkahestdrops.server.lang.Localizer;
 import com.mojang.logging.LogUtils;
-import org.slf4j.Logger;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
 
 /**
  * Collects the problems of one reload and writes each one to the log as it is reported.

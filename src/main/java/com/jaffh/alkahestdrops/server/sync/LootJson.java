@@ -4,11 +4,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import net.minecraft.resources.ResourceLocation;
-
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import javax.annotation.Nullable;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * Reads the JSON of a serialized loot table leniently: a missing or malformed value gives the fallback, since modded
@@ -19,8 +18,7 @@ final class LootJson {
     /**
      * Prevents instantiation of this utility class.
      */
-    private LootJson() {
-    }
+    private LootJson() {}
 
     /**
      * Returns the elements of an array.
@@ -89,7 +87,9 @@ final class LootJson {
      */
     static boolean bool(JsonObject object, String key, boolean fallback) {
         JsonElement element = object.get(key);
-        return element instanceof JsonPrimitive primitive && primitive.isBoolean() ? primitive.getAsBoolean() : fallback;
+        return element instanceof JsonPrimitive primitive && primitive.isBoolean()
+                ? primitive.getAsBoolean()
+                : fallback;
     }
 
     /**

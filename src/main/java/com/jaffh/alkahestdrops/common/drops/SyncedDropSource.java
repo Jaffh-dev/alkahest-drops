@@ -3,8 +3,8 @@ package com.jaffh.alkahestdrops.common.drops;
 import net.minecraft.resources.ResourceLocation;
 
 /**
- * Represents where a synced drop comes from: the target's vanilla loot table, its vanilla experience, or an Alkahest Drops
- * drop file. Clients show the namespace of the id as "Added by".
+ * Represents where a synced drop comes from: the target's vanilla loot table, its vanilla experience, or an Alkahest
+ * Drops drop file. Clients show the namespace of the id as "Added by".
  *
  * @param kind Kind of source. Never null.
  * @param id   Loot table id, drop file id, or the target's id for vanilla experience. Never null.

@@ -10,8 +10,7 @@ public final class DropNumbers {
     /**
      * Prevents instantiation of this utility class.
      */
-    private DropNumbers() {
-    }
+    private DropNumbers() {}
 
     /**
      * Formats a number with two decimals, dropping trailing zeros.

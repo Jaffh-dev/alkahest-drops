@@ -3,6 +3,7 @@ package com.jaffh.alkahestdrops.gametest;
 import com.jaffh.alkahestdrops.AlkahestDrops;
 import com.jaffh.alkahestdrops.server.blockdrops.BlockDropManager;
 import com.jaffh.alkahestdrops.server.drops.DropIssue;
+import java.util.List;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.item.ItemStack;
@@ -13,8 +14,6 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
-
-import java.util.List;
 
 /**
  * GameTests for block drops, run headless with {@code ./gradlew runGameTestServer}. Rules come from the
@@ -61,7 +60,8 @@ public class BlockDropGameTests {
      */
     @GameTest(template = DropTestKit.ARENA)
     public static void anyToolEnchantmentGivesBonus(GameTestHelper helper) {
-        DropTestKit.breakBlock(helper, Blocks.DEEPSLATE_TILES, enchantedPickaxe(Enchantments.BLOCK_EFFICIENCY, 4), false);
+        DropTestKit.breakBlock(
+                helper, Blocks.DEEPSLATE_TILES, enchantedPickaxe(Enchantments.BLOCK_EFFICIENCY, 4), false);
         helper.runAfterDelay(1, () -> {
             DropTestKit.assertItemCount(helper, Items.ECHO_SHARD, 5);
             helper.succeed();
@@ -306,7 +306,8 @@ public class BlockDropGameTests {
      */
     @GameTest(template = DropTestKit.ARENA)
     public static void blockWithoutLootTableDrops(GameTestHelper helper) {
-        DropTestKit.check(Blocks.END_PORTAL_FRAME.getLootTable() == BuiltInLootTables.EMPTY,
+        DropTestKit.check(
+                Blocks.END_PORTAL_FRAME.getLootTable() == BuiltInLootTables.EMPTY,
                 "expected the end portal frame to have no loot table");
         DropTestKit.breakBlock(helper, Blocks.END_PORTAL_FRAME, new ItemStack(Items.IRON_PICKAXE), false);
         helper.succeedWhen(() -> DropTestKit.assertItemCount(helper, Items.ENDER_EYE, 2));
@@ -344,7 +345,8 @@ public class BlockDropGameTests {
         DropTestKit.assertIssue(issues, "per_player_on_block", "drops[1].first_kill", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "experience_with_item", "drops[0].experience", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "experience_with_nbt", "drops[0].nbt", DropIssue.Severity.WARNING);
-        DropTestKit.assertIssue(issues, "looting_enchant_on_block", "drops[0].functions[0]", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(
+                issues, "looting_enchant_on_block", "drops[0].functions[0]", DropIssue.Severity.WARNING);
         helper.succeed();
     }
 

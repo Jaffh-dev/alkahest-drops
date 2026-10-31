@@ -4,6 +4,8 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.jaffh.alkahestdrops.common.AlkahestDropsLootConditions;
+import java.util.Set;
+import java.util.function.Supplier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.Serializer;
@@ -12,9 +14,6 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraft.world.level.storage.loot.predicates.LootItemConditionType;
 
-import java.util.Set;
-import java.util.function.Supplier;
-
 /**
  * Loot condition that passes only when a real player, not a machine's fake player, killed the mob or broke the block
  * ({@link RealPlayers#isReal}). Without keys: {@code { "condition": "alkahestdrops:killed_by_real_player" }}. Works in
@@ -22,11 +21,11 @@ import java.util.function.Supplier;
  */
 public final class RealPlayerCondition implements LootItemCondition {
     /** {@code killed_by_real_player}: the player who last hurt the mob, like vanilla {@code killed_by_player}. */
-    public static final RealPlayerCondition KILLED = new RealPlayerCondition(LootContextParams.LAST_DAMAGE_PLAYER,
-            () -> AlkahestDropsLootConditions.KILLED_BY_REAL_PLAYER.get());
+    public static final RealPlayerCondition KILLED = new RealPlayerCondition(
+            LootContextParams.LAST_DAMAGE_PLAYER, () -> AlkahestDropsLootConditions.KILLED_BY_REAL_PLAYER.get());
     /** {@code broken_by_real_player}: the player breaking the block; explosions and machines without one fail. */
-    public static final RealPlayerCondition BROKEN = new RealPlayerCondition(LootContextParams.THIS_ENTITY,
-            () -> AlkahestDropsLootConditions.BROKEN_BY_REAL_PLAYER.get());
+    public static final RealPlayerCondition BROKEN = new RealPlayerCondition(
+            LootContextParams.THIS_ENTITY, () -> AlkahestDropsLootConditions.BROKEN_BY_REAL_PLAYER.get());
 
     private final LootContextParam<? extends Entity> playerParam;
     private final Supplier<LootItemConditionType> type;
@@ -88,8 +87,7 @@ public final class RealPlayerCondition implements LootItemCondition {
              * @param context   Serialization context. Never null.
              */
             @Override
-            public void serialize(JsonObject json, RealPlayerCondition condition, JsonSerializationContext context) {
-            }
+            public void serialize(JsonObject json, RealPlayerCondition condition, JsonSerializationContext context) {}
 
             /**
              * Reads the condition.

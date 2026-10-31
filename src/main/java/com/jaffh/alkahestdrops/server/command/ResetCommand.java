@@ -10,6 +10,13 @@ import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.function.Predicate;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -20,14 +27,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.function.Predicate;
 
 /**
  * {@code /alkdrops reset <player> [first | pity] [entities | blocks | <entity | block>]}: resets the drop progress of
@@ -48,8 +47,7 @@ final class ResetCommand {
     /**
      * Prevents instantiation of this utility class.
      */
-    private ResetCommand() {
-    }
+    private ResetCommand() {}
 
     /**
      * Builds the {@code reset} node: the required player, the optional {@code first} / {@code pity} choice, then the
@@ -58,8 +56,8 @@ final class ResetCommand {
      * @return The node.
      */
     static LiteralArgumentBuilder<CommandSourceStack> build() {
-        RequiredArgumentBuilder<CommandSourceStack, EntitySelector> players = withTargets(
-                Commands.argument(PLAYERS, EntityArgument.players()), ResetMode.ALL);
+        RequiredArgumentBuilder<CommandSourceStack, EntitySelector> players =
+                withTargets(Commands.argument(PLAYERS, EntityArgument.players()), ResetMode.ALL);
         for (ResetMode mode : List.of(ResetMode.FIRST, ResetMode.PITY)) {
             players.then(withTargets(Commands.literal(mode.keyword()), mode));
         }
@@ -75,16 +73,22 @@ final class ResetCommand {
      * @return The node.
      */
     private static <T extends ArgumentBuilder<CommandSourceStack, T>> T withTargets(T node, ResetMode mode) {
-        return node
-                .executes(context -> reset(context, mode, new Selection(CommandText.lang("reset.selection.all"), key -> true)))
+        return node.executes(context ->
+                        reset(context, mode, new Selection(CommandText.lang("reset.selection.all"), key -> true)))
                 .then(Commands.literal("entities")
-                        .executes(context -> reset(context, mode, Selection.ofFormat(CommandText.lang("reset.selection.mobs"), DropFileFormat.MOB))))
+                        .executes(context -> reset(
+                                context,
+                                mode,
+                                Selection.ofFormat(CommandText.lang("reset.selection.mobs"), DropFileFormat.MOB))))
                 .then(Commands.literal("blocks")
-                        .executes(context -> reset(context, mode, Selection.ofFormat(CommandText.lang("reset.selection.blocks"), DropFileFormat.BLOCK))))
+                        .executes(context -> reset(
+                                context,
+                                mode,
+                                Selection.ofFormat(CommandText.lang("reset.selection.blocks"), DropFileFormat.BLOCK))))
                 .then(Commands.argument(TARGET, ResourceLocationArgument.id())
                         .suggests(TRACKED_TARGETS)
-                        .executes(context -> reset(context, mode,
-                                Selection.ofTarget(ResourceLocationArgument.getId(context, TARGET)))));
+                        .executes(context -> reset(
+                                context, mode, Selection.ofTarget(ResourceLocationArgument.getId(context, TARGET)))));
     }
 
     /**
@@ -96,7 +100,8 @@ final class ResetCommand {
      * @return The number of one-time drops and pity counters reset, summed over the players.
      * @throws CommandSyntaxException If the player argument matches nobody.
      */
-    private static int reset(CommandContext<CommandSourceStack> context, ResetMode mode, Selection selection) throws CommandSyntaxException {
+    private static int reset(CommandContext<CommandSourceStack> context, ResetMode mode, Selection selection)
+            throws CommandSyntaxException {
         Collection<ServerPlayer> targets = EntityArgument.getPlayers(context, PLAYERS);
         Predicate<String> keys = selection.keys();
         int firstKills = 0;
@@ -130,7 +135,8 @@ final class ResetCommand {
      * @return Such as "Reset 1 first kill and 2 pity counters for minecraft:zombie of Steve.", or
      *         "Nothing to reset ..." when every count is 0.
      */
-    private static MutableComponent message(Component label, Component who, int firstKills, int firstBreaks, int pityCounters) {
+    private static MutableComponent message(
+            Component label, Component who, int firstKills, int firstBreaks, int pityCounters) {
         List<MutableComponent> parts = new ArrayList<>();
         if (firstKills > 0) parts.add(CommandText.plural("count.first_kill", firstKills));
         if (firstBreaks > 0) parts.add(CommandText.plural("count.first_break", firstBreaks));
@@ -143,7 +149,8 @@ final class ResetCommand {
         }
         MutableComponent list = CommandText.text("");
         for (int i = 0; i < parts.size(); i++) {
-            if (i > 0 && i == parts.size() - 1) list.append(" ").append(CommandText.lang("reset.and")).append(" ");
+            if (i > 0 && i == parts.size() - 1)
+                list.append(" ").append(CommandText.lang("reset.and")).append(" ");
             else if (i > 0) list.append(", ");
             list.append(parts.get(i).withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
         }
@@ -179,8 +186,13 @@ final class ResetCommand {
         static Selection ofTarget(ResourceLocation id) throws CommandSyntaxException {
             TargetLookup lookup = TargetLookup.of(id);
             Set<String> keys = new HashSet<>();
-            if (lookup.entity() != null) keys.addAll(MobDropManager.INSTANCE.triggerTablesOf(lookup.entity()).progressKeys());
-            if (lookup.block() != null) keys.addAll(BlockDropManager.INSTANCE.triggerTablesOf(lookup.block()).progressKeys());
+            if (lookup.entity() != null)
+                keys.addAll(
+                        MobDropManager.INSTANCE.triggerTablesOf(lookup.entity()).progressKeys());
+            if (lookup.block() != null)
+                keys.addAll(BlockDropManager.INSTANCE
+                        .triggerTablesOf(lookup.block())
+                        .progressKeys());
             return new Selection(CommandText.text(id.toString()), keys::contains);
         }
     }

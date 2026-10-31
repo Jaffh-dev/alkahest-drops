@@ -1,12 +1,6 @@
 package com.jaffh.alkahestdrops.server.drops;
 
 import com.jaffh.alkahestdrops.common.drops.DropEntry;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.storage.loot.LootContext;
-
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -15,6 +9,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.storage.loot.LootContext;
 
 /**
  * Represents everything Alkahest Drops does for one target (entity type or block), built the first time the target
@@ -42,10 +41,10 @@ public record DropTable(
         List<RemovalRule> experienceRemovals,
         boolean hasExperienceDrops,
         boolean hasPerPlayerDrops,
-        boolean needsLootContext
-) {
+        boolean needsLootContext) {
     /** A table that does nothing. */
-    public static final DropTable EMPTY = new DropTable(List.of(), Set.of(), List.of(), List.of(), List.of(), false, false, false);
+    public static final DropTable EMPTY =
+            new DropTable(List.of(), Set.of(), List.of(), List.of(), List.of(), false, false, false);
 
     /** Lets every drop roll. */
     private static final Predicate<DropEntry> EVERY_DROP = entry -> true;
@@ -62,8 +61,8 @@ public record DropTable(
         List<RemovalRule> perKill = new ArrayList<>();
         List<RemovalRule> experience = new ArrayList<>();
         for (RemovalRule removal : removals) {
-            Map<Boolean, List<RemovalEntry>> byKind = removal.entries().stream()
-                    .collect(Collectors.partitioningBy(RemovalEntry::isExperience));
+            Map<Boolean, List<RemovalEntry>> byKind =
+                    removal.entries().stream().collect(Collectors.partitioningBy(RemovalEntry::isExperience));
             List<RemovalEntry> experienceEntries = byKind.get(true);
             if (!experienceEntries.isEmpty()) experience.add(removal.withEntries(experienceEntries));
             splitRemoval(removal.withEntries(byKind.get(false)), unconditional, perKill);
@@ -97,8 +96,7 @@ public record DropTable(
                 List.copyOf(experience),
                 keptFiles.stream().anyMatch(DropFile::hasExperienceDrops),
                 keptFiles.stream().anyMatch(DropFile::hasPerPlayerDrops),
-                needsLootContext
-        );
+                needsLootContext);
     }
 
     /**
@@ -116,8 +114,11 @@ public record DropTable(
             return;
         }
 
-        List<RemovalEntry> atBuild = removal.entries().stream().filter(entry -> !entry.hasConditions()).toList();
-        List<RemovalEntry> tested = removal.entries().stream().filter(RemovalEntry::hasConditions).toList();
+        List<RemovalEntry> atBuild = removal.entries().stream()
+                .filter(entry -> !entry.hasConditions())
+                .toList();
+        List<RemovalEntry> tested =
+                removal.entries().stream().filter(RemovalEntry::hasConditions).toList();
         if (!atBuild.isEmpty()) unconditional.add(removal.withEntries(atBuild));
         if (!tested.isEmpty()) perKill.add(removal.withEntries(tested));
     }
@@ -132,8 +133,9 @@ public record DropTable(
      */
     private static DropFile applyRemovals(DropFile file, List<RemovalRule> unconditional) {
         List<DropEntry> kept = file.entries().stream()
-                .filter(entry -> entry.isExperience() || unconditional.stream()
-                        .noneMatch(removal -> removal.shouldRemoveDropOf(file.fileId(), entry.item())))
+                .filter(entry -> entry.isExperience()
+                        || unconditional.stream()
+                                .noneMatch(removal -> removal.shouldRemoveDropOf(file.fileId(), entry.item())))
                 .toList();
         return file.withEntries(kept);
     }
@@ -144,8 +146,11 @@ public record DropTable(
      * @return True when the table has no drop, removal or experience rule.
      */
     public boolean isEmpty() {
-        return dropFiles.isEmpty() && removedItems.isEmpty() && removedTargets.isEmpty()
-                && perKillRemovals.isEmpty() && experienceRemovals.isEmpty();
+        return dropFiles.isEmpty()
+                && removedItems.isEmpty()
+                && removedTargets.isEmpty()
+                && perKillRemovals.isEmpty()
+                && experienceRemovals.isEmpty();
     }
 
     /**
@@ -245,8 +250,11 @@ public record DropTable(
      * @return The rolled stacks, none of them empty.
      * @see #rollDrops(List, LootContext, RollContext, List)
      */
-    public List<ItemStack> rollDrops(List<RemovalRule> activeRemovals, @Nullable LootContext lootContext, RollContext rollContext) {
-        return rollDrops(activeRemovals, lootContext, rollContext, List.of()).stream().map(RolledDrop::stack).toList();
+    public List<ItemStack> rollDrops(
+            List<RemovalRule> activeRemovals, @Nullable LootContext lootContext, RollContext rollContext) {
+        return rollDrops(activeRemovals, lootContext, rollContext, List.of()).stream()
+                .map(RolledDrop::stack)
+                .toList();
     }
 
     /**
@@ -262,8 +270,11 @@ public record DropTable(
      * @param attackerRolls  Roll context of every attacking player, each with its player set. Never null.
      * @return The rolled stacks, none of them empty.
      */
-    public List<RolledDrop> rollDrops(List<RemovalRule> activeRemovals, @Nullable LootContext lootContext,
-                                      RollContext rollContext, List<RollContext> attackerRolls) {
+    public List<RolledDrop> rollDrops(
+            List<RemovalRule> activeRemovals,
+            @Nullable LootContext lootContext,
+            RollContext rollContext,
+            List<RollContext> attackerRolls) {
         return rollDrops(activeRemovals, new RollInput(lootContext, rollContext, EVERY_DROP), attackerRolls);
     }
 
@@ -276,10 +287,13 @@ public record DropTable(
      * @param isDue       Tells whether a drop may roll now (interval and cooldown). Never null.
      * @return The rolled stacks and experience.
      */
-    public TriggeredDrops rollTriggered(@Nullable LootContext lootContext, RollContext rollContext, Predicate<DropEntry> isDue) {
+    public TriggeredDrops rollTriggered(
+            @Nullable LootContext lootContext, RollContext rollContext, Predicate<DropEntry> isDue) {
         List<RemovalRule> activeRemovals = collectActiveRemovals(lootContext);
         RollInput input = new RollInput(lootContext, rollContext, isDue);
-        List<ItemStack> items = rollDrops(activeRemovals, input, List.of()).stream().map(RolledDrop::stack).toList();
+        List<ItemStack> items = rollDrops(activeRemovals, input, List.of()).stream()
+                .map(RolledDrop::stack)
+                .toList();
         return new TriggeredDrops(items, applyExperience(0, input));
     }
 
@@ -291,7 +305,8 @@ public record DropTable(
      * @param attackerRolls  Roll context of every attacking player. Never null.
      * @return The rolled stacks, none of them empty.
      */
-    private List<RolledDrop> rollDrops(List<RemovalRule> activeRemovals, RollInput input, List<RollContext> attackerRolls) {
+    private List<RolledDrop> rollDrops(
+            List<RemovalRule> activeRemovals, RollInput input, List<RollContext> attackerRolls) {
         if (dropFiles.isEmpty()) return List.of();
         LootContext lootContext = input.lootContext();
         RollContext rollContext = input.rollContext();
@@ -307,7 +322,12 @@ public record DropTable(
 
                 if (entry.tracking().isPerPlayer() && !attackerRolls.isEmpty()) {
                     for (RollContext attackerRoll : attackerRolls) {
-                        addRoll(drops, entry, attackerRoll, lootContext, attackerRoll.player().getUUID());
+                        addRoll(
+                                drops,
+                                entry,
+                                attackerRoll,
+                                lootContext,
+                                attackerRoll.player().getUUID());
                     }
                 } else {
                     addRoll(drops, entry, rollContext, lootContext, null);
@@ -327,8 +347,12 @@ public record DropTable(
      * @param lootContext Loot context, non-null whenever the drop has functions.
      * @param owner       Player the stack is locked to, or null for anyone.
      */
-    private static void addRoll(List<RolledDrop> drops, DropEntry entry, RollContext rollContext,
-                                @Nullable LootContext lootContext, @Nullable UUID owner) {
+    private static void addRoll(
+            List<RolledDrop> drops,
+            DropEntry entry,
+            RollContext rollContext,
+            @Nullable LootContext lootContext,
+            @Nullable UUID owner) {
         ItemStack stack = DropRoller.roll(entry, rollContext, lootContext);
         if (stack.isEmpty()) return;
         drops.add(new RolledDrop(stack, owner));
@@ -438,6 +462,5 @@ public record DropTable(
      * @param rollContext Shared roll context. Never null.
      * @param isDue       Tells whether a drop may roll. Never null.
      */
-    private record RollInput(@Nullable LootContext lootContext, RollContext rollContext, Predicate<DropEntry> isDue) {
-    }
+    private record RollInput(@Nullable LootContext lootContext, RollContext rollContext, Predicate<DropEntry> isDue) {}
 }

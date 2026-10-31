@@ -6,11 +6,10 @@ import com.jaffh.alkahestdrops.common.drops.DropEntry;
 import com.jaffh.alkahestdrops.common.drops.DropTracking;
 import com.jaffh.alkahestdrops.common.drops.EnchantBonuses;
 import com.jaffh.alkahestdrops.server.progress.DropProgress;
+import javax.annotation.Nullable;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
-
-import javax.annotation.Nullable;
 
 /**
  * Rolls single drops, shared by mob and block drops, updating the player's pity and one-time drop progress.
@@ -21,8 +20,7 @@ public final class DropRoller {
     /**
      * Prevents instantiation of this utility class.
      */
-    private DropRoller() {
-    }
+    private DropRoller() {}
 
     /**
      * Rolls one item drop and applies its loot functions to the stack.

@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+        "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+<!-- Exceptions to checkstyle.xml, each with its reason. -->
+<suppressions>
+    <!-- GameTest holders only have static test methods, but the GameTest runner needs them as plain classes. -->
+    <suppress checks="HideUtilityClassConstructor" files="[\\/]src[\\/]gametest[\\/]"/>
+    <!-- Forge constructs the @Mod class through its public constructor. -->
+    <suppress checks="HideUtilityClassConstructor" files="[\\/]AlkahestDrops\.java$"/>
+</suppressions>

@@ -1,10 +1,10 @@
 package com.jaffh.alkahestdrops.common.network;
 
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.common.drops.DropBehavior;
 import com.jaffh.alkahestdrops.common.drops.DropBehaviorType;
 import com.jaffh.alkahestdrops.common.drops.DropCount;
 import com.jaffh.alkahestdrops.common.drops.DropTracking;
-import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.common.drops.EnchantBonus;
 import com.jaffh.alkahestdrops.common.drops.EnchantBonusEntry;
 import com.jaffh.alkahestdrops.common.drops.EnchantBonuses;
@@ -16,13 +16,12 @@ import com.jaffh.alkahestdrops.common.drops.SyncedDropRules;
 import com.jaffh.alkahestdrops.common.drops.SyncedDropSource;
 import com.jaffh.alkahestdrops.common.drops.SyncedTarget;
 import com.jaffh.alkahestdrops.common.drops.TriggerSettings;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraftforge.registries.ForgeRegistries;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Writes and reads the synced drop records on a packet buffer. Every {@code read*} method reads exactly what the
@@ -34,8 +33,7 @@ final class DropSyncCodec {
     /**
      * Prevents instantiation of this utility class.
      */
-    private DropSyncCodec() {
-    }
+    private DropSyncCodec() {}
 
     /**
      * Writes every synced target.
@@ -138,8 +136,7 @@ final class DropSyncCodec {
                 buf.readList(DropSyncCodec::readCondition),
                 buf.readBoolean(),
                 new SyncedDropSource(buf.readEnum(SyncedDropSource.Kind.class), buf.readResourceLocation()),
-                buf.readBoolean() ? readTrigger(buf) : TriggerSettings.DEATH
-        );
+                buf.readBoolean() ? readTrigger(buf) : TriggerSettings.DEATH);
     }
 
     /**
@@ -161,7 +158,9 @@ final class DropSyncCodec {
      * @return The condition.
      */
     private static SyncedCondition readCondition(FriendlyByteBuf buf) {
-        return new SyncedCondition(buf.readEnum(SyncedCondition.Kind.class), buf.readBoolean(),
+        return new SyncedCondition(
+                buf.readEnum(SyncedCondition.Kind.class),
+                buf.readBoolean(),
                 buf.readList(FriendlyByteBuf::readResourceLocation));
     }
 
@@ -175,7 +174,8 @@ final class DropSyncCodec {
      * @param writer       Writes the value. Never null.
      * @param <V>          Value type.
      */
-    private static <V> void writeUnlessDefault(FriendlyByteBuf buf, V value, V defaultValue, FriendlyByteBuf.Writer<V> writer) {
+    private static <V> void writeUnlessDefault(
+            FriendlyByteBuf buf, V value, V defaultValue, FriendlyByteBuf.Writer<V> writer) {
         boolean isSet = !value.equals(defaultValue);
         buf.writeBoolean(isSet);
         if (isSet) writer.accept(buf, value);
@@ -277,9 +277,14 @@ final class DropSyncCodec {
     private static EnchantBonus readEnchantBonus(FriendlyByteBuf buf) {
         EnchantBonus.ChanceBonus chance = new EnchantBonus.ChanceBonus(buf.readDouble(), buf.readDouble());
         EnchantBonus.RollBonus roll = new EnchantBonus.RollBonus(
-                buf.readVarInt(), buf.readDouble(), buf.readVarInt(), buf.readDouble(), buf.readVarInt(), buf.readVarInt());
-        EnchantBonus.CountBonus count = new EnchantBonus.CountBonus(
-                buf.readVarInt(), buf.readVarInt(), buf.readVarInt(), buf.readVarInt());
+                buf.readVarInt(),
+                buf.readDouble(),
+                buf.readVarInt(),
+                buf.readDouble(),
+                buf.readVarInt(),
+                buf.readVarInt());
+        EnchantBonus.CountBonus count =
+                new EnchantBonus.CountBonus(buf.readVarInt(), buf.readVarInt(), buf.readVarInt(), buf.readVarInt());
         return new EnchantBonus(chance, roll, count);
     }
 

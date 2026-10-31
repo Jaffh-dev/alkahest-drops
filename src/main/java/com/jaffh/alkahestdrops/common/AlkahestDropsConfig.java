@@ -33,18 +33,18 @@ public final class AlkahestDropsConfig {
 
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
-        builder.comment(" Limits of Alkahest Drops files. Values above a limit are clamped with a warning in the log.",
+        builder.comment(
+                        " Limits of Alkahest Drops files. Values above a limit are clamped with a warning in the log.",
                         " Changes apply on the next /reload.")
                 .push("limits");
-        MAX_ROLLS = builder
-                .comment(" Highest rolls of a roll-based drop_behavior, and of its enchantment roll bonus.",
+        MAX_ROLLS = builder.comment(
+                        " Highest rolls of a roll-based drop_behavior, and of its enchantment roll bonus.",
                         " Rolls run on every kill or block break, so high values cost server time.")
                 .defineInRange("max_rolls", DEFAULT_LIMIT, 1, UPPER_BOUND);
-        MAX_COUNT = builder
-                .comment(" Highest count.min/count.max of a drop, and of its enchantment count bonus.")
+        MAX_COUNT = builder.comment(" Highest count.min/count.max of a drop, and of its enchantment count bonus.")
                 .defineInRange("max_count", DEFAULT_LIMIT, 1, UPPER_BOUND);
-        MAX_INCREMENT = builder
-                .comment(" Highest increment_value of a roll-based drop_behavior, and of its enchantment increment bonus.")
+        MAX_INCREMENT = builder.comment(
+                        " Highest increment_value of a roll-based drop_behavior, and of its enchantment increment bonus.")
                 .defineInRange("max_increment", DEFAULT_LIMIT, 1, UPPER_BOUND);
         builder.pop();
         SPEC = builder.build();
@@ -53,8 +53,7 @@ public final class AlkahestDropsConfig {
     /**
      * Prevents instantiation of this holder class.
      */
-    private AlkahestDropsConfig() {
-    }
+    private AlkahestDropsConfig() {}
 
     /**
      * Registers the config with Forge as a SERVER config under {@link #FILE_NAME}.
@@ -76,7 +75,8 @@ public final class AlkahestDropsConfig {
         try {
             file.load();
         } catch (ParsingException e) {
-            LOGGER.error("[alkahestdrops] {} is not valid TOML, keeping the previous values: {}", FILE_NAME, e.getMessage());
+            LOGGER.error(
+                    "[alkahestdrops] {} is not valid TOML, keeping the previous values: {}", FILE_NAME, e.getMessage());
             return;
         }
         if (!SPEC.isCorrect(file)) {

@@ -1,5 +1,6 @@
 package com.jaffh.alkahestdrops.client.compat.jei;
 
+import javax.annotation.Nullable;
 import mezz.jei.api.ingredients.IIngredientHelper;
 import mezz.jei.api.ingredients.IIngredientType;
 import mezz.jei.api.ingredients.subtypes.UidContext;
@@ -7,8 +8,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraftforge.common.ForgeSpawnEggItem;
-
-import javax.annotation.Nullable;
 
 /**
  * Tells JEI how to name, identify and search {@link MobIngredient}s. In cheat mode, a mob gives its spawn egg.

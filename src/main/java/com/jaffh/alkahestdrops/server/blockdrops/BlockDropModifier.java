@@ -5,6 +5,8 @@ import com.jaffh.alkahestdrops.server.drops.DropTable;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import java.util.function.Supplier;
+import javax.annotation.Nonnull;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.LootContext;
@@ -12,9 +14,6 @@ import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraftforge.common.loot.IGlobalLootModifier;
 import net.minecraftforge.common.loot.LootModifier;
-
-import javax.annotation.Nonnull;
-import java.util.function.Supplier;
 
 /**
  * Global Loot Modifier that applies the block drop tables: it removes drops of the block's loot table first,

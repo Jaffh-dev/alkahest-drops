@@ -31,6 +31,17 @@ jobs:
       - name: Set up Gradle (with cache)
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Check formatting (Spotless) and lint (Checkstyle)
+        run: ./gradlew spotlessCheck checkstyleMain checkstyleGametest --console=plain
+
+      - name: Upload Checkstyle report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkstyle-report
+          path: build/reports/checkstyle/
+          if-no-files-found: ignore
+
       - name: Build
         run: ./gradlew build --console=plain
 

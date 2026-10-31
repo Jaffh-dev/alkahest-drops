@@ -19,8 +19,7 @@ public final class DropProgressEvents {
     /**
      * Prevents instantiation of this utility class.
      */
-    private DropProgressEvents() {
-    }
+    private DropProgressEvents() {}
 
     /**
      * Registers the capability type (mod bus).

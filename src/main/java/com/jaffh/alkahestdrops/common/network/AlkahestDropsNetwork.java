@@ -1,5 +1,7 @@
 package com.jaffh.alkahestdrops.common.network;
 
+import java.util.Optional;
+import javax.annotation.Nullable;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.fml.ModList;
@@ -8,9 +10,6 @@ import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
-
-import javax.annotation.Nullable;
-import java.util.Optional;
 
 /**
  * Network channel of Alkahest Drops. It only carries the drop summary that recipe viewers show, so it exists only where
@@ -28,8 +27,7 @@ public final class AlkahestDropsNetwork {
     /**
      * Prevents instantiation of this utility class.
      */
-    private AlkahestDropsNetwork() {
-    }
+    private AlkahestDropsNetwork() {}
 
     /**
      * Creates the channel and its messages when this side can use them. Call once, during mod construction.
@@ -42,10 +40,14 @@ public final class AlkahestDropsNetwork {
                 new ResourceLocation(modId, "sync"),
                 () -> PROTOCOL_VERSION,
                 NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION),
-                NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION)
-        );
-        created.registerMessage(0, DropRulesSyncPacket.class, DropRulesSyncPacket::encode, DropRulesSyncPacket::decode,
-                DropRulesSyncPacket::handle, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+                NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION));
+        created.registerMessage(
+                0,
+                DropRulesSyncPacket.class,
+                DropRulesSyncPacket::encode,
+                DropRulesSyncPacket::decode,
+                DropRulesSyncPacket::handle,
+                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
         channel = created;
     }
 

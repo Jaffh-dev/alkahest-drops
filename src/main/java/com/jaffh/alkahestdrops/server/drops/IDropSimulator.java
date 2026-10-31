@@ -3,12 +3,11 @@ package com.jaffh.alkahestdrops.server.drops;
 import com.jaffh.alkahestdrops.AlkahestDrops;
 import com.jaffh.alkahestdrops.common.drops.DropTracking;
 import com.jaffh.alkahestdrops.server.lang.Localizer;
+import java.util.Map;
+import java.util.OptionalInt;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.enchantment.Enchantment;
-
-import java.util.Map;
-import java.util.OptionalInt;
 
 /**
  * Rolls the drops of one target without breaking or killing anything, for {@code /alkdrops simulate}.
@@ -41,7 +40,8 @@ public interface IDropSimulator {
         boolean isFirst = true;
         for (Map.Entry<Enchantment, Integer> entry : levels.entrySet()) {
             if (!isFirst) list.append(", ");
-            list.append(Component.translatable(entry.getKey().getDescriptionId())).append(" " + entry.getValue());
+            list.append(Component.translatable(entry.getKey().getDescriptionId()))
+                    .append(" " + entry.getValue());
             isFirst = false;
         }
         return setupText("enchantments", list);

@@ -1,6 +1,7 @@
 package com.jaffh.alkahestdrops.client.compat.jei;
 
 import com.jaffh.alkahestdrops.common.drops.SyncedDrop;
+import java.util.List;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.builder.ITooltipBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
@@ -19,8 +20,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 
-import java.util.List;
-
 /**
  * Shared parts of the drop categories: one target per recipe, its name as the title, and the target's drops in a
  * panel of slots with their full explanation in the tooltip. Item drops are output slots, so looking up an item's
@@ -33,6 +32,7 @@ abstract class DropCategory<T> implements IRecipeCategory<DropRecipe<T>> {
     protected static final int WIDTH = 176;
     /** Color of the texts drawn on the recipe background. */
     protected static final int TEXT_COLOR = 0xFF404040;
+
     private static final int CARD_FILL = 0xFF8B8B8B;
     private static final int CARD_SHADOW = 0xFF373737;
     private static final int CARD_LIGHT = 0xFFFFFFFF;
@@ -52,8 +52,12 @@ abstract class DropCategory<T> implements IRecipeCategory<DropRecipe<T>> {
      * @param guiHelper  JEI drawing helper. Never null.
      * @param grid       Panel of drop slots. Never null.
      */
-    protected DropCategory(RecipeType<DropRecipe<T>> recipeType, DropDisplayFormat format, IDrawable icon,
-                           IGuiHelper guiHelper, DropGrid grid) {
+    protected DropCategory(
+            RecipeType<DropRecipe<T>> recipeType,
+            DropDisplayFormat format,
+            IDrawable icon,
+            IGuiHelper guiHelper,
+            DropGrid grid) {
         this.recipeType = recipeType;
         this.format = format;
         this.icon = icon;
@@ -186,7 +190,8 @@ abstract class DropCategory<T> implements IRecipeCategory<DropRecipe<T>> {
             if (drop.isExperience()) continue;
             builder.addSlot(RecipeIngredientRole.OUTPUT, grid.cellX(i) + 1, grid.cellY(i) + 1)
                     .addItemStack(drop.stack())
-                    .addRichTooltipCallback((view, tooltip) -> DropTooltip.addTo(tooltip, drop, format, Screen.hasShiftDown()));
+                    .addRichTooltipCallback(
+                            (view, tooltip) -> DropTooltip.addTo(tooltip, drop, format, Screen.hasShiftDown()));
         }
     }
 
@@ -200,7 +205,12 @@ abstract class DropCategory<T> implements IRecipeCategory<DropRecipe<T>> {
      * @param mouseY          Mouse y relative to the recipe.
      */
     @Override
-    public void draw(DropRecipe<T> recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics guiGraphics, double mouseX, double mouseY) {
+    public void draw(
+            DropRecipe<T> recipe,
+            IRecipeSlotsView recipeSlotsView,
+            GuiGraphics guiGraphics,
+            double mouseX,
+            double mouseY) {
         drawLayout(recipe, guiGraphics, mouseX, mouseY);
         drawCard(guiGraphics, grid.x(), grid.y(), grid.width(), grid.height());
         for (int i = 0; i < grid.size(); i++) slotBackground.draw(guiGraphics, grid.cellX(i), grid.cellY(i));
@@ -220,7 +230,12 @@ abstract class DropCategory<T> implements IRecipeCategory<DropRecipe<T>> {
      * @param mouseY          Mouse y relative to the recipe.
      */
     @Override
-    public void getTooltip(ITooltipBuilder tooltip, DropRecipe<T> recipe, IRecipeSlotsView recipeSlotsView, double mouseX, double mouseY) {
+    public void getTooltip(
+            ITooltipBuilder tooltip,
+            DropRecipe<T> recipe,
+            IRecipeSlotsView recipeSlotsView,
+            double mouseX,
+            double mouseY) {
         int cell = grid.cellAt(mouseX, mouseY);
         if (cell < 0 || cell >= recipe.drops().size()) return;
         SyncedDrop drop = recipe.drops().get(cell);

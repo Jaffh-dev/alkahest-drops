@@ -2,10 +2,14 @@ package com.jaffh.alkahestdrops.gametest;
 
 import com.jaffh.alkahestdrops.AlkahestDrops;
 import com.jaffh.alkahestdrops.api.DropOrigin;
-import com.jaffh.alkahestdrops.api.event.OnDropEvent;
 import com.jaffh.alkahestdrops.api.DropTrigger;
+import com.jaffh.alkahestdrops.api.event.OnDropEvent;
 import com.jaffh.alkahestdrops.server.drops.DropActionRunner;
 import com.jaffh.alkahestdrops.server.mobdrops.MobDropManager;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
@@ -24,17 +28,12 @@ import net.minecraftforge.fml.util.ObfuscationReflectionHelper;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-
 /**
  * GameTests for {@code on_drop} and {@link OnDropEvent}: the dropped item of a drop with actions glows and runs its
- * function as the item, with the drop's player tagged; other drops are left alone; the event fires for every Alkahest Drops
- * item drop and cancelling it skips the function. The silverfish's function {@code dstest_a:on_drop/mark} tags the
- * item {@code dstest_rare}, and {@code dstest_with_player} when a tagged player is online. Event listeners only look
- * at drops of their own test's mob or block, since tests run at the same time.
+ * function as the item, with the drop's player tagged; other drops are left alone; the event fires for every Alkahest
+ * Drops item drop and cancelling it skips the function. The silverfish's function {@code dstest_a:on_drop/mark} tags
+ * the item {@code dstest_rare}, and {@code dstest_with_player} when a tagged player is online. Event listeners only
+ * look at drops of their own test's mob or block, since tests run at the same time.
  */
 @GameTestHolder(AlkahestDrops.ID)
 @PrefixGameTestTemplate(false)
@@ -55,9 +54,17 @@ public class OnDropGameTests {
         helper.runAfterDelay(1, () -> {
             assertAll(helper, Items.EMERALD, ItemEntity::hasGlowingTag, "must glow");
             assertAll(helper, Items.EMERALD, item -> item.getTags().contains(RARE_TAG), "must run its function");
-            assertAll(helper, Items.EMERALD, item -> !item.getTags().contains(WITH_PLAYER_TAG), "must find no tagged player");
+            assertAll(
+                    helper,
+                    Items.EMERALD,
+                    item -> !item.getTags().contains(WITH_PLAYER_TAG),
+                    "must find no tagged player");
             for (Item plain : List.of(Items.GOLD_NUGGET, Items.BARRIER)) {
-                assertAll(helper, plain, item -> !item.hasGlowingTag() && !item.getTags().contains(RARE_TAG), "must have no action");
+                assertAll(
+                        helper,
+                        plain,
+                        item -> !item.hasGlowingTag() && !item.getTags().contains(RARE_TAG),
+                        "must have no action");
             }
             helper.succeed();
         });
@@ -74,13 +81,17 @@ public class OnDropGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void onDropTagsDropPlayer(GameTestHelper helper) {
         ServerPlayer player = DropTestKit.fakePlayer(helper);
-        List<ServerPlayer> online = ObfuscationReflectionHelper.getPrivateValue(PlayerList.class,
-                helper.getLevel().getServer().getPlayerList(), "f_11196_");
+        List<ServerPlayer> online = ObfuscationReflectionHelper.getPrivateValue(
+                PlayerList.class, helper.getLevel().getServer().getPlayerList(), "f_11196_");
         online.add(player);
         DropTestKit.killByPlayer(DropTestKit.spawnMob(helper, EntityType.SILVERFISH), player);
         helper.runAfterDelay(1, () -> {
             online.remove(player);
-            assertAll(helper, Items.EMERALD, item -> item.getTags().contains(WITH_PLAYER_TAG), "must see the tagged player");
+            assertAll(
+                    helper,
+                    Items.EMERALD,
+                    item -> item.getTags().contains(WITH_PLAYER_TAG),
+                    "must see the tagged player");
             DropTestKit.check(!player.getTags().contains(DropActionRunner.PLAYER_TAG), "the player must lose the tag");
             helper.succeed();
         });
@@ -96,7 +107,8 @@ public class OnDropGameTests {
     public static void onDropAppliesToBlockDrop(GameTestHelper helper) {
         List<OnDropEvent> events = new ArrayList<>();
         Consumer<OnDropEvent> listener = event -> {
-            if (event.getOrigin() instanceof DropOrigin.Block block && block.state().is(Blocks.AMETHYST_BLOCK)
+            if (event.getOrigin() instanceof DropOrigin.Block block
+                    && block.state().is(Blocks.AMETHYST_BLOCK)
                     && block.pos().equals(helper.absolutePos(DropTestKit.CENTER))) {
                 events.add(event);
             }
@@ -107,9 +119,11 @@ public class OnDropGameTests {
             MinecraftForge.EVENT_BUS.unregister(listener);
             assertGlowing(helper, Items.EMERALD, true);
             assertGlowing(helper, Items.AMETHYST_BLOCK, false);
-            DropTestKit.check(events.size() == 1 && events.get(0).getItem().getItem().is(Items.EMERALD),
+            DropTestKit.check(
+                    events.size() == 1 && events.get(0).getItem().getItem().is(Items.EMERALD),
                     "expected one event, for the emerald; got " + events.size());
-            DropTestKit.check(events.get(0).getDropKey().equals("block:dstest_a:amethyst_block_on_drop#0"),
+            DropTestKit.check(
+                    events.get(0).getDropKey().equals("block:dstest_a:amethyst_block_on_drop#0"),
                     "drop key " + events.get(0).getDropKey());
             helper.succeed();
         });
@@ -133,10 +147,18 @@ public class OnDropGameTests {
         DropTestKit.killByPlayer(silverfish, player);
         helper.runAfterDelay(1, () -> {
             MinecraftForge.EVENT_BUS.unregister(listener);
-            List<String> keys = events.stream().map(OnDropEvent::getDropKey).sorted().toList();
-            DropTestKit.check(keys.equals(List.of("mob:dstest_a:any_barrier#0", "mob:dstest_a:minecraft_namespace_shell#0", "mob:dstest_a:silverfish_on_drop#0",
-                    "mob:dstest_a:silverfish_on_drop#1")), "drop keys " + keys);
-            DropTestKit.check(events.stream().allMatch(event -> event.getTrigger() == DropTrigger.DEATH && event.getPlayer() == player),
+            List<String> keys =
+                    events.stream().map(OnDropEvent::getDropKey).sorted().toList();
+            DropTestKit.check(
+                    keys.equals(List.of(
+                            "mob:dstest_a:any_barrier#0",
+                            "mob:dstest_a:minecraft_namespace_shell#0",
+                            "mob:dstest_a:silverfish_on_drop#0",
+                            "mob:dstest_a:silverfish_on_drop#1")),
+                    "drop keys " + keys);
+            DropTestKit.check(
+                    events.stream()
+                            .allMatch(event -> event.getTrigger() == DropTrigger.DEATH && event.getPlayer() == player),
                     "every event must be a death drop of the killer");
             helper.succeed();
         });
@@ -170,7 +192,9 @@ public class OnDropGameTests {
      */
     @GameTest(template = DropTestKit.ARENA)
     public static void existingFunctionIsAccepted(GameTestHelper helper) {
-        DropTestKit.check(MobDropManager.getIssues().stream().noneMatch(issue -> issue.fileId().getPath().equals("silverfish_on_drop")),
+        DropTestKit.check(
+                MobDropManager.getIssues().stream()
+                        .noneMatch(issue -> issue.fileId().getPath().equals("silverfish_on_drop")),
                 "silverfish_on_drop must load without issues");
         helper.succeed();
     }
@@ -183,7 +207,11 @@ public class OnDropGameTests {
      * @param shouldGlow Whether the items must glow.
      */
     static void assertGlowing(GameTestHelper helper, Item item, boolean shouldGlow) {
-        assertAll(helper, item, entity -> entity.hasGlowingTag() == shouldGlow, shouldGlow ? "must glow" : "must not glow");
+        assertAll(
+                helper,
+                item,
+                entity -> entity.hasGlowingTag() == shouldGlow,
+                shouldGlow ? "must glow" : "must not glow");
     }
 
     /**

@@ -1,0 +1,7 @@
+# Commits that only reformat code, skipped by `git blame` so it shows who really wrote each line.
+# GitHub reads this file automatically. Locally, enable it once per clone:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# Hashes change if the history is rewritten: update them afterwards.
+
+# Whole code base formatted with palantir-java-format (Spotless), with the first Checkstyle fixes.
+4920cfff91cdfbbb7abaf31bee3256d45891aad3

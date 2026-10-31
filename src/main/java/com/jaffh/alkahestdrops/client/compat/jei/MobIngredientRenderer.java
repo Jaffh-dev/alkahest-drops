@@ -1,5 +1,8 @@
 package com.jaffh.alkahestdrops.client.compat.jei;
 
+import java.util.ArrayList;
+import java.util.List;
+import javax.annotation.Nullable;
 import mezz.jei.api.ingredients.IIngredientRenderer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -10,10 +13,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraftforge.common.ForgeSpawnEggItem;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Draws {@link MobIngredient}s: as a small 3D model in JEI's ingredient list, or as nothing over the mob card of a
@@ -103,7 +102,8 @@ final class MobIngredientRenderer implements IIngredientRenderer<MobIngredient> 
     public List<Component> getTooltip(MobIngredient ingredient, @Nullable Player player, TooltipFlag tooltipFlag) {
         List<Component> lines = new ArrayList<>();
         lines.add(ingredient.type().getDescription());
-        if (tooltipFlag.isAdvanced()) lines.add(Component.literal(ingredient.id().toString()).withStyle(ChatFormatting.DARK_GRAY));
+        if (tooltipFlag.isAdvanced())
+            lines.add(Component.literal(ingredient.id().toString()).withStyle(ChatFormatting.DARK_GRAY));
         return lines;
     }
 

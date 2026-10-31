@@ -41,6 +41,7 @@ record IconLine(ItemStack icon, Component text, boolean isFramed) implements Too
         private static final ResourceLocation FRAMES = new ResourceLocation("textures/gui/advancements/widgets.png");
         /** Challenge frame of a completed advancement, in the 256×256 widgets texture. */
         private static final int FRAME_U = 26;
+
         private static final int FRAME_V = 128;
         private static final int FRAME_TEXTURE_SIZE = 26;
         private static final int TEXTURE_SIZE = 256;
@@ -48,6 +49,7 @@ record IconLine(ItemStack icon, Component text, boolean isFramed) implements Too
         private static final int FRAME_SIZE = 10;
         /** Height of a plain text line of a tooltip. */
         private static final int HEIGHT = 10;
+
         private static final int TEXT_COLOR = 0xFFFFFF;
 
         private final IconLine line;
@@ -103,8 +105,18 @@ record IconLine(ItemStack icon, Component text, boolean isFramed) implements Too
         public void renderImage(Font font, int x, int y, GuiGraphics guiGraphics) {
             int iconOffset = (iconWidth() - ICON_SIZE) / 2;
             if (line.isFramed()) {
-                guiGraphics.blit(FRAMES, x, y, FRAME_SIZE, FRAME_SIZE, FRAME_U, FRAME_V, FRAME_TEXTURE_SIZE,
-                        FRAME_TEXTURE_SIZE, TEXTURE_SIZE, TEXTURE_SIZE);
+                guiGraphics.blit(
+                        FRAMES,
+                        x,
+                        y,
+                        FRAME_SIZE,
+                        FRAME_SIZE,
+                        FRAME_U,
+                        FRAME_V,
+                        FRAME_TEXTURE_SIZE,
+                        FRAME_TEXTURE_SIZE,
+                        TEXTURE_SIZE,
+                        TEXTURE_SIZE);
             }
             guiGraphics.pose().pushPose();
             guiGraphics.pose().translate(x + iconOffset, y + iconOffset, 0);

@@ -1,8 +1,7 @@
 package com.jaffh.alkahestdrops.common.drops;
 
-import net.minecraft.resources.ResourceLocation;
-
 import javax.annotation.Nullable;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * Represents what happens when an item drop spawns in the world ({@code on_drop}).

@@ -4,10 +4,14 @@ import com.jaffh.alkahestdrops.server.drops.DropTable;
 import com.jaffh.alkahestdrops.server.drops.IDropSimulator;
 import com.jaffh.alkahestdrops.server.drops.InvalidSimulationException;
 import com.jaffh.alkahestdrops.server.drops.SimulatedDrop;
-import com.jaffh.alkahestdrops.server.drops.TrackedDropRecorder;
 import com.jaffh.alkahestdrops.server.drops.SimulationActor;
 import com.jaffh.alkahestdrops.server.drops.SimulationFlag;
 import com.jaffh.alkahestdrops.server.drops.SimulationSetup;
+import com.jaffh.alkahestdrops.server.drops.TrackedDropRecorder;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -26,11 +30,6 @@ import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 /**
  * Simulates breaks of one block state without placing it: the block's loot table (with loot modifiers, the mod's
  * included) or, for blocks without a loot table, the player-break fallback, then the experience. The breaker is a
@@ -38,18 +37,25 @@ import java.util.Map;
  * A tool that cannot harvest the block drops nothing, as in survival. Creative mode is ignored.
  */
 public final class BlockDropSimulator implements IDropSimulator {
-    /** Radius of a TNT explosion; with drop decay on, {@code survives_explosion} keeps a drop with a chance of 1 / radius. */
+    /**
+     * Radius of a TNT explosion; with drop decay on, {@code survives_explosion} keeps a drop with a chance of 1 /
+     * radius.
+     */
     private static final float TNT_EXPLOSION_RADIUS = 4.0F;
 
     private final ServerLevel level;
     private final BlockPos pos;
     private final BlockState state;
     private final SimulationActor actor;
+
     @Nullable
     private final Player player;
+
     private final ItemStack tool;
+
     @Nullable
     private final LootTable lootTable;
+
     private final DropTable table;
     private final boolean canHarvest;
 
@@ -106,8 +112,10 @@ public final class BlockDropSimulator implements IDropSimulator {
      */
     private static SimulationActor getActor(SimulationSetup setup) {
         SimulationActor actor = setup.actor();
-        if (actor instanceof SimulationActor.AsEntity) throw new InvalidSimulationException(IDropSimulator.setupText("entity_breaker"));
-        if (setup.has(SimulationFlag.BURNING)) throw new InvalidSimulationException(IDropSimulator.setupText("burning_block"));
+        if (actor instanceof SimulationActor.AsEntity)
+            throw new InvalidSimulationException(IDropSimulator.setupText("entity_breaker"));
+        if (setup.has(SimulationFlag.BURNING))
+            throw new InvalidSimulationException(IDropSimulator.setupText("burning_block"));
         if (setup.has(SimulationFlag.SNEAKING) && !(actor instanceof SimulationActor.AsPlayer)) {
             throw new InvalidSimulationException(IDropSimulator.setupText("sneaking_without_player"));
         }
@@ -252,8 +260,10 @@ public final class BlockDropSimulator implements IDropSimulator {
             text = IDropSimulator.setupText("no_player");
         }
         Component toolName = tool.isEmpty() ? IDropSimulator.setupText("empty_hand") : tool.getHoverName();
-        text.append(", ").append(IDropSimulator.setupText("tool", toolName))
-                .append(", ").append(IDropSimulator.enchantmentsText(EnchantmentHelper.getEnchantments(tool)));
+        text.append(", ")
+                .append(IDropSimulator.setupText("tool", toolName))
+                .append(", ")
+                .append(IDropSimulator.enchantmentsText(EnchantmentHelper.getEnchantments(tool)));
         if (!canHarvest) text.append(", ").append(IDropSimulator.setupText("cannot_harvest"));
         return text;
     }

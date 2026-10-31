@@ -1,9 +1,8 @@
 package com.jaffh.alkahestdrops.server.drops;
 
-import net.minecraft.resources.ResourceLocation;
-
 import java.util.List;
 import java.util.Set;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * Represents what one load of a drop folder read, kept for the {@code /alkdrops} commands.

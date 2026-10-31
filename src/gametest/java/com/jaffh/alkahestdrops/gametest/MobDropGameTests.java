@@ -3,6 +3,7 @@ package com.jaffh.alkahestdrops.gametest;
 import com.jaffh.alkahestdrops.AlkahestDrops;
 import com.jaffh.alkahestdrops.server.drops.DropIssue;
 import com.jaffh.alkahestdrops.server.mobdrops.MobDropManager;
+import java.util.List;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.world.entity.EntityType;
@@ -14,8 +15,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
-
-import java.util.List;
 
 /**
  * GameTests for mob drops, run headless with {@code ./gradlew runGameTestServer}. Rules come from the
@@ -277,7 +276,9 @@ public class MobDropGameTests {
             List<ItemStack> papers = DropTestKit.droppedStacks(helper, Items.PAPER);
             DropTestKit.check(papers.size() == 1, "expected 1 paper stack, got " + papers.size());
             String name = papers.get(0).getHoverName().getString();
-            DropTestKit.check(name.equals("Alkahest Drops Paper"), "expected the name 'Alkahest Drops Paper', got '" + name + "'");
+            DropTestKit.check(
+                    name.equals("Alkahest Drops Paper"),
+                    "expected the name 'Alkahest Drops Paper', got '" + name + "'");
             helper.succeed();
         });
     }
@@ -341,7 +342,8 @@ public class MobDropGameTests {
         DropTestKit.assertIssue(issues, "version_missing", "version", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "player_removal", "entity", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "both_kinds", "", DropIssue.Severity.ERROR);
-        DropTestKit.assertIssue(issues, "experience_removal_with_item", "removals[0].experience", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(
+                issues, "experience_removal_with_item", "removals[0].experience", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "unknown_namespace", "entity", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "bad_max_health", "drops[0].drop_behavior.divisor", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "bad_max_health", "drops[1].drop_behavior.function", DropIssue.Severity.ERROR);
@@ -349,13 +351,20 @@ public class MobDropGameTests {
         DropTestKit.assertIssue(issues, "block_key_in_mob_file", "block", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "enchant_bonus_issues", "drops[0].enchant_bonus", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "enchant_bonus_issues", "drops[1].enchant_bonus", DropIssue.Severity.ERROR);
-        DropTestKit.assertIssue(issues, "enchant_bonus_issues", "drops[2].enchant_bonus[0].enchant", DropIssue.Severity.ERROR);
-        DropTestKit.assertIssue(issues, "enchant_bonus_issues", "drops[3].enchant_bonus[0].on_enchant", DropIssue.Severity.ERROR);
-        DropTestKit.assertIssue(issues, "enchant_bonus_issues", "drops[4].enchant_bonus[1].enchant", DropIssue.Severity.ERROR);
-        DropTestKit.assertIssue(issues, "enchant_bonus_issues", "drops[5].enchant_bonus[0].enchant", DropIssue.Severity.WARNING);
+        DropTestKit.assertIssue(
+                issues, "enchant_bonus_issues", "drops[2].enchant_bonus[0].enchant", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(
+                issues, "enchant_bonus_issues", "drops[3].enchant_bonus[0].on_enchant", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(
+                issues, "enchant_bonus_issues", "drops[4].enchant_bonus[1].enchant", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(
+                issues, "enchant_bonus_issues", "drops[5].enchant_bonus[0].enchant", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "enchant_bonus_issues", "drops[6].chance", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "enchant_bonus_issues", "drops[7].enchant_bonus", DropIssue.Severity.WARNING);
-        DropTestKit.assertIssue(issues, "enchant_bonus_issues", "drops[8].enchant_bonus[0].on_enchant.bonus_roll",
+        DropTestKit.assertIssue(
+                issues,
+                "enchant_bonus_issues",
+                "drops[8].enchant_bonus[0].on_enchant.bonus_roll",
                 DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "hardness_on_mob", "drops[0].drop_behavior.type", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "hardness_on_mob", "", DropIssue.Severity.ERROR);
@@ -379,11 +388,17 @@ public class MobDropGameTests {
         DropTestKit.assertIssue(issues, "tracking_issues", "drops[6].id", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "tracking_issues", "drops[7].id", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "tracking_issues", "drops[8].pity", DropIssue.Severity.WARNING);
-        DropTestKit.check(issues.stream().noneMatch(issue -> issue.fileId().getPath().equals("tracking_issues")
-                && (issue.field().equals("drops[9].pity") || issue.field().equals("drops[10].pity"))),
+        DropTestKit.check(
+                issues.stream()
+                        .noneMatch(issue -> issue.fileId().getPath().equals("tracking_issues")
+                                && (issue.field().equals("drops[9].pity")
+                                        || issue.field().equals("drops[10].pity"))),
                 "pity on a drop that can miss must not warn");
-        DropTestKit.check(issues.stream().noneMatch(issue -> issue.field().startsWith("drops[3].functions")
-                && issue.fileId().getPath().equals("function_warnings")), "set_count with add must not warn");
+        DropTestKit.check(
+                issues.stream()
+                        .noneMatch(issue -> issue.field().startsWith("drops[3].functions")
+                                && issue.fileId().getPath().equals("function_warnings")),
+                "set_count with add must not warn");
         helper.succeed();
     }
 }

@@ -1,9 +1,8 @@
 package com.jaffh.alkahestdrops.common.drops;
 
-import net.minecraft.world.item.enchantment.Enchantment;
-
 import java.util.List;
 import java.util.function.ToIntFunction;
+import net.minecraft.world.item.enchantment.Enchantment;
 
 /**
  * Represents every enchantment bonus of one drop. The bonuses of different enchantments add up; each keeps its own

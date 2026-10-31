@@ -6,17 +6,16 @@ import com.jaffh.alkahestdrops.server.drops.ParsedDropFile;
 import com.jaffh.alkahestdrops.server.mobdrops.MobDropManager;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 /**
  * {@code /alkdrops files [namespace] [page <n>]}: without a namespace, counts the loaded and skipped files of every
@@ -28,8 +27,7 @@ final class FilesCommand {
     /**
      * Prevents instantiation of this utility class.
      */
-    private FilesCommand() {
-    }
+    private FilesCommand() {}
 
     /**
      * Builds the {@code files} node.
@@ -37,10 +35,13 @@ final class FilesCommand {
      * @return The node.
      */
     static LiteralArgumentBuilder<CommandSourceStack> build() {
-        return PagedOutput.withPages(Commands.literal("files"), (context, page) -> runSummary(context.getSource(), page))
+        return PagedOutput.withPages(
+                        Commands.literal("files"), (context, page) -> runSummary(context.getSource(), page))
                 .then(PagedOutput.withPages(
-                        Commands.argument("namespace", StringArgumentType.word()).suggests(AlkahestDropsCommand.NAMESPACES),
-                        (context, page) -> runNamespace(context.getSource(), StringArgumentType.getString(context, "namespace"), page)));
+                        Commands.argument("namespace", StringArgumentType.word())
+                                .suggests(AlkahestDropsCommand.NAMESPACES),
+                        (context, page) -> runNamespace(
+                                context.getSource(), StringArgumentType.getString(context, "namespace"), page)));
     }
 
     /**
@@ -55,22 +56,31 @@ final class FilesCommand {
         for (DropManager<?> manager : AlkahestDropsCommand.MANAGERS) {
             DropLoadReport report = manager.report();
             for (ParsedDropFile file : report.files()) {
-                countsByNamespace.computeIfAbsent(file.fileId().getNamespace(), key -> new FileCounts()).add(file, manager);
+                countsByNamespace
+                        .computeIfAbsent(file.fileId().getNamespace(), key -> new FileCounts())
+                        .add(file, manager);
             }
             for (ResourceLocation fileId : report.skippedFileIds()) {
                 countsByNamespace.computeIfAbsent(fileId.getNamespace(), key -> new FileCounts()).skippedCount++;
             }
         }
         if (countsByNamespace.isEmpty()) {
-            PagedOutput.send(source, TITLE, List.of(CommandText.lang("files.empty").withStyle(ChatFormatting.GRAY)),
-                    List.of(), 1, "/alkdrops files");
+            PagedOutput.send(
+                    source,
+                    TITLE,
+                    List.of(CommandText.lang("files.empty").withStyle(ChatFormatting.GRAY)),
+                    List.of(),
+                    1,
+                    "/alkdrops files");
             return 0;
         }
 
         List<Component> lines = new ArrayList<>();
         countsByNamespace.forEach((namespace, counts) -> lines.add(counts.describe(namespace)));
-        Component title = CommandText.lang(lines.size() == 1 ? "files.header.one" : "files.header.many",
-                CommandText.bold(String.valueOf(lines.size()), ChatFormatting.BLUE)).withStyle(ChatFormatting.BLUE);
+        Component title = CommandText.lang(
+                        lines.size() == 1 ? "files.header.one" : "files.header.many",
+                        CommandText.bold(String.valueOf(lines.size()), ChatFormatting.BLUE))
+                .withStyle(ChatFormatting.BLUE);
         PagedOutput.send(source, TITLE, List.of(title), lines, page, "/alkdrops files");
         return lines.size();
     }
@@ -95,12 +105,18 @@ final class FilesCommand {
             }
         }
         if (lines.isEmpty()) {
-            PagedOutput.send(source, TITLE, List.of(CommandText.lang("files.namespace_empty", namespace).withStyle(ChatFormatting.GRAY)),
-                    List.of(), 1, "/alkdrops files " + namespace);
+            PagedOutput.send(
+                    source,
+                    TITLE,
+                    List.of(CommandText.lang("files.namespace_empty", namespace).withStyle(ChatFormatting.GRAY)),
+                    List.of(),
+                    1,
+                    "/alkdrops files " + namespace);
             return 0;
         }
 
-        Component title = CommandText.lang(lines.size() == 1 ? "files.namespace_header.one" : "files.namespace_header.many",
+        Component title = CommandText.lang(
+                        lines.size() == 1 ? "files.namespace_header.one" : "files.namespace_header.many",
                         CommandText.bold(String.valueOf(lines.size()), ChatFormatting.BLUE),
                         CommandText.bold(namespace, ChatFormatting.YELLOW))
                 .withStyle(ChatFormatting.BLUE)
@@ -122,13 +138,20 @@ final class FilesCommand {
         boolean isDropFile = file instanceof ParsedDropFile.Drops;
         Component size = file instanceof ParsedDropFile.Drops drops
                 ? CommandText.plural("count.drop", drops.file().entries().size())
-                : CommandText.plural("count.removal_entry", ((ParsedDropFile.Removals) file).rule().entries().size());
+                : CommandText.plural(
+                        "count.removal_entry",
+                        ((ParsedDropFile.Removals) file).rule().entries().size());
         return CommandText.kindTag(manager)
                 .append(CommandText.lang(isDropFile ? "files.kind.drops" : "files.kind.removals")
                         .withStyle(isDropFile ? ChatFormatting.GREEN : ChatFormatting.RED))
                 .append(CommandText.text(" "))
-                .append(CommandText.fileId(file.fileId(), manager, hasIssues(file.fileId(), report) ? ChatFormatting.YELLOW : ChatFormatting.GRAY))
-                .append(CommandText.text(" → " + file.target() + " (", ChatFormatting.WHITE).append(size).append(")"));
+                .append(CommandText.fileId(
+                        file.fileId(),
+                        manager,
+                        hasIssues(file.fileId(), report) ? ChatFormatting.YELLOW : ChatFormatting.GRAY))
+                .append(CommandText.text(" → " + file.target() + " (", ChatFormatting.WHITE)
+                        .append(size)
+                        .append(")"));
     }
 
     /**
@@ -151,15 +174,21 @@ final class FilesCommand {
      * @return Such as {@code "[mob] skipped ns:bad (2 problems)"}.
      */
     private static Component describeSkipped(ResourceLocation fileId, DropLoadReport report, DropManager<?> manager) {
-        long issueCount = report.issues().stream().filter(issue -> issue.fileId().equals(fileId)).count();
+        long issueCount = report.issues().stream()
+                .filter(issue -> issue.fileId().equals(fileId))
+                .count();
         return CommandText.kindTag(manager)
                 .append(CommandText.lang("files.kind.skipped").withStyle(ChatFormatting.DARK_RED))
                 .append(CommandText.text(" "))
                 .append(CommandText.fileId(fileId, manager, ChatFormatting.YELLOW))
                 .append(CommandText.text(" "))
-                .append(CommandText.runnable(CommandText.text("(").append(CommandText.plural("count.problem", issueCount)).append(")"),
+                .append(CommandText.runnable(
+                        CommandText.text("(")
+                                .append(CommandText.plural("count.problem", issueCount))
+                                .append(")"),
                         CommandText.lang("files.show_problems", fileId.getNamespace()),
-                        "/alkdrops validate " + fileId.getNamespace(), ChatFormatting.DARK_RED));
+                        "/alkdrops validate " + fileId.getNamespace(),
+                        ChatFormatting.DARK_RED));
     }
 
     /**
@@ -195,14 +224,19 @@ final class FilesCommand {
          */
         Component describe(String namespace) {
             MutableComponent line = CommandText.text("")
-                    .append(CommandText.runnable(namespace, CommandText.lang("files.list_namespace", namespace),
-                            "/alkdrops files " + namespace).withStyle(ChatFormatting.UNDERLINE))
+                    .append(CommandText.runnable(
+                                    namespace,
+                                    CommandText.lang("files.list_namespace", namespace),
+                                    "/alkdrops files " + namespace)
+                            .withStyle(ChatFormatting.UNDERLINE))
                     .append(CommandText.text(": ", ChatFormatting.WHITE))
-                    .append(CommandText.lang("files.counts", mobDropCount, mobRemovalCount, blockDropCount, blockRemovalCount)
+                    .append(CommandText.lang(
+                                    "files.counts", mobDropCount, mobRemovalCount, blockDropCount, blockRemovalCount)
                             .withStyle(ChatFormatting.WHITE));
             if (skippedCount > 0) {
                 line.append(CommandText.text(", ", ChatFormatting.WHITE))
-                        .append(CommandText.lang("files.skipped_count", skippedCount).withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
+                        .append(CommandText.lang("files.skipped_count", skippedCount)
+                                .withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
             }
             return line;
         }

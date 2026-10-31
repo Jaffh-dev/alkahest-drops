@@ -25,8 +25,9 @@ sealed interface IHelpLine permits IHelpLine.Syntax, IHelpLine.Argument, IHelpLi
     record Syntax(String usage) implements IHelpLine {
         @Override
         public Component render() {
-            return CommandText.text(INDENT).append(CommandText.suggestable(usage, CommandText.lang("hint.start_typing"),
-                    fixedStart(), ChatFormatting.YELLOW));
+            return CommandText.text(INDENT)
+                    .append(CommandText.suggestable(
+                            usage, CommandText.lang("hint.start_typing"), fixedStart(), ChatFormatting.YELLOW));
         }
 
         /**
@@ -73,7 +74,8 @@ sealed interface IHelpLine permits IHelpLine.Syntax, IHelpLine.Argument, IHelpLi
         @Override
         public Component render() {
             return CommandText.text(INDENT, ChatFormatting.WHITE)
-                    .append(CommandText.suggestable(command, CommandText.lang("hint.put_in_chat"), command, ChatFormatting.AQUA))
+                    .append(CommandText.suggestable(
+                            command, CommandText.lang("hint.put_in_chat"), command, ChatFormatting.AQUA))
                     .append(CommandText.text(" ", ChatFormatting.GRAY))
                     .append(description.copy().withStyle(ChatFormatting.GRAY));
         }

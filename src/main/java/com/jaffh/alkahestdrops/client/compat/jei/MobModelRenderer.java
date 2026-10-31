@@ -4,6 +4,9 @@ import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import java.util.HashMap;
+import java.util.Map;
+import javax.annotation.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -12,10 +15,6 @@ import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.world.entity.LivingEntity;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
-
-import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Draws mobs in a GUI the way the inventory screen draws the player (turned by two angle components), but with a
@@ -35,8 +34,7 @@ final class MobModelRenderer {
     /**
      * Prevents instantiation of this utility class.
      */
-    private MobModelRenderer() {
-    }
+    private MobModelRenderer() {}
 
     /**
      * Draws a mob.
@@ -49,7 +47,14 @@ final class MobModelRenderer {
      * @param angleY      Tilt component: the model tilts {@code 20°} per unit.
      * @param entity      Mob to draw. Never null.
      */
-    static void render(GuiGraphics guiGraphics, float originX, float originY, float scale, float angleX, float angleY, LivingEntity entity) {
+    static void render(
+            GuiGraphics guiGraphics,
+            float originX,
+            float originY,
+            float scale,
+            float angleX,
+            float angleY,
+            LivingEntity entity) {
         PoseStack pose = guiGraphics.pose();
         pose.pushPose();
         pose.translate(originX, originY, GUI_DEPTH);
@@ -61,8 +66,12 @@ final class MobModelRenderer {
         dispatcher.overrideCameraOrientation(tilt.conjugate(new Quaternionf()));
         dispatcher.setRenderShadow(false);
         try {
-            withTurn(entity, angleX, angleY, () -> RenderSystem.runAsFancy(() ->
-                    dispatcher.render(entity, 0.0, 0.0, 0.0, 0.0F, 1.0F, pose, guiGraphics.bufferSource(), FULL_BRIGHT)));
+            withTurn(
+                    entity,
+                    angleX,
+                    angleY,
+                    () -> RenderSystem.runAsFancy(() -> dispatcher.render(
+                            entity, 0.0, 0.0, 0.0, 0.0F, 1.0F, pose, guiGraphics.bufferSource(), FULL_BRIGHT)));
             guiGraphics.flush();
         } finally {
             dispatcher.setRenderShadow(true);
@@ -95,8 +104,11 @@ final class MobModelRenderer {
                 for (float angleY : anglesY) {
                     PoseStack pose = new PoseStack();
                     pose.mulPose(new Quaternionf().rotateZ((float) Math.PI).mul(tiltOf(angleY)));
-                    withTurn(entity, angleX, angleY, () ->
-                            dispatcher.render(entity, 0.0, 0.0, 0.0, 0.0F, 1.0F, pose, buffers, FULL_BRIGHT));
+                    withTurn(
+                            entity,
+                            angleX,
+                            angleY,
+                            () -> dispatcher.render(entity, 0.0, 0.0, 0.0, 0.0F, 1.0F, pose, buffers, FULL_BRIGHT));
                 }
             }
         } finally {
@@ -180,118 +192,110 @@ final class MobModelRenderer {
     }
 
     /**
-         * Records the position of every vertex it receives into a box, and draws nothing.
-         */
-        private record BoundsRecorder(Box box) implements VertexConsumer {
+     * Records the position of every vertex it receives into a box, and draws nothing.
+     *
+     * @param box Box the vertices are recorded into. Never null.
+     */
+    private record BoundsRecorder(Box box) implements VertexConsumer {
+
         /**
-         * Creates a recorder.
+         * Records the position of a vertex, already transformed by the pose.
          *
-         * @param box Box the vertices are recorded into. Never null.
+         * @param x X.
+         * @param y Y.
+         * @param z Z (unused: the depth does not show on screen).
+         * @return This recorder.
          */
-        private BoundsRecorder {
+        @Override
+        public VertexConsumer vertex(double x, double y, double z) {
+            box.include((float) x, (float) y);
+            return this;
         }
 
-            /**
-             * Records the position of a vertex, already transformed by the pose.
-             *
-             * @param x X.
-             * @param y Y.
-             * @param z Z (unused: the depth does not show on screen).
-             * @return This recorder.
-             */
-            @Override
-            public VertexConsumer vertex(double x, double y, double z) {
-                box.include((float) x, (float) y);
-                return this;
-            }
-
-            /**
-             * Ignores the color.
-             *
-             * @param red   Red.
-             * @param green Green.
-             * @param blue  Blue.
-             * @param alpha Alpha.
-             * @return This recorder.
-             */
-            @Override
-            public VertexConsumer color(int red, int green, int blue, int alpha) {
-                return this;
-            }
-
-            /**
-             * Ignores the texture coordinates.
-             *
-             * @param u U.
-             * @param v V.
-             * @return This recorder.
-             */
-            @Override
-            public VertexConsumer uv(float u, float v) {
-                return this;
-            }
-
-            /**
-             * Ignores the overlay coordinates.
-             *
-             * @param u U.
-             * @param v V.
-             * @return This recorder.
-             */
-            @Override
-            public VertexConsumer overlayCoords(int u, int v) {
-                return this;
-            }
-
-            /**
-             * Ignores the light coordinates.
-             *
-             * @param u U.
-             * @param v V.
-             * @return This recorder.
-             */
-            @Override
-            public VertexConsumer uv2(int u, int v) {
-                return this;
-            }
-
-            /**
-             * Ignores the normal.
-             *
-             * @param x X.
-             * @param y Y.
-             * @param z Z.
-             * @return This recorder.
-             */
-            @Override
-            public VertexConsumer normal(float x, float y, float z) {
-                return this;
-            }
-
-            /**
-             * Ends a vertex; nothing to do.
-             */
-            @Override
-            public void endVertex() {
-            }
-
-            /**
-             * Ignores the default color.
-             *
-             * @param red   Red.
-             * @param green Green.
-             * @param blue  Blue.
-             * @param alpha Alpha.
-             */
-            @Override
-            public void defaultColor(int red, int green, int blue, int alpha) {
-            }
-
-            /**
-             * Ignores the default color.
-             */
-            @Override
-            public void unsetDefaultColor() {
-            }
+        /**
+         * Ignores the color.
+         *
+         * @param red   Red.
+         * @param green Green.
+         * @param blue  Blue.
+         * @param alpha Alpha.
+         * @return This recorder.
+         */
+        @Override
+        public VertexConsumer color(int red, int green, int blue, int alpha) {
+            return this;
         }
+
+        /**
+         * Ignores the texture coordinates.
+         *
+         * @param u U.
+         * @param v V.
+         * @return This recorder.
+         */
+        @Override
+        public VertexConsumer uv(float u, float v) {
+            return this;
+        }
+
+        /**
+         * Ignores the overlay coordinates.
+         *
+         * @param u U.
+         * @param v V.
+         * @return This recorder.
+         */
+        @Override
+        public VertexConsumer overlayCoords(int u, int v) {
+            return this;
+        }
+
+        /**
+         * Ignores the light coordinates.
+         *
+         * @param u U.
+         * @param v V.
+         * @return This recorder.
+         */
+        @Override
+        public VertexConsumer uv2(int u, int v) {
+            return this;
+        }
+
+        /**
+         * Ignores the normal.
+         *
+         * @param x X.
+         * @param y Y.
+         * @param z Z.
+         * @return This recorder.
+         */
+        @Override
+        public VertexConsumer normal(float x, float y, float z) {
+            return this;
+        }
+
+        /**
+         * Ends a vertex; nothing to do.
+         */
+        @Override
+        public void endVertex() {}
+
+        /**
+         * Ignores the default color.
+         *
+         * @param red   Red.
+         * @param green Green.
+         * @param blue  Blue.
+         * @param alpha Alpha.
+         */
+        @Override
+        public void defaultColor(int red, int green, int blue, int alpha) {}
+
+        /**
+         * Ignores the default color.
+         */
+        @Override
+        public void unsetDefaultColor() {}
+    }
 }

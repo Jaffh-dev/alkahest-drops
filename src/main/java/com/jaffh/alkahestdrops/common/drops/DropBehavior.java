@@ -9,9 +9,11 @@ package com.jaffh.alkahestdrops.common.drops;
  * @param incrementValue Items added per successful roll.
  * @param scaleFormula   Settings of the scaled types, {@link ScaleFormula#DEFAULT} for other types. Never null.
  */
-public record DropBehavior(DropBehaviorType type, int rolls, double chancePerRoll, int incrementValue, ScaleFormula scaleFormula) {
+public record DropBehavior(
+        DropBehaviorType type, int rolls, double chancePerRoll, int incrementValue, ScaleFormula scaleFormula) {
     /** The {@code uniform} behavior, which has no roll settings. */
-    public static final DropBehavior UNIFORM = new DropBehavior(DropBehaviorType.UNIFORM, 0, 0.0, 0, ScaleFormula.DEFAULT);
+    public static final DropBehavior UNIFORM =
+            new DropBehavior(DropBehaviorType.UNIFORM, 0, 0.0, 0, ScaleFormula.DEFAULT);
 
     /**
      * Creates a roll-based behavior.
@@ -52,7 +54,6 @@ public record DropBehavior(DropBehaviorType type, int rolls, double chancePerRol
                 bonus.applyToRolls(rolls, level),
                 bonus.applyToChance(chancePerRoll, level),
                 bonus.applyToIncrement(incrementValue, level),
-                scaleFormula
-        );
+                scaleFormula);
     }
 }

@@ -26,8 +26,7 @@ public final class AlkahestDropsLootConditions {
     /**
      * Prevents instantiation of this utility class.
      */
-    private AlkahestDropsLootConditions() {
-    }
+    private AlkahestDropsLootConditions() {}
 
     /**
      * Registers the condition types on the mod bus.

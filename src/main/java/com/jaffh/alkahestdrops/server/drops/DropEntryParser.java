@@ -1,41 +1,41 @@
 package com.jaffh.alkahestdrops.server.drops;
 
-import com.jaffh.alkahestdrops.common.drops.TriggerRules;
 import com.google.gson.JsonElement;
+import com.jaffh.alkahestdrops.api.DropTrigger;
+import com.jaffh.alkahestdrops.common.drops.DropActions;
 import com.jaffh.alkahestdrops.common.drops.DropBehavior;
 import com.jaffh.alkahestdrops.common.drops.DropBehaviorType;
-import com.jaffh.alkahestdrops.common.drops.DropActions;
 import com.jaffh.alkahestdrops.common.drops.DropCount;
 import com.jaffh.alkahestdrops.common.drops.DropEntry;
 import com.jaffh.alkahestdrops.common.drops.DropTracking;
-import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.common.drops.EnchantBonus;
 import com.jaffh.alkahestdrops.common.drops.EnchantBonuses;
 import com.jaffh.alkahestdrops.common.drops.ScaleFormula;
 import com.jaffh.alkahestdrops.common.drops.ScaleFunction;
+import com.jaffh.alkahestdrops.common.drops.TriggerRules;
 import com.jaffh.alkahestdrops.common.drops.TriggerSettings;
 import com.jaffh.alkahestdrops.server.drops.json.CountJson;
 import com.jaffh.alkahestdrops.server.drops.json.DropActionsJson;
 import com.jaffh.alkahestdrops.server.drops.json.DropBehaviorJson;
 import com.jaffh.alkahestdrops.server.drops.json.DropEntryJson;
+import java.util.List;
+import java.util.Locale;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 
-import javax.annotation.Nullable;
-import java.util.List;
-import java.util.Locale;
-import java.util.function.Predicate;
-import java.util.regex.Pattern;
-
 /**
- * Validates one entry of {@code drops} and resolves it into a {@link DropEntry}. {@code item} (or
- * {@code "experience": true}), {@code chance}, {@code count} and {@code drop_behavior} are required; out-of-range
- * values are clamped with a warning when the intent is clear and rejected otherwise. {@code functions} are optional
- * vanilla loot functions; {@code enchant_bonus} lists the bonus of each enchantment; {@code pity}, {@code first_kill} / {@code first_break} and {@code per_player} are
- * optional per-player settings; {@code on} (mob files only) picks the trigger, with {@code interval} for periodic drops
- * and {@code cooldown} for hit drops; {@code on_drop} holds optional actions run when the item spawns.
+ * Validates one entry of {@code drops} and resolves it into a {@link DropEntry}. {@code item} (or {@code "experience":
+ * true}), {@code chance}, {@code count} and {@code drop_behavior} are required; out-of-range values are clamped with a
+ * warning when the intent is clear and rejected otherwise. {@code functions} are optional vanilla loot functions;
+ * {@code enchant_bonus} lists the bonus of each enchantment; {@code pity}, {@code first_kill} / {@code first_break} and
+ * {@code per_player} are optional per-player settings; {@code on} (mob files only) picks the trigger, with {@code
+ * interval} for periodic drops and {@code cooldown} for hit drops; {@code on_drop} holds optional actions run when the
+ * item spawns.
  */
 public final class DropEntryParser {
     /** Characters a drop {@code id} may use, the same as a resource path. */
@@ -111,8 +111,7 @@ public final class DropEntryParser {
                 isExperience ? List.of() : parseFunctions(drop, bonuses, ctx),
                 restrictToTrigger(tracking, trigger.trigger(), ctx),
                 trigger,
-                isExperience ? DropActions.NONE : parseOnDrop(drop.onDrop, ctx.at("on_drop"))
-        );
+                isExperience ? DropActions.NONE : parseOnDrop(drop.onDrop, ctx.at("on_drop")));
     }
 
     /**
@@ -126,8 +125,8 @@ public final class DropEntryParser {
      */
     private DropActions parseOnDrop(@Nullable DropActionsJson json, ParseContext ctx) throws DropDataException {
         if (json == null) return DropActions.NONE;
-        DropActions actions = new DropActions(Boolean.TRUE.equals(json.shouldGlow),
-                parseFunctionId(json.runFunction, ctx.at("run_function")));
+        DropActions actions = new DropActions(
+                Boolean.TRUE.equals(json.shouldGlow), parseFunctionId(json.runFunction, ctx.at("run_function")));
         if (!actions.hasActions()) {
             ctx.warn("no_drop_actions");
             return DropActions.NONE;
@@ -211,7 +210,8 @@ public final class DropEntryParser {
      * @return The settings the trigger keeps.
      * @throws DropDataException If a one-time drop has a trigger without player.
      */
-    private DropTracking restrictToTrigger(DropTracking tracking, DropTrigger trigger, ParseContext ctx) throws DropDataException {
+    private DropTracking restrictToTrigger(DropTracking tracking, DropTrigger trigger, ParseContext ctx)
+            throws DropDataException {
         if (trigger == DropTrigger.DEATH) return tracking;
         boolean isPerPlayer = tracking.isPerPlayer();
         if (isPerPlayer) {
@@ -220,7 +220,8 @@ public final class DropEntryParser {
         }
         int pity = tracking.pity();
         if (!trigger.hasPlayer()) {
-            if (tracking.isFirstDrop()) throw ctx.at(format.firstDropKey()).error("first_drop_without_player", trigger.id());
+            if (tracking.isFirstDrop())
+                throw ctx.at(format.firstDropKey()).error("first_drop_without_player", trigger.id());
             if (pity > 0) ctx.at("pity").warn("pity_without_player", trigger.id());
             pity = 0;
         }
@@ -255,13 +256,15 @@ public final class DropEntryParser {
      * @return The per-player settings.
      * @throws DropDataException If {@code pity} is below 1 or {@code id} is invalid.
      */
-    private DropTracking parseTracking(DropEntryJson drop, boolean isExperience, boolean canMiss, int index, ParseContext ctx)
+    private DropTracking parseTracking(
+            DropEntryJson drop, boolean isExperience, boolean canMiss, int index, ParseContext ctx)
             throws DropDataException {
         String id = parseId(drop.id, ctx.at("id"));
         boolean isFirstDrop = Boolean.TRUE.equals(format.firstDropOf(drop));
         DropFileFormat other = format.other();
         if (other.firstDropOf(drop) != null) {
-            ctx.at(other.firstDropKey()).warn("other_first_drop_key", other.filesName(), format.filesName(), format.firstDropKey());
+            ctx.at(other.firstDropKey())
+                    .warn("other_first_drop_key", other.filesName(), format.filesName(), format.firstDropKey());
         }
         boolean isPerPlayer = Boolean.TRUE.equals(drop.isPerPlayer);
         int pity = 0;
@@ -317,7 +320,8 @@ public final class DropEntryParser {
      * @return The functions in file order, empty when the key is missing.
      * @throws DropDataException If any function is invalid.
      */
-    private List<LootItemFunction> parseFunctions(DropEntryJson drop, EnchantBonuses bonuses, ParseContext ctx) throws DropDataException {
+    private List<LootItemFunction> parseFunctions(DropEntryJson drop, EnchantBonuses bonuses, ParseContext ctx)
+            throws DropDataException {
         List<LootItemFunction> functions = DropValues.parseFunctions(drop.functions, ctx.at("functions"));
         if (!functions.isEmpty()) functionChecker.check(functions, drop.functions, bonuses, ctx);
         return functions;
@@ -332,7 +336,8 @@ public final class DropEntryParser {
      * @return The chance, between 0 and 1.
      * @throws DropDataException If the chance is missing, negative, or 0 without a chance bonus.
      */
-    private static double parseChance(@Nullable Double chance, EnchantBonuses bonuses, ParseContext ctx) throws DropDataException {
+    private static double parseChance(@Nullable Double chance, EnchantBonuses bonuses, ParseContext ctx)
+            throws DropDataException {
         double value = ctx.require(chance);
         ctx.requireAtLeast(value, 0.0);
         if (value == 0 && !bonuses.hasChanceBonus()) {
@@ -352,7 +357,8 @@ public final class DropEntryParser {
      * @throws DropDataException If a key is missing, {@code min} is negative or above {@code max},
      *                           or the range is 0–0 without bonuses raising both ends.
      */
-    private DropCount parseCount(@Nullable CountJson count, EnchantBonuses bonuses, ParseContext ctx) throws DropDataException {
+    private DropCount parseCount(@Nullable CountJson count, EnchantBonuses bonuses, ParseContext ctx)
+            throws DropDataException {
         CountJson json = ctx.require(count);
         ParseContext minCtx = ctx.at("min");
         ParseContext maxCtx = ctx.at("max");
@@ -373,8 +379,10 @@ public final class DropEntryParser {
      * @return True when some entry raises the min and some entry raises the max.
      */
     private static boolean raisesBothCountEnds(EnchantBonuses bonuses) {
-        boolean raisesMin = bonuses.entries().stream().anyMatch(entry -> entry.bonus().count().bonusMinPerLevel() > 0);
-        boolean raisesMax = bonuses.entries().stream().anyMatch(entry -> entry.bonus().count().bonusMaxPerLevel() > 0);
+        boolean raisesMin = bonuses.entries().stream()
+                .anyMatch(entry -> entry.bonus().count().bonusMinPerLevel() > 0);
+        boolean raisesMax = bonuses.entries().stream()
+                .anyMatch(entry -> entry.bonus().count().bonusMaxPerLevel() > 0);
         return raisesMin && raisesMax;
     }
 
@@ -403,17 +411,22 @@ public final class DropEntryParser {
      * @throws DropDataException If the behavior, its type or a roll setting is missing or invalid, or the type does
      *                           not fit the file format or trigger.
      */
-    private DropBehavior parseBehavior(@Nullable DropBehaviorJson behavior, EnchantBonuses bonuses,
-                                       DropTrigger trigger, ParseContext ctx) throws DropDataException {
+    private DropBehavior parseBehavior(
+            @Nullable DropBehaviorJson behavior, EnchantBonuses bonuses, DropTrigger trigger, ParseContext ctx)
+            throws DropDataException {
         DropBehaviorJson json = ctx.require(behavior);
         ParseContext typeCtx = ctx.at("type");
         String typeId = typeCtx.require(json.type);
-        DropBehaviorType type = DropBehaviorType.fromId(typeId)
-                .orElseThrow(() -> typeCtx.error("unknown_type", typeId));
+        DropBehaviorType type =
+                DropBehaviorType.fromId(typeId).orElseThrow(() -> typeCtx.error("unknown_type", typeId));
 
         if (type.isScaled()) {
             if (!format.allowsScaleType(type)) {
-                throw typeCtx.error("wrong_scale_type", typeId, format.other().filesName(), format.filesName(),
+                throw typeCtx.error(
+                        "wrong_scale_type",
+                        typeId,
+                        format.other().filesName(),
+                        format.filesName(),
                         format.scaleTypeNames());
             }
             if (type.readsDamageTaken() && trigger != DropTrigger.HIT) {
@@ -432,9 +445,14 @@ public final class DropEntryParser {
         return DropBehavior.ofRolls(
                 type,
                 parseRolls(json.rolls, hasRollBonus(bonuses, roll -> roll.bonusRollsPerLevel() > 0), ctx.at("rolls")),
-                parseChancePerRoll(json.chancePerRoll, hasRollBonus(bonuses, roll -> roll.bonusRollChancePerLevel() > 0), ctx.at("chance_per_roll")),
-                parseIncrement(json.incrementValue, hasRollBonus(bonuses, roll -> roll.bonusIncrementPerLevel() > 0), ctx.at("increment_value"))
-        );
+                parseChancePerRoll(
+                        json.chancePerRoll,
+                        hasRollBonus(bonuses, roll -> roll.bonusRollChancePerLevel() > 0),
+                        ctx.at("chance_per_roll")),
+                parseIncrement(
+                        json.incrementValue,
+                        hasRollBonus(bonuses, roll -> roll.bonusIncrementPerLevel() > 0),
+                        ctx.at("increment_value")));
     }
 
     /**
@@ -445,7 +463,8 @@ public final class DropEntryParser {
      * @return True when an entry matches.
      */
     private static boolean hasRollBonus(EnchantBonuses bonuses, Predicate<EnchantBonus.RollBonus> kind) {
-        return bonuses.entries().stream().anyMatch(entry -> kind.test(entry.bonus().roll()));
+        return bonuses.entries().stream()
+                .anyMatch(entry -> kind.test(entry.bonus().roll()));
     }
 
     /**
@@ -528,7 +547,8 @@ public final class DropEntryParser {
      * @return The roll chance, between 0 and 1.
      * @throws DropDataException If the value is missing, negative, or 0 without a roll chance bonus.
      */
-    private double parseChancePerRoll(@Nullable Double chance, boolean hasRollChanceBonus, ParseContext ctx) throws DropDataException {
+    private double parseChancePerRoll(@Nullable Double chance, boolean hasRollChanceBonus, ParseContext ctx)
+            throws DropDataException {
         double value = ctx.require(chance);
         ctx.requireAtLeast(value, 0.0);
         if (value == 0 && !hasRollChanceBonus) {
@@ -547,7 +567,8 @@ public final class DropEntryParser {
      * @return The items added per successful roll.
      * @throws DropDataException If the value is missing or negative.
      */
-    private int parseIncrement(@Nullable Integer increment, boolean hasIncrementBonus, ParseContext ctx) throws DropDataException {
+    private int parseIncrement(@Nullable Integer increment, boolean hasIncrementBonus, ParseContext ctx)
+            throws DropDataException {
         int value = ctx.require(increment);
         ctx.requireAtLeast(value, 0);
         if (value == 0 && !hasIncrementBonus) {

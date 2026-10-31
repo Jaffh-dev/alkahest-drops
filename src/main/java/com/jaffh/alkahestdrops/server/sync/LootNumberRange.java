@@ -29,7 +29,8 @@ record LootNumberRange(double min, double max, double mean, boolean isUniform) {
      * @return The range.
      */
     static LootNumberRange of(JsonElement element, double fallback) {
-        if (element instanceof JsonPrimitive primitive && primitive.isNumber()) return constant(primitive.getAsDouble());
+        if (element instanceof JsonPrimitive primitive && primitive.isNumber())
+            return constant(primitive.getAsDouble());
         if (element == null || !element.isJsonObject()) return constant(fallback);
         JsonObject object = element.getAsJsonObject();
         ResourceLocation type = LootJson.id(object, "type");

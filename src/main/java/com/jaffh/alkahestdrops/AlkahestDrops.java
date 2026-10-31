@@ -27,6 +27,7 @@ public class AlkahestDrops {
         IEventBus modEventBus = context.getModEventBus();
         AlkahestDropsCommonEvents.register(context, modEventBus, ID);
         AlkahestDropsServerEvents.register(modEventBus, MinecraftForge.EVENT_BUS);
-        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> AlkahestDropsClientEvents.register(modEventBus, MinecraftForge.EVENT_BUS));
+        DistExecutor.unsafeRunWhenOn(
+                Dist.CLIENT, () -> () -> AlkahestDropsClientEvents.register(modEventBus, MinecraftForge.EVENT_BUS));
     }
 }

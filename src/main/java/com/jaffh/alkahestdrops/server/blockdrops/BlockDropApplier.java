@@ -4,15 +4,14 @@ import com.jaffh.alkahestdrops.api.DropOrigin;
 import com.jaffh.alkahestdrops.server.drops.DropTable;
 import com.jaffh.alkahestdrops.server.drops.EnchantLevels;
 import com.jaffh.alkahestdrops.server.drops.RollContext;
+import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.Vec3;
-
-import java.util.List;
 
 /**
  * Applies a block's drop table to its drops, shared by the loot modifier, the fallback for blocks without a
@@ -23,8 +22,7 @@ final class BlockDropApplier {
     /**
      * Prevents instantiation of this utility class.
      */
-    private BlockDropApplier() {
-    }
+    private BlockDropApplier() {}
 
     /**
      * Removes drops named by removal files, then rolls and adds drop file drops. Conditions are tested against the
@@ -51,11 +49,14 @@ final class BlockDropApplier {
     static RollContext rollContextOf(LootContext context) {
         ItemStack tool = context.getParamOrNull(LootContextParams.TOOL);
         EnchantLevels levels = tool != null ? EnchantLevels.ofItem(tool) : EnchantLevels.NONE;
-        Player player = context.getParamOrNull(LootContextParams.THIS_ENTITY) instanceof Player breaker ? breaker : null;
+        Player player =
+                context.getParamOrNull(LootContextParams.THIS_ENTITY) instanceof Player breaker ? breaker : null;
         RollContext roll = new RollContext(levels, hardnessOf(context), context.getRandom(), player);
         BlockState state = context.getParamOrNull(LootContextParams.BLOCK_STATE);
         Vec3 origin = context.getParamOrNull(LootContextParams.ORIGIN);
-        return state != null && origin != null ? roll.withOrigin(new DropOrigin.Block(state, BlockPos.containing(origin))) : roll;
+        return state != null && origin != null
+                ? roll.withOrigin(new DropOrigin.Block(state, BlockPos.containing(origin)))
+                : roll;
     }
 
     /**

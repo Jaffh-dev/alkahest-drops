@@ -3,6 +3,9 @@ package com.jaffh.alkahestdrops.server.drops;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.jaffh.alkahestdrops.common.drops.EnchantBonuses;
+import java.util.List;
+import java.util.Map;
+import javax.annotation.Nullable;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.item.enchantment.Enchantment;
@@ -20,10 +23,6 @@ import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraft.world.level.storage.loot.predicates.LootItemRandomChanceCondition;
 import net.minecraftforge.registries.ForgeRegistries;
 
-import javax.annotation.Nullable;
-import java.util.List;
-import java.util.Map;
-
 /**
  * Warns about loot functions of a drop that load but would not do what the file author expects: functions that
  * read loot parameters the format never provides, {@code set_count} replacing the rolled count, and vanilla
@@ -31,14 +30,16 @@ import java.util.Map;
  */
 public final class LootFunctionChecker {
     /** Stands in for the condition of a {@code reference} condition during validation. */
-    private static final LootItemCondition ANY_REFERENCED_CONDITION = LootItemRandomChanceCondition.randomChance(1.0F).build();
+    private static final LootItemCondition ANY_REFERENCED_CONDITION =
+            LootItemRandomChanceCondition.randomChance(1.0F).build();
 
     /** Stands in for the item modifier of a {@code reference} function during validation. */
-    private static final LootItemFunction ANY_REFERENCED_FUNCTION = LootDataManager.createComposite(new LootItemFunction[0]);
+    private static final LootItemFunction ANY_REFERENCED_FUNCTION =
+            LootDataManager.createComposite(new LootItemFunction[0]);
 
     /**
-     * Resolves {@code reference} conditions and functions and {@code set_loot_table} tables during validation. They
-     * are resolved by vanilla when the drop happens and cannot be looked up while Alkahest Drops files load, so they are
+     * Resolves {@code reference} conditions and functions and {@code set_loot_table} tables during validation. They are
+     * resolved by vanilla when the drop happens and cannot be looked up while Alkahest Drops files load, so they are
      * not reported as unknown.
      */
     private static final LootDataResolver REFERENCE_STAND_INS = new LootDataResolver() {
@@ -107,7 +108,8 @@ public final class LootFunctionChecker {
     private static Enchantment bonusEnchantmentOf(LootItemFunctionType type, JsonElement json) {
         if (type == LootItemFunctions.LOOTING_ENCHANT) return Enchantments.MOB_LOOTING;
         if (type != LootItemFunctions.APPLY_BONUS || !json.isJsonObject()) return null;
-        ResourceLocation id = ResourceLocation.tryParse(GsonHelper.getAsString(json.getAsJsonObject(), "enchantment", ""));
+        ResourceLocation id =
+                ResourceLocation.tryParse(GsonHelper.getAsString(json.getAsJsonObject(), "enchantment", ""));
         return id != null ? ForgeRegistries.ENCHANTMENTS.getValue(id) : null;
     }
 

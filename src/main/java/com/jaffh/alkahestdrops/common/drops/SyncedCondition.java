@@ -1,8 +1,7 @@
 package com.jaffh.alkahestdrops.common.drops;
 
-import net.minecraft.resources.ResourceLocation;
-
 import java.util.List;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * Represents one loot condition of a drop that clients can describe, such as "Killed by player" or "Requires Silk

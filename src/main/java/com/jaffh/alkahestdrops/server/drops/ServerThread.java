@@ -1,9 +1,8 @@
 package com.jaffh.alkahestdrops.server.drops;
 
+import javax.annotation.Nullable;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.server.ServerLifecycleHooks;
-
-import javax.annotation.Nullable;
 
 /**
  * Guards the public API calls that read or change server state, which only the server thread may touch.
@@ -13,8 +12,7 @@ public final class ServerThread {
     /**
      * Prevents instantiation of this utility class.
      */
-    private ServerThread() {
-    }
+    private ServerThread() {}
 
     /**
      * Returns the running server, checking that the caller is on its thread.

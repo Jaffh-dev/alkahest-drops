@@ -3,10 +3,18 @@ package com.jaffh.alkahestdrops.server.drops;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.common.AlkahestDropsConfig;
 import com.jaffh.alkahestdrops.common.drops.DropEntry;
-import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.mojang.logging.LogUtils;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Predicate;
+import javax.annotation.Nullable;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.ServerFunctionLibrary;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -15,15 +23,6 @@ import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraftforge.event.TagsUpdatedEvent;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
 import org.slf4j.Logger;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Predicate;
 
 /**
  * Datapack reload listener shared by the drop modules. Reads drop and removal files of one folder into an
@@ -34,7 +33,8 @@ import java.util.function.Predicate;
  */
 public abstract class DropManager<T> extends SimpleJsonResourceReloadListener {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+    private static final Gson GSON =
+            new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 
     private final String folder;
     private final DropFileFormat format;
@@ -228,7 +228,8 @@ public abstract class DropManager<T> extends SimpleJsonResourceReloadListener {
      * @param profiler        Reload profiler.
      */
     @Override
-    protected void apply(Map<ResourceLocation, JsonElement> resources, ResourceManager resourceManager, ProfilerFiller profiler) {
+    protected void apply(
+            Map<ResourceLocation, JsonElement> resources, ResourceManager resourceManager, ProfilerFiller profiler) {
         if (!AlkahestDropsConfig.SPEC.isLoaded()) {
             pendingFiles = Map.copyOf(resources);
             rules = DropRuleSet.empty(matcher);
@@ -251,8 +252,8 @@ public abstract class DropManager<T> extends SimpleJsonResourceReloadListener {
      * @param ctx    Context of the target key. Never null.
      * @throws DropDataException If the module rejects the target.
      */
-    protected void checkTarget(ParsedDropFile parsed, TargetMatcher.Target<T> target, ParseContext ctx) throws DropDataException {
-    }
+    protected void checkTarget(ParsedDropFile parsed, TargetMatcher.Target<T> target, ParseContext ctx)
+            throws DropDataException {}
 
     /**
      * Parses every file, indexes them by target and swaps in the new rule set with the problems found.
@@ -272,7 +273,8 @@ public abstract class DropManager<T> extends SimpleJsonResourceReloadListener {
         int removalFileCount = 0;
 
         for (Map.Entry<ResourceLocation, JsonElement> entry : resources.entrySet()) {
-            ParsedDropFile parsed = parser.parse(entry.getKey(), entry.getValue()).orElse(null);
+            ParsedDropFile parsed =
+                    parser.parse(entry.getKey(), entry.getValue()).orElse(null);
             TargetMatcher.Target<T> target = parsed != null ? addFile(parsed, builder, log) : null;
             if (target == null) {
                 skippedFileIds.add(entry.getKey());
@@ -293,9 +295,14 @@ public abstract class DropManager<T> extends SimpleJsonResourceReloadListener {
         fileTargets = Map.copyOf(targets);
         indexProgressKeys(loadedFiles, skippedFileIds);
         isLoaded = true;
-        LOGGER.info("[alkahestdrops] Loaded {} {} drops from {} drop files and {} removal files ({} errors, {} warnings).",
-                dropCount, kind, dropFileCount, removalFileCount,
-                log.count(DropIssue.Severity.ERROR), log.count(DropIssue.Severity.WARNING));
+        LOGGER.info(
+                "[alkahestdrops] Loaded {} {} drops from {} drop files and {} removal files ({} errors, {} warnings).",
+                dropCount,
+                kind,
+                dropFileCount,
+                removalFileCount,
+                log.count(DropIssue.Severity.ERROR),
+                log.count(DropIssue.Severity.WARNING));
     }
 
     /**

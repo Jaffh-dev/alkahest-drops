@@ -5,10 +5,9 @@ import com.jaffh.alkahestdrops.server.drops.DropIssue;
 import com.jaffh.alkahestdrops.server.drops.DropManager;
 import com.jaffh.alkahestdrops.server.drops.DropTable;
 import com.jaffh.alkahestdrops.server.drops.TargetMatcher;
+import java.util.List;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
-
-import java.util.List;
 
 /**
  * Datapack reload listener for {@code data/<namespace>/block_drops/*.json}, with rules indexed by block.
@@ -21,8 +20,13 @@ public final class BlockDropManager extends DropManager<Block> {
      * Creates the listener for the {@code block_drops} datapack folder. Every block may match a pattern.
      */
     private BlockDropManager() {
-        super("block_drops", DropFileFormat.BLOCK,
-                new TargetMatcher<>(ForgeRegistries.BLOCKS, (block, tag) -> block.builtInRegistryHolder().is(tag), block -> true),
+        super(
+                "block_drops",
+                DropFileFormat.BLOCK,
+                new TargetMatcher<>(
+                        ForgeRegistries.BLOCKS,
+                        (block, tag) -> block.builtInRegistryHolder().is(tag),
+                        block -> true),
                 "block");
     }
 

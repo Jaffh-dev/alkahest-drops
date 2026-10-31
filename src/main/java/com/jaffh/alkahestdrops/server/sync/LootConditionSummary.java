@@ -3,12 +3,11 @@ package com.jaffh.alkahestdrops.server.sync;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.jaffh.alkahestdrops.common.drops.EnchantBonus;
-import net.minecraft.resources.ResourceLocation;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * Summarizes the loot conditions of a pool or entry: random chances become a chance factor and an enchantment bonus,
@@ -19,15 +18,18 @@ import java.util.Map;
  *                chance it can add, both before the other factors. Immutable, never null.
  * @param others  Conditions that are not random chances, in order. Immutable, never null.
  */
-record LootConditionSummary(double factor, Map<ResourceLocation, EnchantBonus.ChanceBonus> bonuses, List<JsonElement> others) {
+record LootConditionSummary(
+        double factor, Map<ResourceLocation, EnchantBonus.ChanceBonus> bonuses, List<JsonElement> others) {
     /** No conditions. */
     static final LootConditionSummary NONE = new LootConditionSummary(1.0, Map.of(), List.of());
 
     private static final ResourceLocation RANDOM_CHANCE = new ResourceLocation("random_chance");
-    private static final ResourceLocation RANDOM_CHANCE_WITH_LOOTING = new ResourceLocation("random_chance_with_looting");
+    private static final ResourceLocation RANDOM_CHANCE_WITH_LOOTING =
+            new ResourceLocation("random_chance_with_looting");
     private static final ResourceLocation TABLE_BONUS = new ResourceLocation("table_bonus");
     /** Passes on every player break; vanilla puts it on nearly every block table, so listing it is noise. */
     private static final ResourceLocation SURVIVES_EXPLOSION = new ResourceLocation("survives_explosion");
+
     private static final ResourceLocation LOOTING = new ResourceLocation("looting");
 
     /**
@@ -75,11 +77,18 @@ record LootConditionSummary(double factor, Map<ResourceLocation, EnchantBonus.Ch
      * @param perLevel    Chance added per level.
      * @param cap         Highest chance it can add.
      */
-    private static void addBonus(Map<ResourceLocation, EnchantBonus.ChanceBonus> bonuses, ResourceLocation enchantment,
-                                 double perLevel, double cap) {
+    private static void addBonus(
+            Map<ResourceLocation, EnchantBonus.ChanceBonus> bonuses,
+            ResourceLocation enchantment,
+            double perLevel,
+            double cap) {
         if (perLevel <= 0) return;
-        bonuses.merge(enchantment, new EnchantBonus.ChanceBonus(perLevel, cap), (first, second) -> new EnchantBonus.ChanceBonus(
-                first.bonusPerLevel() + second.bonusPerLevel(), Math.min(1.0, first.maxBonus() + second.maxBonus())));
+        bonuses.merge(
+                enchantment,
+                new EnchantBonus.ChanceBonus(perLevel, cap),
+                (first, second) -> new EnchantBonus.ChanceBonus(
+                        first.bonusPerLevel() + second.bonusPerLevel(),
+                        Math.min(1.0, first.maxBonus() + second.maxBonus())));
     }
 
     /**
@@ -92,7 +101,8 @@ record LootConditionSummary(double factor, Map<ResourceLocation, EnchantBonus.Ch
         List<JsonElement> merged = new ArrayList<>(others);
         merged.addAll(other.others);
         Map<ResourceLocation, EnchantBonus.ChanceBonus> mergedBonuses = new LinkedHashMap<>(bonuses);
-        other.bonuses.forEach((enchantment, bonus) -> addBonus(mergedBonuses, enchantment, bonus.bonusPerLevel(), bonus.maxBonus()));
+        other.bonuses.forEach(
+                (enchantment, bonus) -> addBonus(mergedBonuses, enchantment, bonus.bonusPerLevel(), bonus.maxBonus()));
         return new LootConditionSummary(factor * other.factor, Map.copyOf(mergedBonuses), List.copyOf(merged));
     }
 }

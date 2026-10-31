@@ -4,14 +4,13 @@ import com.jaffh.alkahestdrops.client.drops.ClientDropRules;
 import com.jaffh.alkahestdrops.common.drops.SyncedDropRules;
 import com.jaffh.alkahestdrops.common.drops.SyncedTarget;
 import io.netty.buffer.Unpooled;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Supplier;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Supplier;
 
 /**
  * Server-to-client message carrying one batch of the drop summary, sent on login and after every reload so recipe
@@ -157,8 +156,9 @@ public record DropRulesSyncPacket(int batch, int batchCount, SyncedDropRules rul
      * @param context Network context of the message. Never null.
      */
     public static void handle(DropRulesSyncPacket packet, Supplier<NetworkEvent.Context> context) {
-        context.get().enqueueWork(() ->
-                DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientDropRules.receive(packet)));
+        context.get()
+                .enqueueWork(
+                        () -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientDropRules.receive(packet)));
         context.get().setPacketHandled(true);
     }
 }

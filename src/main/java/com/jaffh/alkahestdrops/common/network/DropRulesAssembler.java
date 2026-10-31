@@ -2,10 +2,9 @@ package com.jaffh.alkahestdrops.common.network;
 
 import com.jaffh.alkahestdrops.common.drops.SyncedDropRules;
 import com.jaffh.alkahestdrops.common.drops.SyncedTarget;
-
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import javax.annotation.Nullable;
 
 /**
  * Joins the batches of one drop summary back together. A batch 0 always starts a new summary, so a summary cut short

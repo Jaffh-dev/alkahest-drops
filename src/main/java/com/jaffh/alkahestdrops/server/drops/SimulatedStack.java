@@ -1,9 +1,8 @@
 package com.jaffh.alkahestdrops.server.drops;
 
 import com.jaffh.alkahestdrops.common.drops.DropTracking;
-import net.minecraft.world.item.ItemStack;
-
 import javax.annotation.Nullable;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * Represents one stack of a simulated roll and the pity or one-time drop it came from.
@@ -11,5 +10,4 @@ import javax.annotation.Nullable;
  * @param stack    Dropped stack. Never null.
  * @param tracking Settings of the pity or one-time drop that rolled the stack, or null for any other drop.
  */
-public record SimulatedStack(ItemStack stack, @Nullable DropTracking tracking) {
-}
+public record SimulatedStack(ItemStack stack, @Nullable DropTracking tracking) {}

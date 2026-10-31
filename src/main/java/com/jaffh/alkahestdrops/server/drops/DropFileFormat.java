@@ -3,16 +3,15 @@ package com.jaffh.alkahestdrops.server.drops;
 import com.jaffh.alkahestdrops.common.drops.DropBehaviorType;
 import com.jaffh.alkahestdrops.server.drops.json.DropEntryJson;
 import com.jaffh.alkahestdrops.server.drops.json.DropFileJson;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParamSet;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
-
-import javax.annotation.Nullable;
 import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSet;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 
 /**
  * Defines the keys that differ between mob drop files and block drop files, so one parser reads both.
@@ -208,7 +207,9 @@ public enum DropFileFormat {
      * @return Such as {@code 'max_health', 'damage_taken'}.
      */
     public String scaleTypeNames() {
-        return scaleTypes.stream().sorted().map(type -> "'" + type.name().toLowerCase(Locale.ROOT) + "'")
+        return scaleTypes.stream()
+                .sorted()
+                .map(type -> "'" + type.name().toLowerCase(Locale.ROOT) + "'")
                 .collect(Collectors.joining(", "));
     }
 

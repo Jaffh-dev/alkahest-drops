@@ -16,8 +16,7 @@ public final class ClientDropRules {
     /**
      * Prevents instantiation of this holder class.
      */
-    private ClientDropRules() {
-    }
+    private ClientDropRules() {}
 
     /**
      * Returns the summary of the connected server.
@@ -39,7 +38,8 @@ public final class ClientDropRules {
     }
 
     /**
-     * Forgets the summary when the player leaves, so a server without Alkahest Drops never shows the last server's drops.
+     * Forgets the summary when the player leaves, so a server without Alkahest Drops never shows the last server's
+     * drops.
      *
      * @param event Logout event of the Forge bus.
      */

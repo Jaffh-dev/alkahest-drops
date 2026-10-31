@@ -3,6 +3,8 @@ package com.jaffh.alkahestdrops.gametest;
 import com.jaffh.alkahestdrops.server.drops.DropIssue;
 import com.jaffh.alkahestdrops.server.drops.SimulatedPlayer;
 import com.mojang.authlib.GameProfile;
+import java.util.List;
+import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -11,9 +13,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
@@ -25,9 +27,6 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.registries.ForgeRegistries;
-
-import java.util.List;
-import java.util.UUID;
 
 /**
  * Spawns, kills, breaks and inspects mobs and blocks inside the {@code arena} template for the
@@ -45,8 +44,7 @@ final class DropTestKit {
     /**
      * Prevents instantiation of this utility class.
      */
-    private DropTestKit() {
-    }
+    private DropTestKit() {}
 
     /**
      * Spawns a mob without AI at the arena center.
@@ -175,7 +173,8 @@ final class DropTestKit {
     static void explodeBlock(GameTestHelper helper, Block block) {
         helper.setBlock(CENTER, block);
         Vec3 center = Vec3.atCenterOf(helper.absolutePos(CENTER));
-        helper.getLevel().explode(null, center.x, center.y, center.z, SMALL_EXPLOSION_POWER, Level.ExplosionInteraction.BLOCK);
+        helper.getLevel()
+                .explode(null, center.x, center.y, center.z, SMALL_EXPLOSION_POWER, Level.ExplosionInteraction.BLOCK);
     }
 
     /**
@@ -212,7 +211,8 @@ final class DropTestKit {
      * @return The item entities, in no particular order.
      */
     static List<ItemEntity> droppedItems(GameTestHelper helper, Item item) {
-        return helper.getLevel().getEntitiesOfClass(ItemEntity.class, arenaBounds(helper), entity -> entity.getItem().is(item));
+        return helper.getLevel().getEntitiesOfClass(ItemEntity.class, arenaBounds(helper), entity -> entity.getItem()
+                .is(item));
     }
 
     /**
@@ -222,7 +222,9 @@ final class DropTestKit {
      * @return The number of item entities.
      */
     static int countItemEntities(GameTestHelper helper) {
-        return helper.getLevel().getEntitiesOfClass(ItemEntity.class, arenaBounds(helper)).size();
+        return helper.getLevel()
+                .getEntitiesOfClass(ItemEntity.class, arenaBounds(helper))
+                .size();
     }
 
     /**
@@ -232,7 +234,9 @@ final class DropTestKit {
      * @return The number of orbs.
      */
     static int countExperienceOrbs(GameTestHelper helper) {
-        return helper.getLevel().getEntities(EntityType.EXPERIENCE_ORB, arenaBounds(helper), orb -> true).size();
+        return helper.getLevel()
+                .getEntities(EntityType.EXPERIENCE_ORB, arenaBounds(helper), orb -> true)
+                .size();
     }
 
     /**
@@ -274,7 +278,8 @@ final class DropTestKit {
     static void assertItemCount(GameTestHelper helper, Item item, int expected) {
         int actual = countItems(helper, item);
         if (actual != expected) {
-            throw new GameTestAssertException("expected " + expected + " " + ForgeRegistries.ITEMS.getKey(item) + ", got " + actual);
+            throw new GameTestAssertException(
+                    "expected " + expected + " " + ForgeRegistries.ITEMS.getKey(item) + ", got " + actual);
         }
     }
 
@@ -290,8 +295,9 @@ final class DropTestKit {
      */
     static void assertIssue(List<DropIssue> issues, String file, String field, DropIssue.Severity severity) {
         ResourceLocation fileId = ResourceLocation.tryParse("dstest_c:" + file);
-        boolean isReported = issues.stream().anyMatch(issue -> issue.fileId().equals(fileId)
-                && issue.field().equals(field) && issue.severity() == severity);
+        boolean isReported = issues.stream()
+                .anyMatch(issue ->
+                        issue.fileId().equals(fileId) && issue.field().equals(field) && issue.severity() == severity);
         check(isReported, "missing " + severity + " for " + fileId + " at '" + field + "'");
     }
 

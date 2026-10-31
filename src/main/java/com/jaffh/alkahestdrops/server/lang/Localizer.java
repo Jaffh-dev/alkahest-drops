@@ -5,16 +5,6 @@ import com.google.gson.JsonParseException;
 import com.google.gson.reflect.TypeToken;
 import com.jaffh.alkahestdrops.AlkahestDrops;
 import com.mojang.logging.LogUtils;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.Style;
-import net.minecraft.network.chat.contents.TranslatableContents;
-import net.minecraft.server.level.ServerPlayer;
-import org.slf4j.Logger;
-
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -26,6 +16,15 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.contents.TranslatableContents;
+import net.minecraft.server.level.ServerPlayer;
+import org.slf4j.Logger;
 
 /**
  * Translates the mod's own text into one language on the server, from the lang files inside the mod jar.
@@ -40,6 +39,7 @@ public final class Localizer {
     private static final Pattern LANGUAGE_CODE = Pattern.compile("[a-z0-9_]{1,16}");
     /** Same placeholders vanilla accepts: {@code %s}, {@code %1$s} and {@code %%}. */
     private static final Pattern PLACEHOLDER = Pattern.compile("%(?:(\\d+)\\$)?([A-Za-z%]|$)");
+
     private static final Localizer ENGLISH = new Localizer(readTable(ENGLISH_CODE));
     /** Localizer of every language asked for, by language code; languages without a lang file map to English. */
     private static final Map<String, Localizer> BY_LANGUAGE = new ConcurrentHashMap<>();
@@ -122,7 +122,7 @@ public final class Localizer {
      */
     public MutableComponent localize(Component component) {
         MutableComponent result = component.getContents() instanceof TranslatableContents translatable
-                && table.containsKey(translatable.getKey())
+                        && table.containsKey(translatable.getKey())
                 ? fill(table.get(translatable.getKey()), translatable.getArgs())
                 : MutableComponent.create(component.getContents());
         result.setStyle(localizeHover(component.getStyle()));
@@ -173,7 +173,8 @@ public final class Localizer {
                 result.append("%");
             } else if (type.equals("s")) {
                 int index = matcher.group(1) != null ? Integer.parseInt(matcher.group(1)) - 1 : nextArgument++;
-                result.append(index >= 0 && index < args.length ? argument(args[index]) : Component.literal(matcher.group()));
+                result.append(
+                        index >= 0 && index < args.length ? argument(args[index]) : Component.literal(matcher.group()));
             } else {
                 result.append(matcher.group());
             }
@@ -204,7 +205,7 @@ public final class Localizer {
         try (InputStream stream = Localizer.class.getClassLoader().getResourceAsStream(path)) {
             if (stream == null) return Map.of();
             try (Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
-                Map<String, String> table = GSON.fromJson(reader, new TypeToken<Map<String, String>>() { }.getType());
+                Map<String, String> table = GSON.fromJson(reader, new TypeToken<Map<String, String>>() {}.getType());
                 return table == null ? Map.of() : Map.copyOf(table);
             }
         } catch (IOException | JsonParseException e) {

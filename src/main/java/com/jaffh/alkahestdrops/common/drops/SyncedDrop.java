@@ -1,9 +1,8 @@
 package com.jaffh.alkahestdrops.common.drops;
 
-import net.minecraft.world.item.ItemStack;
-
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * Represents what a client needs to show one drop of a target, such as in JEI. Chances of loot table drops are
@@ -34,8 +33,7 @@ public record SyncedDrop(
         List<SyncedCondition> conditions,
         boolean hasHiddenConditions,
         SyncedDropSource source,
-        TriggerSettings trigger
-) {
+        TriggerSettings trigger) {
     /** Settings of a drop that is not a drop file drop: no pity, no one-time or per-player roll. */
     public static final DropTracking UNTRACKED = new DropTracking("", 0, false, false);
 
@@ -75,7 +73,16 @@ public record SyncedDrop(
         if (added.isEmpty() && !isHidden) return this;
         List<SyncedCondition> merged = new ArrayList<>(conditions);
         merged.addAll(added);
-        return new SyncedDrop(stack, chance, count, behavior, enchantBonuses, tracking, merged,
-                hasHiddenConditions || isHidden, source, trigger);
+        return new SyncedDrop(
+                stack,
+                chance,
+                count,
+                behavior,
+                enchantBonuses,
+                tracking,
+                merged,
+                hasHiddenConditions || isHidden,
+                source,
+                trigger);
     }
 }

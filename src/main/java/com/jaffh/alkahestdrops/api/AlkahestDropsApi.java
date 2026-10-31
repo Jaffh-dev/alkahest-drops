@@ -20,8 +20,7 @@ public final class AlkahestDropsApi {
     /**
      * Prevents instantiation of this utility class.
      */
-    private AlkahestDropsApi() {
-    }
+    private AlkahestDropsApi() {}
 
     /**
      * Returns what Alkahest Drops does to the drops of a mob for one trigger: drop files that name it by id, tag,

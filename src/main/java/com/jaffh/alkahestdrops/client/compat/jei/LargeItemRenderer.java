@@ -1,5 +1,7 @@
 package com.jaffh.alkahestdrops.client.compat.jei;
 
+import java.util.List;
+import javax.annotation.Nullable;
 import mezz.jei.api.ingredients.IIngredientRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -8,9 +10,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 
-import javax.annotation.Nullable;
-import java.util.List;
-
 /**
  * Draws an item stack at twice the normal size, for the block card of the block drop category. JEI sizes the slot
  * (hover area and highlight) from this renderer.
@@ -18,6 +17,7 @@ import java.util.List;
 final class LargeItemRenderer implements IIngredientRenderer<ItemStack> {
     /** Width and height of the drawn item. */
     static final int SIZE = 32;
+
     private static final float SCALE = SIZE / 16.0F;
 
     /**

@@ -42,7 +42,9 @@ public class LangGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void translatesNestedArguments(GameTestHelper helper) {
         Component issue = DropIssue.text("per_player_unused", DropFileFormat.BLOCK.filesName());
-        expect(Localizer.of("pt_br").text(issue), "não tem efeito em arquivos de drops de blocos; só quem quebra recebe o drop");
+        expect(
+                Localizer.of("pt_br").text(issue),
+                "não tem efeito em arquivos de drops de blocos; só quem quebra recebe o drop");
         helper.succeed();
     }
 
@@ -54,7 +56,8 @@ public class LangGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void translatesHoverText(GameTestHelper helper) {
         Component hint = Localizer.translatable("command." + AlkahestDrops.ID + ".page.show", 2);
-        Component arrow = Component.literal("[>]").withStyle(Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hint)));
+        Component arrow = Component.literal("[>]")
+                .withStyle(Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hint)));
         HoverEvent hover = Localizer.of("pt_br").localize(arrow).getStyle().getHoverEvent();
         DropTestKit.check(hover != null, "hover text was dropped");
         expect(hover.getValue(HoverEvent.Action.SHOW_TEXT).getString(), "Mostrar página 2");

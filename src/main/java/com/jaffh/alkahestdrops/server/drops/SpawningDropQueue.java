@@ -1,11 +1,10 @@
 package com.jaffh.alkahestdrops.server.drops;
 
 import com.jaffh.alkahestdrops.common.drops.DropEntry;
-import net.minecraft.world.item.ItemStack;
-
-import javax.annotation.Nullable;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import javax.annotation.Nullable;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * Remembers the drop file stacks rolled this tick until they spawn as item entities, for {@code on_drop} and
@@ -23,8 +22,7 @@ public final class SpawningDropQueue {
     /**
      * Creates the single queue.
      */
-    private SpawningDropQueue() {
-    }
+    private SpawningDropQueue() {}
 
     /**
      * Queues a rolled stack, unless the roll is simulated or has no origin.
@@ -71,6 +69,5 @@ public final class SpawningDropQueue {
      * @param entry Drop that rolled the stack. Never null.
      * @param roll  Roll context of the stack, with a non-null origin. Never null.
      */
-    public record RolledFrom(DropEntry entry, RollContext roll) {
-    }
+    public record RolledFrom(DropEntry entry, RollContext roll) {}
 }

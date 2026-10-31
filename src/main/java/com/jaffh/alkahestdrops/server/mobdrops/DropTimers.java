@@ -1,17 +1,16 @@
 package com.jaffh.alkahestdrops.server.mobdrops;
 
 import com.jaffh.alkahestdrops.AlkahestDrops;
-import com.jaffh.alkahestdrops.common.drops.DropEntry;
 import com.jaffh.alkahestdrops.api.DropTrigger;
+import com.jaffh.alkahestdrops.common.drops.DropEntry;
 import com.jaffh.alkahestdrops.server.drops.DropFile;
 import com.jaffh.alkahestdrops.server.drops.DropTable;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.world.entity.LivingEntity;
-
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Set;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.world.entity.LivingEntity;
 
 /**
  * Keeps the tick timers of a mob's periodic and hit drops in its persistent data (saved with the mob), as the game
@@ -25,8 +24,7 @@ final class DropTimers {
     /**
      * Prevents instantiation of this utility class.
      */
-    private DropTimers() {
-    }
+    private DropTimers() {}
 
     /**
      * Collects the drops of a table whose timer has run out and restarts their timers. A drop without a tick

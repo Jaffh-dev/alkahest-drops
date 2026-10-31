@@ -4,6 +4,8 @@ import com.jaffh.alkahestdrops.AlkahestDrops;
 import com.jaffh.alkahestdrops.client.drops.ClientDropRules;
 import com.jaffh.alkahestdrops.common.drops.SyncedDropRules;
 import com.mojang.logging.LogUtils;
+import java.util.List;
+import javax.annotation.Nullable;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.helpers.IGuiHelper;
@@ -16,13 +18,11 @@ import net.minecraft.world.level.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.slf4j.Logger;
 
-import javax.annotation.Nullable;
-import java.util.List;
-
 /**
  * JEI entry point of Alkahest Drops, found by JEI through {@link JeiPlugin}; without JEI this class is never loaded.
- * Shows the drops the server synced for every mob and block, and lists every mob as an ingredient: JEI rebuilds its recipes after
- * the server sends tags and recipes, which happens right after the drop summary on login and on every reload.
+ * Shows the drops the server synced for every mob and block, and lists every mob as an ingredient: JEI rebuilds its
+ * recipes after the server sends tags and recipes, which happens right after the drop summary on login and on every
+ * reload.
  */
 @JeiPlugin
 public final class AlkahestDropsJeiPlugin implements IModPlugin {
@@ -31,8 +31,10 @@ public final class AlkahestDropsJeiPlugin implements IModPlugin {
 
     /** Mobs drawn by the ingredient list and the mob category, created once per level. */
     private final EntityPreviews previews = new EntityPreviews();
+
     @Nullable
     private MobDropCategory mobCategory;
+
     @Nullable
     private BlockDropCategory blockCategory;
 
@@ -53,7 +55,10 @@ public final class AlkahestDropsJeiPlugin implements IModPlugin {
      */
     @Override
     public void registerIngredients(IModIngredientRegistration registration) {
-        registration.register(MobIngredient.TYPE, MobIngredient.all(), new MobIngredientHelper(),
+        registration.register(
+                MobIngredient.TYPE,
+                MobIngredient.all(),
+                new MobIngredientHelper(),
                 MobIngredientRenderer.icon(previews));
     }
 
@@ -79,13 +84,16 @@ public final class AlkahestDropsJeiPlugin implements IModPlugin {
     public void registerRecipes(IRecipeRegistration registration) {
         if (mobCategory == null || blockCategory == null) return;
         SyncedDropRules rules = ClientDropRules.current();
-        List<DropRecipe<EntityType<?>>> mobRecipes = DropRecipe.allOf(rules.mobs(), ForgeRegistries.ENTITY_TYPES,
-                mobCategory.dropsPerPage());
-        List<DropRecipe<Block>> blockRecipes = DropRecipe.allOf(rules.blocks(), ForgeRegistries.BLOCKS,
-                blockCategory.dropsPerPage());
+        List<DropRecipe<EntityType<?>>> mobRecipes =
+                DropRecipe.allOf(rules.mobs(), ForgeRegistries.ENTITY_TYPES, mobCategory.dropsPerPage());
+        List<DropRecipe<Block>> blockRecipes =
+                DropRecipe.allOf(rules.blocks(), ForgeRegistries.BLOCKS, blockCategory.dropsPerPage());
         registration.addRecipes(MobDropCategory.TYPE, mobRecipes);
         registration.addRecipes(BlockDropCategory.TYPE, blockRecipes);
-        LOGGER.debug("[alkahestdrops] Added {} mob drop and {} block drop recipes to JEI.", mobRecipes.size(), blockRecipes.size());
+        LOGGER.debug(
+                "[alkahestdrops] Added {} mob drop and {} block drop recipes to JEI.",
+                mobRecipes.size(),
+                blockRecipes.size());
     }
 
     /**

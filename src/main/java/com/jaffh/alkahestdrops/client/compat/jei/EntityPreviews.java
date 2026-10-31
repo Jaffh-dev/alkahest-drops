@@ -1,6 +1,10 @@
 package com.jaffh.alkahestdrops.client.compat.jei;
 
 import com.mojang.logging.LogUtils;
+import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.Optional;
+import javax.annotation.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.entity.Entity;
@@ -9,11 +13,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import org.joml.Matrix4f;
 import org.slf4j.Logger;
-
-import javax.annotation.Nullable;
-import java.util.IdentityHashMap;
-import java.util.Map;
-import java.util.Optional;
 
 /**
  * Creates, measures and draws the mobs shown in JEI: on the mob drop card (following the mouse) and as ingredient
@@ -26,17 +25,24 @@ final class EntityPreviews {
     private static final Logger LOGGER = LogUtils.getLogger();
     /** Turns measured for the card: the mouse can turn the mob up to {@link MobModelRenderer#MAX_ANGLE} either way. */
     private static final float[] CARD_TURNS = {
-            -MobModelRenderer.MAX_ANGLE, -MobModelRenderer.MAX_ANGLE / 2, 0.0F, MobModelRenderer.MAX_ANGLE / 2, MobModelRenderer.MAX_ANGLE};
+        -MobModelRenderer.MAX_ANGLE,
+        -MobModelRenderer.MAX_ANGLE / 2,
+        0.0F,
+        MobModelRenderer.MAX_ANGLE / 2,
+        MobModelRenderer.MAX_ANGLE
+    };
     /** Tilts measured for the card, up and down. */
     private static final float[] CARD_TILTS = {-MobModelRenderer.MAX_ANGLE, 0.0F, MobModelRenderer.MAX_ANGLE};
     /** Turn of the ingredient icons, which do not follow the mouse. */
     private static final float ICON_TURN = 1.0F;
     /** Room, relative to the hitbox width, that a mob that cannot be measured gets for its turn and fins. */
     private static final float FALLBACK_TURN_WIDTH = 1.4F;
+
     private static final int CARD_MARGIN = 3;
     private static final float MOUSE_ANGLE_DIVISOR = 40.0F;
 
     private final Map<EntityType<?>, Optional<Preview>> previews = new IdentityHashMap<>();
+
     @Nullable
     private Level level;
 
@@ -61,8 +67,16 @@ final class EntityPreviews {
 
         enableClip(guiGraphics, area.x(), area.y(), area.width(), area.height());
         try {
-            drawFitted(guiGraphics, preview.entity(), preview.cardBounds(), centerX, centerY,
-                    area.width() - 2 * CARD_MARGIN, area.height() - 2 * CARD_MARGIN, angleX, angleY);
+            drawFitted(
+                    guiGraphics,
+                    preview.entity(),
+                    preview.cardBounds(),
+                    centerX,
+                    centerY,
+                    area.width() - 2 * CARD_MARGIN,
+                    area.height() - 2 * CARD_MARGIN,
+                    angleX,
+                    angleY);
             return true;
         } catch (RuntimeException e) {
             return fail(type, e);
@@ -85,7 +99,16 @@ final class EntityPreviews {
         if (preview == null) return false;
         enableClip(guiGraphics, 0, 0, size, size);
         try {
-            drawFitted(guiGraphics, preview.entity(), preview.iconBounds(), size / 2.0F, size / 2.0F, size, size, ICON_TURN, 0.0F);
+            drawFitted(
+                    guiGraphics,
+                    preview.entity(),
+                    preview.iconBounds(),
+                    size / 2.0F,
+                    size / 2.0F,
+                    size,
+                    size,
+                    ICON_TURN,
+                    0.0F);
             return true;
         } catch (RuntimeException e) {
             return fail(type, e);
@@ -135,8 +158,16 @@ final class EntityPreviews {
      * @param angleX      Turn component.
      * @param angleY      Tilt component.
      */
-    private static void drawFitted(GuiGraphics guiGraphics, LivingEntity entity, ModelBounds bounds, float centerX,
-                                   float centerY, float width, float height, float angleX, float angleY) {
+    private static void drawFitted(
+            GuiGraphics guiGraphics,
+            LivingEntity entity,
+            ModelBounds bounds,
+            float centerX,
+            float centerY,
+            float width,
+            float height,
+            float angleX,
+            float angleY) {
         float scale = bounds.scaleToFit(width, height);
         float originX = centerX - scale * bounds.centerX();
         float originY = centerY - scale * bounds.centerY();
@@ -151,7 +182,10 @@ final class EntityPreviews {
      * @return Always false.
      */
     private boolean fail(EntityType<?> type, RuntimeException e) {
-        LOGGER.warn("[alkahestdrops] Cannot draw {} in JEI, showing its name or spawn egg instead.", EntityType.getKey(type), e);
+        LOGGER.warn(
+                "[alkahestdrops] Cannot draw {} in JEI, showing its name or spawn egg instead.",
+                EntityType.getKey(type),
+                e);
         previews.put(type, Optional.empty());
         return false;
     }
@@ -185,10 +219,13 @@ final class EntityPreviews {
             Entity entity = type.create(level);
             if (!(entity instanceof LivingEntity living)) return Optional.empty();
             ModelBounds card = measureOrHitbox(living, CARD_TURNS, CARD_TILTS);
-            ModelBounds icon = measureOrHitbox(living, new float[]{ICON_TURN}, new float[]{0.0F});
+            ModelBounds icon = measureOrHitbox(living, new float[] {ICON_TURN}, new float[] {0.0F});
             return Optional.of(new Preview(living, card, icon));
         } catch (RuntimeException e) {
-            LOGGER.warn("[alkahestdrops] Cannot create {} for JEI, showing its name or spawn egg instead.", EntityType.getKey(type), e);
+            LOGGER.warn(
+                    "[alkahestdrops] Cannot create {} for JEI, showing its name or spawn egg instead.",
+                    EntityType.getKey(type),
+                    e);
             return Optional.empty();
         }
     }
@@ -215,8 +252,7 @@ final class EntityPreviews {
      * @param cardBounds Box its model covers in every turn and tilt the card can show. Never null.
      * @param iconBounds Box its model covers in the icon's turn. Never null.
      */
-    private record Preview(LivingEntity entity, ModelBounds cardBounds, ModelBounds iconBounds) {
-    }
+    private record Preview(LivingEntity entity, ModelBounds cardBounds, ModelBounds iconBounds) {}
 
     /**
      * Represents the box a mob is drawn in.
@@ -226,6 +262,5 @@ final class EntityPreviews {
      * @param width  Width in pixels, above 0.
      * @param height Height in pixels, above 0.
      */
-    record PreviewArea(int x, int y, int width, int height) {
-    }
+    record PreviewArea(int x, int y, int width, int height) {}
 }

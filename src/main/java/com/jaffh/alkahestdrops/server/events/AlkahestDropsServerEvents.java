@@ -20,17 +20,16 @@ import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
 
 /**
- * Registers the event handlers of the mod's logical server: datapack loading, mob and block drops, the
- * {@code /alkdrops} command, player progress and the drop summary sent to clients. They are registered on both physical sides, because singleplayer
- * runs the logical server inside the client.
+ * Registers the event handlers of the mod's logical server: datapack loading, mob and block drops, the {@code
+ * /alkdrops} command, player progress and the drop summary sent to clients. They are registered on both physical sides,
+ * because singleplayer runs the logical server inside the client.
  */
 public final class AlkahestDropsServerEvents {
 
     /**
      * Prevents instantiation of this utility class.
      */
-    private AlkahestDropsServerEvents() {
-    }
+    private AlkahestDropsServerEvents() {}
 
     /**
      * Registers every handler of the module. The drop summary sender is only registered when the network channel

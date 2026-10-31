@@ -5,6 +5,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import java.util.List;
+import javax.annotation.Nullable;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.TagParser;
@@ -16,22 +18,19 @@ import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraftforge.registries.ForgeRegistries;
 
-import javax.annotation.Nullable;
-import java.util.List;
-
 /**
  * Reads the JSON values shared by every part of an Alkahest Drops file: objects, ids, items, NBT, loot conditions and
  * loot functions.
  */
 public final class DropValues {
     private static final Gson GSON = new Gson();
-    private static final Gson LOOT_GSON = Deserializers.createFunctionSerializer().create();
+    private static final Gson LOOT_GSON =
+            Deserializers.createFunctionSerializer().create();
 
     /**
      * Prevents instantiation of this utility class.
      */
-    private DropValues() {
-    }
+    private DropValues() {}
 
     /**
      * Reads a JSON object into a Gson DTO.
@@ -61,12 +60,14 @@ public final class DropValues {
      * @return The parsed conditions, empty when the array is missing or empty.
      * @throws DropDataException If any condition is invalid.
      */
-    public static List<LootItemCondition> parseConditions(@Nullable JsonArray conditions, ParseContext ctx) throws DropDataException {
+    public static List<LootItemCondition> parseConditions(@Nullable JsonArray conditions, ParseContext ctx)
+            throws DropDataException {
         if (conditions == null || conditions.isEmpty()) return List.of();
         try {
             return List.of(LOOT_GSON.fromJson(conditions, LootItemCondition[].class));
         } catch (RuntimeException e) {
-            // Vanilla condition serializers also throw non-Gson exceptions, such as ResourceLocationException for bad ids.
+            // Vanilla condition serializers also throw non-Gson exceptions, such as ResourceLocationException for bad
+            // ids.
             throw ctx.error("invalid_condition", e.getMessage());
         }
     }
@@ -79,7 +80,8 @@ public final class DropValues {
      * @return The parsed functions in file order, empty when the array is missing or empty.
      * @throws DropDataException If any function is invalid.
      */
-    public static List<LootItemFunction> parseFunctions(@Nullable JsonArray functions, ParseContext ctx) throws DropDataException {
+    public static List<LootItemFunction> parseFunctions(@Nullable JsonArray functions, ParseContext ctx)
+            throws DropDataException {
         if (functions == null || functions.isEmpty()) return List.of();
         try {
             return List.of(LOOT_GSON.fromJson(functions, LootItemFunction[].class));

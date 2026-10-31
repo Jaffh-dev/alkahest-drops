@@ -12,15 +12,14 @@ import com.jaffh.alkahestdrops.server.drops.DropFile;
 import com.jaffh.alkahestdrops.server.drops.DropTable;
 import com.jaffh.alkahestdrops.server.drops.RemovalEntry;
 import com.jaffh.alkahestdrops.server.drops.RemovalRule;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
+import javax.annotation.Nullable;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Predicate;
 
 /**
  * Builds the full drop list of one target, as a player sees it in game: the loot table drops that no removal file
@@ -52,17 +51,29 @@ final class TargetDropsBuilder {
      * @param experience Range of its vanilla experience, or null when it gives none.
      * @return The drops: loot table, then experience, then drop file drops.
      */
-    List<SyncedDrop> build(ResourceLocation targetId, ResourceLocation lootTable, DropTable table, @Nullable DropCount experience) {
+    List<SyncedDrop> build(
+            ResourceLocation targetId, ResourceLocation lootTable, DropTable table, @Nullable DropCount experience) {
         List<SyncedDrop> drops = new ArrayList<>();
         for (SyncedDrop drop : analyzer.analyze(lootTable)) {
             Item item = drop.stack().getItem();
             if (table.removesEventDrop(item, List.of())) continue;
-            drops.add(withRemovals(drop, removalsOf(table.perKillRemovals(), rule -> true, entry -> entry.removes(item))));
+            drops.add(withRemovals(
+                    drop, removalsOf(table.perKillRemovals(), rule -> true, entry -> entry.removes(item))));
         }
         if (experience != null && !removesExperience(table, null)) {
-            SyncedDrop drop = new SyncedDrop(ItemStack.EMPTY, 1.0, experience, DropBehavior.UNIFORM, EnchantBonuses.NONE,
-                    SyncedDrop.UNTRACKED, List.of(), false, SyncedDropSource.experience(targetId), TriggerSettings.DEATH);
-            drops.add(withRemovals(drop, removalsOf(table.experienceRemovals(), rule -> true, RemovalEntry::isExperience)));
+            SyncedDrop drop = new SyncedDrop(
+                    ItemStack.EMPTY,
+                    1.0,
+                    experience,
+                    DropBehavior.UNIFORM,
+                    EnchantBonuses.NONE,
+                    SyncedDrop.UNTRACKED,
+                    List.of(),
+                    false,
+                    SyncedDropSource.experience(targetId),
+                    TriggerSettings.DEATH);
+            drops.add(withRemovals(
+                    drop, removalsOf(table.experienceRemovals(), rule -> true, RemovalEntry::isExperience)));
         }
         addDropFileDrops(drops, table);
         return drops;
@@ -107,16 +118,30 @@ final class TargetDropsBuilder {
         ConditionDescriber.Description removals;
         if (entry.isExperience()) {
             if (removesExperience(table, fileId)) return;
-            removals = removalsOf(table.experienceRemovals(), rule -> rule.shouldRemoveExperienceOf(fileId), RemovalEntry::isExperience);
+            removals = removalsOf(
+                    table.experienceRemovals(),
+                    rule -> rule.shouldRemoveExperienceOf(fileId),
+                    RemovalEntry::isExperience);
         } else {
             Item item = entry.item();
-            removals = removalsOf(table.perKillRemovals(), rule -> rule.shouldRemoveDropOf(fileId, item), removal -> removal.removes(item));
+            removals = removalsOf(
+                    table.perKillRemovals(),
+                    rule -> rule.shouldRemoveDropOf(fileId, item),
+                    removal -> removal.removes(item));
         }
         List<LootItemCondition> conditions = new ArrayList<>(file.globalConditions());
         conditions.addAll(entry.conditions());
         ConditionDescriber.Description own = describer.describe(conditions);
-        SyncedDrop drop = new SyncedDrop(entry.createStack(1), entry.chance(), entry.count(), entry.behavior(),
-                entry.enchantBonuses(), entry.tracking(), own.conditions(), own.hasHidden(), SyncedDropSource.dropFile(fileId),
+        SyncedDrop drop = new SyncedDrop(
+                entry.createStack(1),
+                entry.chance(),
+                entry.count(),
+                entry.behavior(),
+                entry.enchantBonuses(),
+                entry.tracking(),
+                own.conditions(),
+                own.hasHidden(),
+                SyncedDropSource.dropFile(fileId),
                 entry.trigger());
         drops.add(withRemovals(drop, removals));
     }
@@ -130,13 +155,14 @@ final class TargetDropsBuilder {
      * @return The negated conditions of every matching removal; hidden when a removal cannot be negated exactly
      *         (several conditions, several matching entries, or conditions that cannot be described).
      */
-    private ConditionDescriber.Description removalsOf(List<RemovalRule> rules, Predicate<RemovalRule> appliesTo,
-                                                      Predicate<RemovalEntry> matchesEntry) {
+    private ConditionDescriber.Description removalsOf(
+            List<RemovalRule> rules, Predicate<RemovalRule> appliesTo, Predicate<RemovalEntry> matchesEntry) {
         List<SyncedCondition> conditions = new ArrayList<>();
         boolean hasHidden = false;
         for (RemovalRule rule : rules) {
             if (!appliesTo.test(rule)) continue;
-            List<RemovalEntry> matching = rule.entries().stream().filter(matchesEntry).toList();
+            List<RemovalEntry> matching =
+                    rule.entries().stream().filter(matchesEntry).toList();
             if (matching.isEmpty()) continue;
             if (matching.size() > 1) {
                 hasHidden = true;
@@ -144,11 +170,13 @@ final class TargetDropsBuilder {
             }
             List<LootItemCondition> removalConditions = new ArrayList<>(rule.globalConditions());
             removalConditions.addAll(matching.get(0).conditions());
-            ConditionDescriber.Description negated = describer.describe(removalConditions).asRemoval();
+            ConditionDescriber.Description negated =
+                    describer.describe(removalConditions).asRemoval();
             conditions.addAll(negated.conditions());
             hasHidden |= negated.hasHidden();
         }
-        return conditions.isEmpty() && !hasHidden ? ConditionDescriber.Description.NONE
+        return conditions.isEmpty() && !hasHidden
+                ? ConditionDescriber.Description.NONE
                 : new ConditionDescriber.Description(conditions, hasHidden);
     }
 

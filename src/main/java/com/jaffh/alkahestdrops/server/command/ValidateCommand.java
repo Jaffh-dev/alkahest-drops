@@ -5,15 +5,14 @@ import com.jaffh.alkahestdrops.server.drops.DropManager;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import java.util.ArrayList;
+import java.util.List;
+import javax.annotation.Nullable;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * {@code /alkdrops validate [errors|warnings] [namespace] [page <n>]}: lists the problems the last reload found in
@@ -26,8 +25,7 @@ final class ValidateCommand {
     /**
      * Prevents instantiation of this utility class.
      */
-    private ValidateCommand() {
-    }
+    private ValidateCommand() {}
 
     /**
      * Builds the {@code validate} node.
@@ -48,11 +46,17 @@ final class ValidateCommand {
      * @param <T>      Builder type.
      * @return The node.
      */
-    private static <T extends ArgumentBuilder<CommandSourceStack, T>> T withNamespace(T node, @Nullable DropIssue.Severity severity) {
+    private static <T extends ArgumentBuilder<CommandSourceStack, T>> T withNamespace(
+            T node, @Nullable DropIssue.Severity severity) {
         return PagedOutput.withPages(node, (context, page) -> run(context.getSource(), severity, null, page))
                 .then(PagedOutput.withPages(
-                        Commands.argument(NAMESPACE, StringArgumentType.word()).suggests(AlkahestDropsCommand.NAMESPACES),
-                        (context, page) -> run(context.getSource(), severity, StringArgumentType.getString(context, NAMESPACE), page)));
+                        Commands.argument(NAMESPACE, StringArgumentType.word())
+                                .suggests(AlkahestDropsCommand.NAMESPACES),
+                        (context, page) -> run(
+                                context.getSource(),
+                                severity,
+                                StringArgumentType.getString(context, NAMESPACE),
+                                page)));
     }
 
     /**
@@ -64,7 +68,8 @@ final class ValidateCommand {
      * @param page      Page to send, 1 or more.
      * @return The number of problems shown.
      */
-    private static int run(CommandSourceStack source, @Nullable DropIssue.Severity severity, @Nullable String namespace, int page) {
+    private static int run(
+            CommandSourceStack source, @Nullable DropIssue.Severity severity, @Nullable String namespace, int page) {
         List<Component> lines = new ArrayList<>();
         int errorCount = 0;
         int warningCount = 0;
@@ -72,7 +77,8 @@ final class ValidateCommand {
             for (DropIssue issue : manager.issues()) {
                 if (namespace != null && !issue.fileId().getNamespace().equals(namespace)) continue;
                 if (severity != null && issue.severity() != severity) continue;
-                if (issue.severity() == DropIssue.Severity.ERROR) errorCount++; else warningCount++;
+                if (issue.severity() == DropIssue.Severity.ERROR) errorCount++;
+                else warningCount++;
                 lines.add(describe(issue, manager));
             }
         }
@@ -90,13 +96,17 @@ final class ValidateCommand {
 
         MutableComponent title = CommandText.lang("validate.header", scope).withStyle(ChatFormatting.BLUE);
         if (severity != DropIssue.Severity.WARNING) {
-            title.append(CommandText.lang(errorCount == 1 ? "validate.errors.one" : "validate.errors.many",
-                    CommandText.bold(String.valueOf(errorCount), ChatFormatting.RED)).withStyle(ChatFormatting.GRAY));
+            title.append(CommandText.lang(
+                            errorCount == 1 ? "validate.errors.one" : "validate.errors.many",
+                            CommandText.bold(String.valueOf(errorCount), ChatFormatting.RED))
+                    .withStyle(ChatFormatting.GRAY));
         }
         if (severity == null) title.append(CommandText.text(", ", ChatFormatting.GRAY));
         if (severity != DropIssue.Severity.ERROR) {
-            title.append(CommandText.lang(warningCount == 1 ? "validate.warnings.one" : "validate.warnings.many",
-                    CommandText.bold(String.valueOf(warningCount), ChatFormatting.YELLOW)).withStyle(ChatFormatting.GRAY));
+            title.append(CommandText.lang(
+                            warningCount == 1 ? "validate.warnings.one" : "validate.warnings.many",
+                            CommandText.bold(String.valueOf(warningCount), ChatFormatting.YELLOW))
+                    .withStyle(ChatFormatting.GRAY));
         }
         PagedOutput.send(source, TITLE, List.of(title), lines, page, command);
         return lines.size();
@@ -122,7 +132,8 @@ final class ValidateCommand {
      * @return Such as {@code "[E] [mob] ns:file: drops[0].chance: must be 0 or more, drop skipped"}.
      */
     private static Component describe(DropIssue issue, DropManager<?> manager) {
-        ChatFormatting color = issue.severity() == DropIssue.Severity.ERROR ? ChatFormatting.RED : ChatFormatting.YELLOW;
+        ChatFormatting color =
+                issue.severity() == DropIssue.Severity.ERROR ? ChatFormatting.RED : ChatFormatting.YELLOW;
         String tag = issue.severity() == DropIssue.Severity.ERROR ? "validate.tag.error" : "validate.tag.warning";
         return CommandText.text("")
                 .append(CommandText.lang(tag).withStyle(color, ChatFormatting.BOLD))

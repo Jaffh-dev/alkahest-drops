@@ -1,9 +1,8 @@
 package com.jaffh.alkahestdrops.server.command;
 
-import net.minecraft.network.chat.Component;
-
 import java.util.Arrays;
 import java.util.List;
+import net.minecraft.network.chat.Component;
 
 /**
  * Represents a titled part of a {@code /alkdrops help} page, such as its usage or its arguments.
@@ -15,7 +14,7 @@ record HelpSection(Component title, List<IHelpLine> lines) {
     /**
      * Copies the lines so the section stays immutable.
      */
-    HelpSection {
+    public HelpSection {
         lines = List.copyOf(lines);
     }
 
@@ -26,7 +25,8 @@ record HelpSection(Component title, List<IHelpLine> lines) {
      * @return The section.
      */
     static HelpSection usage(String... usages) {
-        return new HelpSection(CommandText.lang("help.section.usage"),
+        return new HelpSection(
+                CommandText.lang("help.section.usage"),
                 Arrays.stream(usages).<IHelpLine>map(IHelpLine.Syntax::new).toList());
     }
 

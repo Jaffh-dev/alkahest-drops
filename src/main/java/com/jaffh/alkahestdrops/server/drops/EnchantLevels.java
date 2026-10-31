@@ -1,11 +1,10 @@
 package com.jaffh.alkahestdrops.server.drops;
 
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.enchantment.Enchantment;
-
-import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
+import javax.annotation.Nullable;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.Enchantment;
 
 /**
  * Gives the enchantment levels a roll reads for {@code enchant_bonus}: the levels of the held item (weapon, shears or
@@ -20,6 +19,7 @@ public final class EnchantLevels {
 
     private final ItemStack item;
     private final Map<Enchantment, Integer> overrides;
+
     @Nullable
     private Map<Enchantment, Integer> itemLevels;
 

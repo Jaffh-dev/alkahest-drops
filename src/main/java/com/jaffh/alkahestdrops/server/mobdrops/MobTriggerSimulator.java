@@ -1,10 +1,10 @@
 package com.jaffh.alkahestdrops.server.mobdrops;
 
-import com.jaffh.alkahestdrops.common.drops.TriggerRules;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.common.drops.DropEntry;
 import com.jaffh.alkahestdrops.common.drops.DropNumbers;
 import com.jaffh.alkahestdrops.common.drops.DropTracking;
-import com.jaffh.alkahestdrops.api.DropTrigger;
+import com.jaffh.alkahestdrops.common.drops.TriggerRules;
 import com.jaffh.alkahestdrops.server.drops.DropFile;
 import com.jaffh.alkahestdrops.server.drops.DropTable;
 import com.jaffh.alkahestdrops.server.drops.EnchantLevels;
@@ -18,6 +18,15 @@ import com.jaffh.alkahestdrops.server.drops.SimulationFlag;
 import com.jaffh.alkahestdrops.server.drops.SimulationSetup;
 import com.jaffh.alkahestdrops.server.drops.TrackedDropRecorder;
 import com.jaffh.alkahestdrops.server.drops.TriggeredDrops;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.OptionalInt;
+import java.util.Set;
+import javax.annotation.Nullable;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
@@ -28,22 +37,13 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootContext;
 
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.OptionalInt;
-import java.util.Set;
-
 /**
- * Simulates the drops of a trigger other than death on one mob type: each run is one shear, hit or lightning strike,
- * or one tick of a periodic simulation, in which each drop rolls when its own interval has passed (first at its
- * interval, as in game) and is counted on its own, so the report can rate it by its interval. Only the drop file drops of that trigger roll (the game's own drops of those actions, such
- * as wool, are not described by loot tables); cooldowns are ignored. Shear and hit need the player actor; lightning and
- * periodic drops have no player, so they refuse {@code by}, {@code enchant} and {@code sneaking}.
+ * Simulates the drops of a trigger other than death on one mob type: each run is one shear, hit or lightning strike, or
+ * one tick of a periodic simulation, in which each drop rolls when its own interval has passed (first at its interval,
+ * as in game) and is counted on its own, so the report can rate it by its interval. Only the drop file drops of that
+ * trigger roll (the game's own drops of those actions, such as wool, are not described by loot tables); cooldowns are
+ * ignored. Shear and hit need the player actor; lightning and periodic drops have no player, so they refuse {@code by},
+ * {@code enchant} and {@code sneaking}.
  */
 public final class MobTriggerSimulator implements IDropSimulator {
     /** Ticks of one minute, the unit of periodic rates. */
@@ -54,8 +54,10 @@ public final class MobTriggerSimulator implements IDropSimulator {
     private final DropTrigger trigger;
     private final ServerLevel level;
     private final LivingEntity mob;
+
     @Nullable
     private final Player player;
+
     private final DamageSource source;
     private final DropTable table;
     private final SimulationSetup setup;
@@ -70,6 +72,7 @@ public final class MobTriggerSimulator implements IDropSimulator {
     private final Set<DropEntry> perDamageDrops = Collections.newSetFromMap(new IdentityHashMap<>());
     /** Interval of every periodic drop, by progress key. */
     private final Map<String, Integer> intervals = new HashMap<>();
+
     private long elapsedTicks;
 
     /**
@@ -88,11 +91,14 @@ public final class MobTriggerSimulator implements IDropSimulator {
         this.source = damageSourceOf(trigger, level, player);
         this.table = MobDropManager.getTable(mob.getType(), trigger);
         this.setup = setup;
-        this.enchantLevels = TriggerRules.of(trigger).hasEnchantBonus() && player != null ? setup.levelsOf(player.getMainHandItem()) : EnchantLevels.NONE;
+        this.enchantLevels = TriggerRules.of(trigger).hasEnchantBonus() && player != null
+                ? setup.levelsOf(player.getMainHandItem())
+                : EnchantLevels.NONE;
         this.hitDamage = trigger == DropTrigger.HIT ? Math.min(HIT_DAMAGE, mob.getHealth()) : 0.0F;
         for (DropFile file : table.dropFiles()) {
             for (DropEntry entry : file.entries()) {
-                if (trigger == DropTrigger.PERIODIC) intervals.put(entry.tracking().key(), entry.trigger().ticks());
+                if (trigger == DropTrigger.PERIODIC)
+                    intervals.put(entry.tracking().key(), entry.trigger().ticks());
                 if (entry.behavior().type().readsDamageTaken()) perDamageDrops.add(entry);
             }
         }
@@ -170,10 +176,12 @@ public final class MobTriggerSimulator implements IDropSimulator {
         LootContext context = lootContext();
         RollContext rollContext = rollContext();
         TriggeredDrops[] rolled = new TriggeredDrops[1];
-        return TrackedDropRecorder.INSTANCE.recordRoll(() -> {
-            rolled[0] = table.rollTriggered(context, rollContext, entry -> true);
-            return rolled[0].items();
-        }, () -> rolled[0].experience());
+        return TrackedDropRecorder.INSTANCE.recordRoll(
+                () -> {
+                    rolled[0] = table.rollTriggered(context, rollContext, entry -> true);
+                    return rolled[0].items();
+                },
+                () -> rolled[0].experience());
     }
 
     /**
@@ -189,23 +197,27 @@ public final class MobTriggerSimulator implements IDropSimulator {
         Map<ItemStack, DropTracking> labels = new IdentityHashMap<>();
         Map<DropTracking, Integer> perDamageExperience = new HashMap<>();
         int[] experience = new int[1];
-        SimulatedDrop recorded = TrackedDropRecorder.INSTANCE.recordRoll(() -> {
-            TriggeredDrops others = table.rollTriggered(context, rollContext, entry -> !perDamageDrops.contains(entry));
-            List<ItemStack> items = new ArrayList<>(others.items());
-            experience[0] = others.experience();
-            for (DropEntry entry : perDamageDrops) {
-                TriggeredDrops rolled = table.rollTriggered(context, rollContext, candidate -> candidate == entry);
-                for (ItemStack stack : rolled.items()) {
-                    items.add(stack);
-                    labels.put(stack, entry.tracking());
-                }
-                experience[0] += rolled.experience();
-                if (rolled.experience() > 0 && !entry.tracking().needsProgress()) {
-                    perDamageExperience.merge(entry.tracking(), rolled.experience(), Integer::sum);
-                }
-            }
-            return items;
-        }, () -> experience[0]);
+        SimulatedDrop recorded = TrackedDropRecorder.INSTANCE.recordRoll(
+                () -> {
+                    TriggeredDrops others =
+                            table.rollTriggered(context, rollContext, entry -> !perDamageDrops.contains(entry));
+                    List<ItemStack> items = new ArrayList<>(others.items());
+                    experience[0] = others.experience();
+                    for (DropEntry entry : perDamageDrops) {
+                        TriggeredDrops rolled =
+                                table.rollTriggered(context, rollContext, candidate -> candidate == entry);
+                        for (ItemStack stack : rolled.items()) {
+                            items.add(stack);
+                            labels.put(stack, entry.tracking());
+                        }
+                        experience[0] += rolled.experience();
+                        if (rolled.experience() > 0 && !entry.tracking().needsProgress()) {
+                            perDamageExperience.merge(entry.tracking(), rolled.experience(), Integer::sum);
+                        }
+                    }
+                    return items;
+                },
+                () -> experience[0]);
 
         List<SimulatedStack> items = new ArrayList<>(recorded.items().size());
         for (SimulatedStack stack : recorded.items()) {
@@ -341,8 +353,8 @@ public final class MobTriggerSimulator implements IDropSimulator {
     /**
      * Describes the trigger, the player and the forced conditions.
      *
-     * @return Such as "on hit, player: Dev, sneaking, 1 damage per hit, enchantments: Looting 3" or "periodic, no player, mob on
-     *         fire".
+     * @return Such as "on hit, player: Dev, sneaking, 1 damage per hit, enchantments: Looting 3" or "periodic, no
+     *              player, mob on fire".
      */
     @Override
     public Component describeSetup() {
@@ -358,7 +370,8 @@ public final class MobTriggerSimulator implements IDropSimulator {
             text.append(", ").append(IDropSimulator.setupText("damage", DropNumbers.number(hitDamage)));
         }
         if (TriggerRules.of(trigger).hasEnchantBonus() && player != null) {
-            text.append(", ").append(IDropSimulator.enchantmentsText(setup.effectiveEnchantments(player.getMainHandItem())));
+            text.append(", ")
+                    .append(IDropSimulator.enchantmentsText(setup.effectiveEnchantments(player.getMainHandItem())));
         }
         return text;
     }

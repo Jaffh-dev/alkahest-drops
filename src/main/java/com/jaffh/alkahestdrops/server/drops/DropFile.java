@@ -1,10 +1,9 @@
 package com.jaffh.alkahestdrops.server.drops;
 
 import com.jaffh.alkahestdrops.common.drops.DropEntry;
+import java.util.List;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-
-import java.util.List;
 
 /**
  * Represents the drops one drop file adds to its target, keeping its source file for namespace-scoped removals.

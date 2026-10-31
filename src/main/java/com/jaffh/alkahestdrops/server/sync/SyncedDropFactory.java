@@ -1,13 +1,17 @@
 package com.jaffh.alkahestdrops.server.sync;
 
-import com.jaffh.alkahestdrops.common.drops.DropCount;
 import com.jaffh.alkahestdrops.api.DropTrigger;
+import com.jaffh.alkahestdrops.common.drops.DropCount;
 import com.jaffh.alkahestdrops.common.drops.SyncedDrop;
 import com.jaffh.alkahestdrops.common.drops.SyncedDropRules;
 import com.jaffh.alkahestdrops.common.drops.SyncedTarget;
 import com.jaffh.alkahestdrops.server.blockdrops.BlockDropManager;
 import com.jaffh.alkahestdrops.server.mobdrops.MobDropManager;
 import com.mojang.logging.LogUtils;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.IntSupplier;
+import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -22,11 +26,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.slf4j.Logger;
 
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.IntSupplier;
-
 /**
  * Builds the drop summary sent to clients: one entry per mob that can die and per block, each with its full drop list
  * (see {@link TargetDropsBuilder}). Targets without any drop are left out.
@@ -39,8 +38,7 @@ public final class SyncedDropFactory {
     /**
      * Prevents instantiation of this utility class.
      */
-    private SyncedDropFactory() {
-    }
+    private SyncedDropFactory() {}
 
     /**
      * Builds the summary of the loaded drop files and loot tables.
@@ -65,10 +63,11 @@ public final class SyncedDropFactory {
         for (EntityType<?> type : ForgeRegistries.ENTITY_TYPES.getValues()) {
             if (type == EntityType.PLAYER || !DefaultAttributes.hasSupplier(type)) continue;
             ResourceLocation id = ForgeRegistries.ENTITY_TYPES.getKey(type);
-            List<SyncedDrop> drops = new ArrayList<>(builder.build(id, type.getDefaultLootTable(), MobDropManager.getTable(type),
-                    mobExperienceOf(type, level)));
+            List<SyncedDrop> drops = new ArrayList<>(builder.build(
+                    id, type.getDefaultLootTable(), MobDropManager.getTable(type), mobExperienceOf(type, level)));
             for (DropTrigger trigger : DropTrigger.values()) {
-                if (trigger != DropTrigger.DEATH) drops.addAll(builder.buildTriggered(MobDropManager.getTable(type, trigger)));
+                if (trigger != DropTrigger.DEATH)
+                    drops.addAll(builder.buildTriggered(MobDropManager.getTable(type, trigger)));
             }
             if (!drops.isEmpty()) targets.add(new SyncedTarget(id, drops));
         }
@@ -88,7 +87,10 @@ public final class SyncedDropFactory {
         for (Block block : ForgeRegistries.BLOCKS.getValues()) {
             if (block.defaultBlockState().isAir()) continue;
             ResourceLocation id = ForgeRegistries.BLOCKS.getKey(block);
-            List<SyncedDrop> drops = builder.build(id, block.getLootTable(), BlockDropManager.getTable(block),
+            List<SyncedDrop> drops = builder.build(
+                    id,
+                    block.getLootTable(),
+                    BlockDropManager.getTable(block),
                     blockExperienceOf(block.defaultBlockState(), level));
             if (!drops.isEmpty()) targets.add(new SyncedTarget(id, drops));
         }
@@ -120,7 +122,10 @@ public final class SyncedDropFactory {
         try {
             entity = type.create(level);
         } catch (RuntimeException e) {
-            LOGGER.warn("[alkahestdrops] Cannot create {} to read its experience for JEI: {}", ForgeRegistries.ENTITY_TYPES.getKey(type), e.toString());
+            LOGGER.warn(
+                    "[alkahestdrops] Cannot create {} to read its experience for JEI: {}",
+                    ForgeRegistries.ENTITY_TYPES.getKey(type),
+                    e.toString());
             return null;
         }
         if (!(entity instanceof LivingEntity living)) return null;

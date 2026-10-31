@@ -1,13 +1,12 @@
 package com.jaffh.alkahestdrops.common.drops;
 
+import java.util.List;
+import javax.annotation.Nullable;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-
-import javax.annotation.Nullable;
-import java.util.List;
 
 /**
  * Represents one fully resolved drop: every default is already applied. An experience drop has no item; its rolled
@@ -38,8 +37,7 @@ public record DropEntry(
         List<LootItemFunction> functions,
         DropTracking tracking,
         TriggerSettings trigger,
-        DropActions onDrop
-) {
+        DropActions onDrop) {
     /**
      * Creates a drop entry and stores immutable copies of the conditions and functions.
      */

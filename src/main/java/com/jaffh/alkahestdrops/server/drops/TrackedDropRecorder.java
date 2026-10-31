@@ -1,15 +1,14 @@
 package com.jaffh.alkahestdrops.server.drops;
 
 import com.jaffh.alkahestdrops.common.drops.DropTracking;
-import net.minecraft.world.item.ItemStack;
-
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
+import javax.annotation.Nullable;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * Remembers which stacks and how much experience of one simulated roll came from a pity or one-time drop, so
@@ -35,8 +34,7 @@ public final class TrackedDropRecorder {
     /**
      * Creates the single recorder.
      */
-    private TrackedDropRecorder() {
-    }
+    private TrackedDropRecorder() {}
 
     /**
      * Tells whether a simulated roll is running.

@@ -3,13 +3,12 @@ package com.jaffh.alkahestdrops.client.compat.jei;
 import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.common.drops.SyncedDrop;
 import com.jaffh.alkahestdrops.common.drops.SyncedTarget;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.registries.IForgeRegistry;
-
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraftforge.registries.IForgeRegistry;
 
 /**
  * Represents one JEI recipe: one target, one trigger and a part of the drops of that trigger. Each trigger of a
@@ -28,7 +27,7 @@ record DropRecipe<T>(T target, ResourceLocation targetId, DropTrigger trigger, L
     /**
      * Creates a recipe and stores an immutable copy of its drops.
      */
-    DropRecipe {
+    public DropRecipe {
         drops = List.copyOf(drops);
     }
 
@@ -47,7 +46,8 @@ record DropRecipe<T>(T target, ResourceLocation targetId, DropTrigger trigger, L
             if (!registry.containsKey(synced.id())) continue;
             T target = registry.getValue(synced.id());
             if (target == null) continue;
-            for (Map.Entry<DropTrigger, List<SyncedDrop>> byTrigger : groupByTrigger(synced.drops()).entrySet()) {
+            for (Map.Entry<DropTrigger, List<SyncedDrop>> byTrigger :
+                    groupByTrigger(synced.drops()).entrySet()) {
                 List<SyncedDrop> drops = byTrigger.getValue();
                 for (int start = 0, part = 0; start < drops.size(); start += dropsPerPage, part++) {
                     List<SyncedDrop> partDrops = drops.subList(start, Math.min(start + dropsPerPage, drops.size()));
@@ -67,7 +67,8 @@ record DropRecipe<T>(T target, ResourceLocation targetId, DropTrigger trigger, L
     private static Map<DropTrigger, List<SyncedDrop>> groupByTrigger(List<SyncedDrop> drops) {
         Map<DropTrigger, List<SyncedDrop>> grouped = new EnumMap<>(DropTrigger.class);
         for (SyncedDrop drop : drops) {
-            grouped.computeIfAbsent(drop.trigger().trigger(), trigger -> new ArrayList<>()).add(drop);
+            grouped.computeIfAbsent(drop.trigger().trigger(), trigger -> new ArrayList<>())
+                    .add(drop);
         }
         return grouped;
     }

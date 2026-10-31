@@ -24,8 +24,7 @@ final class CommandText {
     /**
      * Prevents instantiation of this utility class.
      */
-    private CommandText() {
-    }
+    private CommandText() {}
 
     /**
      * Creates translatable text.
@@ -90,7 +89,9 @@ final class CommandText {
      * @return Such as "[mob] ", in the player's language.
      */
     static MutableComponent kindTag(DropManager<?> manager) {
-        return text("[", ChatFormatting.GRAY).append(lang("kind." + manager.kind())).append("] ");
+        return text("[", ChatFormatting.GRAY)
+                .append(lang("kind." + manager.kind()))
+                .append("] ");
     }
 
     /**
@@ -106,7 +107,8 @@ final class CommandText {
         Style style = Style.EMPTY
                 .withColor(color)
                 .withUnderlined(true)
-                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, text(path + "\n").append(lang("hint.copy_path"))))
+                .withHoverEvent(new HoverEvent(
+                        HoverEvent.Action.SHOW_TEXT, text(path + "\n").append(lang("hint.copy_path"))))
                 .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, path));
         return text(fileId.toString()).withStyle(style);
     }
@@ -190,7 +192,8 @@ final class CommandText {
      * @param color Color of the text. Never null.
      * @return The clickable text.
      */
-    private static MutableComponent clickable(MutableComponent label, Component hint, ClickEvent click, ChatFormatting color) {
+    private static MutableComponent clickable(
+            MutableComponent label, Component hint, ClickEvent click, ChatFormatting color) {
         Style style = Style.EMPTY
                 .withColor(color)
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hint))

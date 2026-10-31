@@ -1,9 +1,8 @@
 package com.jaffh.alkahestdrops.server.command;
 
+import java.util.Optional;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
-
-import java.util.Optional;
 
 /**
  * Estimates on the server how wide a text is in the client's chat, with the advances of the default Minecraft font,
@@ -19,8 +18,7 @@ final class ChatWidth {
     /**
      * Prevents instantiation of this utility class.
      */
-    private ChatWidth() {
-    }
+    private ChatWidth() {}
 
     /**
      * Returns the width of a text.
@@ -44,10 +42,12 @@ final class ChatWidth {
      */
     static int linesOf(Component message) {
         int[] width = {0};
-        message.visit((style, text) -> {
-            width[0] += of(text) + (style.isBold() ? text.length() : 0);
-            return Optional.empty();
-        }, Style.EMPTY);
+        message.visit(
+                (style, text) -> {
+                    width[0] += of(text) + (style.isBold() ? text.length() : 0);
+                    return Optional.empty();
+                },
+                Style.EMPTY);
         return Math.max(1, (width[0] + LINE_WIDTH - 1) / LINE_WIDTH);
     }
 

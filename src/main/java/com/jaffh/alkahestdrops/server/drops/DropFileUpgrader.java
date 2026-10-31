@@ -2,7 +2,6 @@ package com.jaffh.alkahestdrops.server.drops;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
@@ -20,8 +19,7 @@ public final class DropFileUpgrader {
     /**
      * Prevents instantiation of this utility class.
      */
-    private DropFileUpgrader() {
-    }
+    private DropFileUpgrader() {}
 
     /**
      * Returns a file in the current format version.

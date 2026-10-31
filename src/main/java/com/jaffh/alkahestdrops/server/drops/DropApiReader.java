@@ -7,13 +7,12 @@ import com.jaffh.alkahestdrops.api.TargetDrops;
 import com.jaffh.alkahestdrops.common.drops.DropEntry;
 import com.jaffh.alkahestdrops.server.blockdrops.BlockDropManager;
 import com.jaffh.alkahestdrops.server.mobdrops.MobDropManager;
+import java.util.ArrayList;
+import java.util.List;
+import javax.annotation.Nullable;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.registries.ForgeRegistries;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Builds the read-only views of {@link com.jaffh.alkahestdrops.api.AlkahestDropsApi} from the drop tables and the
@@ -24,8 +23,7 @@ public final class DropApiReader {
     /**
      * Prevents instantiation of this utility class.
      */
-    private DropApiReader() {
-    }
+    private DropApiReader() {}
 
     /**
      * Builds the view of a mob for one trigger.
@@ -37,8 +35,8 @@ public final class DropApiReader {
      */
     public static TargetDrops mobDrops(EntityType<?> type, DropTrigger trigger) {
         if (!canRead(MobDropManager.INSTANCE)) return TargetDrops.EMPTY;
-        return new TargetDrops(addedDrops(MobDropManager.getTable(type, trigger)),
-                removals(MobDropManager.INSTANCE, type, trigger));
+        return new TargetDrops(
+                addedDrops(MobDropManager.getTable(type, trigger)), removals(MobDropManager.INSTANCE, type, trigger));
     }
 
     /**
@@ -50,7 +48,8 @@ public final class DropApiReader {
      */
     public static TargetDrops blockDrops(Block block) {
         if (!canRead(BlockDropManager.INSTANCE)) return TargetDrops.EMPTY;
-        return new TargetDrops(addedDrops(BlockDropManager.getTable(block)),
+        return new TargetDrops(
+                addedDrops(BlockDropManager.getTable(block)),
                 removals(BlockDropManager.INSTANCE, block, DropTrigger.DEATH));
     }
 
@@ -75,10 +74,18 @@ public final class DropApiReader {
         List<AddedDrop> drops = new ArrayList<>();
         for (DropFile file : table.dropFiles()) {
             for (DropEntry entry : file.entries()) {
-                drops.add(new AddedDrop(file.fileId(), entry.tracking().key(), entry.item(), entry.chance(),
-                        entry.count().min(), entry.count().max(), entry.trigger().trigger(),
-                        file.hasGlobalConditions() || entry.hasConditions(), !entry.enchantBonuses().isEmpty(),
-                        entry.tracking().pity(), entry.tracking().isFirstDrop()));
+                drops.add(new AddedDrop(
+                        file.fileId(),
+                        entry.tracking().key(),
+                        entry.item(),
+                        entry.chance(),
+                        entry.count().min(),
+                        entry.count().max(),
+                        entry.trigger().trigger(),
+                        file.hasGlobalConditions() || entry.hasConditions(),
+                        !entry.enchantBonuses().isEmpty(),
+                        entry.tracking().pity(),
+                        entry.tracking().isFirstDrop()));
             }
         }
         return drops;
@@ -100,7 +107,10 @@ public final class DropApiReader {
             RemovalRule rule = removalFile.rule();
             if (rule.trigger() != trigger || !manager.doesFileApplyTo(rule.fileId(), value)) continue;
             for (RemovalEntry entry : rule.entries()) {
-                removals.add(new DropRemoval(rule.fileId(), itemsOf(entry.target()), trigger,
+                removals.add(new DropRemoval(
+                        rule.fileId(),
+                        itemsOf(entry.target()),
+                        trigger,
                         rule.hasGlobalConditions() || entry.hasConditions()));
             }
         }
@@ -117,7 +127,8 @@ public final class DropApiReader {
     private static String itemsOf(@Nullable ItemTarget target) {
         if (target == null) return null;
         if (target instanceof ItemTarget.Exact exact) return String.valueOf(ForgeRegistries.ITEMS.getKey(exact.item()));
-        if (target instanceof ItemTarget.Tagged tagged) return "#" + tagged.tag().location();
+        if (target instanceof ItemTarget.Tagged tagged)
+            return "#" + tagged.tag().location();
         return "*";
     }
 }

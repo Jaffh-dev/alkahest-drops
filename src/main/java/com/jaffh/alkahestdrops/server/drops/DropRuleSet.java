@@ -1,8 +1,6 @@
 package com.jaffh.alkahestdrops.server.drops;
 
 import com.jaffh.alkahestdrops.api.DropTrigger;
-import net.minecraft.tags.TagKey;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -11,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import net.minecraft.tags.TagKey;
 
 /**
  * Holds every drop and removal file of one reload, indexed by target: exact entries (ids and expanded
@@ -37,8 +36,12 @@ public final class DropRuleSet<T> {
      * @param taggedRules    Groups of tag targets. Immutable, never null.
      * @param anyRules       Group of {@code *} files. Never null.
      */
-    private DropRuleSet(TargetMatcher<T> matcher, Map<T, RuleGroup> exactRules, Map<String, RuleGroup> namespaceRules,
-                        Map<TagKey<T>, RuleGroup> taggedRules, RuleGroup anyRules) {
+    private DropRuleSet(
+            TargetMatcher<T> matcher,
+            Map<T, RuleGroup> exactRules,
+            Map<String, RuleGroup> namespaceRules,
+            Map<TagKey<T>, RuleGroup> taggedRules,
+            RuleGroup anyRules) {
         this.matcher = matcher;
         this.exactRules = exactRules;
         this.namespaceRules = namespaceRules;
@@ -229,8 +232,7 @@ public final class DropRuleSet<T> {
                     Collections.unmodifiableMap(exact),
                     Collections.unmodifiableMap(namespaces),
                     Collections.unmodifiableMap(tagged),
-                    anyRules.freeze()
-            );
+                    anyRules.freeze());
         }
     }
 }

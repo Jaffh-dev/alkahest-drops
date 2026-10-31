@@ -1,9 +1,8 @@
 package com.jaffh.alkahestdrops.common.drops;
 
-import net.minecraft.util.RandomSource;
-
 import java.util.Locale;
 import java.util.Optional;
+import net.minecraft.util.RandomSource;
 
 /**
  * Defines how the final count of a drop is rolled inside its count range.
@@ -80,7 +79,8 @@ public enum DropBehaviorType {
     /**
      * Creates a behavior type.
      *
-     * @param needsRollSettings Whether the type reads {@code rolls}, {@code chance_per_roll} and {@code increment_value}.
+     * @param needsRollSettings Whether the type reads {@code rolls}, {@code chance_per_roll} and {@code
+     *                          increment_value}.
      * @param isScaled          Whether the type reads {@code function}, {@code multiplier} and {@code divisor}.
      */
     DropBehaviorType(boolean needsRollSettings, boolean isScaled) {
@@ -115,6 +115,15 @@ public enum DropBehaviorType {
         return false;
     }
 
+    /**
+     * Rolls the count of one drop with this type's algorithm.
+     *
+     * @param range      Count range after enchantment bonuses. Never null.
+     * @param behavior   Behavior settings (rolls or scale formula) after enchantment bonuses. Never null.
+     * @param scaleValue Value the scaled types read: max health, hardness or damage taken.
+     * @param random     Random source of the roll. Never null.
+     * @return The rolled count, 0 or more.
+     */
     public abstract int rollCount(DropCount range, DropBehavior behavior, float scaleValue, RandomSource random);
 
     /**

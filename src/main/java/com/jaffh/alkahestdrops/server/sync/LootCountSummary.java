@@ -4,12 +4,11 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.jaffh.alkahestdrops.common.drops.DropCount;
 import com.jaffh.alkahestdrops.common.drops.EnchantBonus;
-import net.minecraft.resources.ResourceLocation;
-
-import javax.annotation.Nullable;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nullable;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * Summarizes the loot functions applied to one entry: the functions that set or raise the count become a count range
@@ -56,8 +55,14 @@ record LootCountSummary(DropCount count, Map<ResourceLocation, EnchantBonus.Coun
             } else if (type.equals(APPLY_BONUS) && isUniformBonus(function)) {
                 JsonElement parameters = function.get("parameters");
                 double multiplier = parameters != null && parameters.isJsonObject()
-                        ? LootJson.number(parameters.getAsJsonObject(), "bonusMultiplier", 1) : 1;
-                putBonus(bonuses, LootJson.id(function, "enchantment"), 0, (int) Math.round(multiplier), Integer.MAX_VALUE);
+                        ? LootJson.number(parameters.getAsJsonObject(), "bonusMultiplier", 1)
+                        : 1;
+                putBonus(
+                        bonuses,
+                        LootJson.id(function, "enchantment"),
+                        0,
+                        (int) Math.round(multiplier),
+                        Integer.MAX_VALUE);
             } else if (type.equals(LIMIT_COUNT)) {
                 int[] limited = limit(function.get("limit"), min, max);
                 min = limited[0];
@@ -78,8 +83,12 @@ record LootCountSummary(DropCount count, Map<ResourceLocation, EnchantBonus.Coun
      * @param maxPerLevel Max added per level.
      * @param cap         Cap of both totals.
      */
-    private static void putBonus(Map<ResourceLocation, EnchantBonus.CountBonus> bonuses, @Nullable ResourceLocation enchantment,
-                                 int minPerLevel, int maxPerLevel, int cap) {
+    private static void putBonus(
+            Map<ResourceLocation, EnchantBonus.CountBonus> bonuses,
+            @Nullable ResourceLocation enchantment,
+            int minPerLevel,
+            int maxPerLevel,
+            int cap) {
         if (enchantment == null) return;
         if (minPerLevel == 0 && maxPerLevel == 0) {
             bonuses.remove(enchantment);
@@ -108,15 +117,15 @@ record LootCountSummary(DropCount count, Map<ResourceLocation, EnchantBonus.Coun
      * @return The limited {@code {min, max}}.
      */
     private static int[] limit(JsonElement limit, int min, int max) {
-        if (limit == null) return new int[]{min, max};
+        if (limit == null) return new int[] {min, max};
         if (limit.isJsonPrimitive()) {
             int exact = (int) limit.getAsDouble();
-            return new int[]{exact, exact};
+            return new int[] {exact, exact};
         }
-        if (!limit.isJsonObject()) return new int[]{min, max};
+        if (!limit.isJsonObject()) return new int[] {min, max};
         JsonObject range = limit.getAsJsonObject();
         int low = range.has("min") ? LootNumberRange.of(range.get("min"), min).minInt() : Integer.MIN_VALUE;
         int high = range.has("max") ? LootNumberRange.of(range.get("max"), max).maxInt() : Integer.MAX_VALUE;
-        return new int[]{Math.max(low, Math.min(min, high)), Math.max(low, Math.min(max, high))};
+        return new int[] {Math.max(low, Math.min(min, high)), Math.max(low, Math.min(max, high))};
     }
 }

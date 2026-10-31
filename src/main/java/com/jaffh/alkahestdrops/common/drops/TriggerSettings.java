@@ -1,6 +1,7 @@
 package com.jaffh.alkahestdrops.common.drops;
 
 import com.jaffh.alkahestdrops.api.DropTrigger;
+
 /**
  * Represents when a drop happens: its trigger and the trigger's tick setting.
  *

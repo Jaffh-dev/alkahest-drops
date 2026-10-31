@@ -21,7 +21,6 @@ public record DropLimits(int maxRolls, int maxCount, int maxIncrement) {
         return new DropLimits(
                 AlkahestDropsConfig.MAX_ROLLS.get(),
                 AlkahestDropsConfig.MAX_COUNT.get(),
-                AlkahestDropsConfig.MAX_INCREMENT.get()
-        );
+                AlkahestDropsConfig.MAX_INCREMENT.get());
     }
 }

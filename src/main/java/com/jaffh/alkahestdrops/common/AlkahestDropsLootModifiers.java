@@ -11,14 +11,15 @@ import net.minecraftforge.registries.ForgeRegistries;
  * Registers the Global Loot Modifier codecs of Alkahest Drops.
  */
 public final class AlkahestDropsLootModifiers {
-    /** Path of the block drops modifier; its loot modifier file is {@code data/<modId>/loot_modifiers/block_drops.json}. */
+    /**
+     * Path of the block drops modifier; its loot modifier file is {@code data/<modId>/loot_modifiers/block_drops.json}.
+     */
     public static final String BLOCK_DROPS = "block_drops";
 
     /**
      * Prevents instantiation of this utility class.
      */
-    private AlkahestDropsLootModifiers() {
-    }
+    private AlkahestDropsLootModifiers() {}
 
     /**
      * Registers the codecs under the mod's namespace on the mod bus.

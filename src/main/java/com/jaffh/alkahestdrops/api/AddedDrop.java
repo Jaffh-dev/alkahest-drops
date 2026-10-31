@@ -1,17 +1,16 @@
 package com.jaffh.alkahestdrops.api;
 
+import javax.annotation.Nullable;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
-
-import javax.annotation.Nullable;
 
 /**
  * Represents one drop that an Alkahest Drops drop file adds to a mob or block. Instances are created by Alkahest Drops
  * only; read them through {@link AlkahestDropsApi}.
  *
  * @param fileId          Id of the drop file, such as {@code mypack:zombie}. Never null.
- * @param dropKey         Key of the drop, the same one {@link com.jaffh.alkahestdrops.api.event.OnDropEvent#getDropKey()}
- *                        returns. Never null.
+ * @param dropKey         Key of the drop, the same one {@link
+ *                        com.jaffh.alkahestdrops.api.event.OnDropEvent#getDropKey()} returns. Never null.
  * @param item            Dropped item, or null for an experience drop.
  * @param chance          Base chance (0–1) before enchantment bonuses.
  * @param minCount        Lowest base count (or experience) before enchantment bonuses. Roll-based and scaled drops
@@ -26,9 +25,18 @@ import javax.annotation.Nullable;
  *                        {@code first_break}); see {@link AlkahestDropsApi#hasReceivedFirstDrop}.
  * @since 1.0.0
  */
-public record AddedDrop(ResourceLocation fileId, String dropKey, @Nullable Item item, double chance, int minCount,
-                        int maxCount, DropTrigger trigger, boolean isConditional, boolean hasEnchantBonus, int pity,
-                        boolean isFirstDrop) {
+public record AddedDrop(
+        ResourceLocation fileId,
+        String dropKey,
+        @Nullable Item item,
+        double chance,
+        int minCount,
+        int maxCount,
+        DropTrigger trigger,
+        boolean isConditional,
+        boolean hasEnchantBonus,
+        int pity,
+        boolean isFirstDrop) {
     /**
      * Tells whether this drop gives experience instead of an item.
      *

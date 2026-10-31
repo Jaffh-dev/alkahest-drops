@@ -15,13 +15,13 @@ final class ExperienceOrbIcon {
     private static final int SPRITE_SIZE = 16;
     /** Sprite of a medium orb in the 4×4 sheet. */
     private static final int SPRITE_INDEX = 4;
+
     private static final float PULSE_SPEED = 0.005F;
 
     /**
      * Prevents instantiation of this utility class.
      */
-    private ExperienceOrbIcon() {
-    }
+    private ExperienceOrbIcon() {}
 
     /**
      * Draws the orb in a 16×16 area.

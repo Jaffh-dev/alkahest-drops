@@ -5,11 +5,11 @@ import com.google.gson.JsonElement;
 import com.google.gson.annotations.SerializedName;
 
 /**
- * Gson DTO of one entry in {@code drops}. Every field is null when its key is missing.
- * {@code enchant_bonus} is a list of {@link EnchantBonusEntryJson}, read by hand so a bad entry is reported at its
- * own path. Mob files read {@code first_kill}, block files read {@code first_break}. An experience drop sets
- * {@code experience} to true instead of {@code item}. {@code on} picks the trigger (mob files only), with its tick
- * setting {@code interval} (periodic) or {@code cooldown} (hit). {@code on_drop} holds what happens when the item spawns.
+ * Gson DTO of one entry in {@code drops}. Every field is null when its key is missing. {@code enchant_bonus} is a list
+ * of {@link EnchantBonusEntryJson}, read by hand so a bad entry is reported at its own path. Mob files read {@code
+ * first_kill}, block files read {@code first_break}. An experience drop sets {@code experience} to true instead of
+ * {@code item}. {@code on} picks the trigger (mob files only), with its tick setting {@code interval} (periodic) or
+ * {@code cooldown} (hit). {@code on_drop} holds what happens when the item spawns.
  */
 public class DropEntryJson {
     public String id;

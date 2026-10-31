@@ -26,6 +26,7 @@ final class BlockDropCategory extends DropCategory<Block> {
     private static final DropGrid GRID = new DropGrid((WIDTH - 9 * DropGrid.CELL - 2) / 2, CARD_SIZE + 4, 9, 4);
     /** Left edge of the card, lined up with the drop panel under it. */
     private static final int CARD_X = GRID.x();
+
     private static final int HEIGHT = GRID.y() + GRID.height();
     private static final int TITLE_X = CARD_X + CARD_SIZE + 6;
     private static final LargeItemRenderer CARD_RENDERER = new LargeItemRenderer();
@@ -36,7 +37,12 @@ final class BlockDropCategory extends DropCategory<Block> {
      * @param guiHelper JEI drawing helper. Never null.
      */
     BlockDropCategory(IGuiHelper guiHelper) {
-        super(TYPE, DropDisplayFormat.BLOCK, guiHelper.createDrawableItemStack(new ItemStack(Items.IRON_PICKAXE)), guiHelper, GRID);
+        super(
+                TYPE,
+                DropDisplayFormat.BLOCK,
+                guiHelper.createDrawableItemStack(new ItemStack(Items.IRON_PICKAXE)),
+                guiHelper,
+                GRID);
     }
 
     /**
@@ -95,6 +101,7 @@ final class BlockDropCategory extends DropCategory<Block> {
      */
     @SuppressWarnings("unchecked")
     private static RecipeType<DropRecipe<Block>> createType() {
-        return new RecipeType<>(new ResourceLocation(AlkahestDrops.ID, "block_drops"), (Class<DropRecipe<Block>>) (Class<?>) DropRecipe.class);
+        return new RecipeType<>(new ResourceLocation(AlkahestDrops.ID, "block_drops"), (Class<DropRecipe<Block>>)
+                (Class<?>) DropRecipe.class);
     }
 }

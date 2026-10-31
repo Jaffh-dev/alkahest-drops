@@ -1,8 +1,7 @@
 package com.jaffh.alkahestdrops.server.drops;
 
-import net.minecraft.world.item.ItemStack;
-
 import java.util.List;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * Represents what one trigger other than death dropped.

@@ -1,8 +1,7 @@
 package com.jaffh.alkahestdrops.server.drops;
 
-import net.minecraft.resources.ResourceLocation;
-
 import javax.annotation.Nullable;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * Represents where the parser is inside a file, so every problem names its file and JSON path.
@@ -77,7 +76,8 @@ public record ParseContext(ResourceLocation fileId, String path, DropIssueLog lo
      * @return The exception to throw.
      */
     public DropDataException unknownId(String key, Object... args) {
-        return new DropDataException(new DropIssue(fileId, path, DropIssue.text(key, args), DropIssue.Severity.WARNING));
+        return new DropDataException(
+                new DropIssue(fileId, path, DropIssue.text(key, args), DropIssue.Severity.WARNING));
     }
 
     /**

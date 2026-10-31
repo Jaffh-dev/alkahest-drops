@@ -1,8 +1,6 @@
 package com.jaffh.alkahestdrops.server.drops;
 
-
 import com.jaffh.alkahestdrops.common.drops.DropTracking;
-
 import java.util.List;
 import java.util.Map;
 

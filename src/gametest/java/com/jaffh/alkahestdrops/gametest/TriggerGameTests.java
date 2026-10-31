@@ -1,9 +1,10 @@
 package com.jaffh.alkahestdrops.gametest;
 
 import com.jaffh.alkahestdrops.AlkahestDrops;
-import com.jaffh.alkahestdrops.server.drops.DropIssue;
 import com.jaffh.alkahestdrops.server.blockdrops.BlockDropManager;
+import com.jaffh.alkahestdrops.server.drops.DropIssue;
 import com.jaffh.alkahestdrops.server.mobdrops.MobDropManager;
+import java.util.List;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
@@ -16,12 +17,10 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.animal.Sheep;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
-
-import java.util.List;
 
 /**
  * GameTests for mob drops on triggers other than death ({@code on}): shear, hit with cooldown, lightning once per
@@ -126,7 +125,8 @@ public class TriggerGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void damageTakenFollowsTheDamage(GameTestHelper helper) {
         Mob vindicator = DropTestKit.spawnMob(helper, EntityType.VINDICATOR);
-        vindicator.hurt(vindicator.damageSources().playerAttack(DropTestKit.playerHolding(helper, ItemStack.EMPTY)), 5.0F);
+        vindicator.hurt(
+                vindicator.damageSources().playerAttack(DropTestKit.playerHolding(helper, ItemStack.EMPTY)), 5.0F);
         helper.runAfterDelay(1, () -> {
             DropTestKit.assertItemCount(helper, Items.GOLD_INGOT, 5);
             helper.succeed();
@@ -142,7 +142,8 @@ public class TriggerGameTests {
     public static void damageTakenIsCappedAtHealth(GameTestHelper helper) {
         Mob vindicator = DropTestKit.spawnMob(helper, EntityType.VINDICATOR);
         vindicator.setHealth(2.0F);
-        vindicator.hurt(vindicator.damageSources().playerAttack(DropTestKit.playerHolding(helper, ItemStack.EMPTY)), 5.0F);
+        vindicator.hurt(
+                vindicator.damageSources().playerAttack(DropTestKit.playerHolding(helper, ItemStack.EMPTY)), 5.0F);
         helper.runAfterDelay(1, () -> {
             DropTestKit.assertItemCount(helper, Items.GOLD_INGOT, 2);
             helper.succeed();
@@ -158,7 +159,8 @@ public class TriggerGameTests {
     public static void damageTakenGivesNothingWithoutDamage(GameTestHelper helper) {
         Mob vindicator = DropTestKit.spawnMob(helper, EntityType.VINDICATOR);
         vindicator.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 200, 4));
-        vindicator.hurt(vindicator.damageSources().playerAttack(DropTestKit.playerHolding(helper, ItemStack.EMPTY)), 5.0F);
+        vindicator.hurt(
+                vindicator.damageSources().playerAttack(DropTestKit.playerHolding(helper, ItemStack.EMPTY)), 5.0F);
         helper.runAfterDelay(1, () -> {
             DropTestKit.check(vindicator.getHealth() == vindicator.getMaxHealth(), "the vindicator took damage");
             DropTestKit.assertItemCount(helper, Items.GOLD_INGOT, 0);
@@ -216,8 +218,8 @@ public class TriggerGameTests {
 
     /**
      * Invalid triggers are reported: unknown ids, keys of another trigger, one-time and pity drops without player,
-     * per-player drops off death, an interval of 0, enchantment bonuses on lightning, {@code damage_taken} off hit and in block files,
-     * {@code on} on a drop file, and {@code on} in block files.
+     * per-player drops off death, an interval of 0, enchantment bonuses on lightning, {@code damage_taken} off hit and
+     * in block files, {@code on} on a drop file, and {@code on} in block files.
      *
      * @param helper Helper of the test.
      */
@@ -236,7 +238,8 @@ public class TriggerGameTests {
         DropTestKit.assertIssue(mobIssues, "removal_bad_trigger", "on", DropIssue.Severity.ERROR);
         List<DropIssue> blockIssues = BlockDropManager.getIssues();
         DropTestKit.assertIssue(blockIssues, "trigger_in_block_file", "drops[0].on", DropIssue.Severity.ERROR);
-        DropTestKit.assertIssue(blockIssues, "trigger_in_block_file", "drops[1].drop_behavior.type", DropIssue.Severity.ERROR);
+        DropTestKit.assertIssue(
+                blockIssues, "trigger_in_block_file", "drops[1].drop_behavior.type", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(blockIssues, "removal_trigger_in_block_file", "on", DropIssue.Severity.ERROR);
         helper.succeed();
     }

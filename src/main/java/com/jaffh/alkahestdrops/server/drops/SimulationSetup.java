@@ -1,6 +1,12 @@
 package com.jaffh.alkahestdrops.server.drops;
 
 import com.mojang.authlib.GameProfile;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.OptionalInt;
+import java.util.Set;
+import java.util.UUID;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Pose;
@@ -10,13 +16,6 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.phys.Vec3;
-
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.OptionalInt;
-import java.util.Set;
-import java.util.UUID;
 
 /**
  * Represents where, by whom and under which forced conditions a simulated kill or block break happens.
@@ -28,8 +27,12 @@ import java.util.UUID;
  * @param enchantments Enchantment levels forced on the simulation, in command order; they replace the levels of the
  *                     actor's held item, and every other enchantment is still read from it. Immutable, never null.
  */
-public record SimulationSetup(ServerLevel level, Vec3 origin, SimulationActor actor, Set<SimulationFlag> flags,
-                              Map<Enchantment, Integer> enchantments) {
+public record SimulationSetup(
+        ServerLevel level,
+        Vec3 origin,
+        SimulationActor actor,
+        Set<SimulationFlag> flags,
+        Map<Enchantment, Integer> enchantments) {
     private static final String BLANK_PLAYER_NAME = "Simulator";
 
     /**

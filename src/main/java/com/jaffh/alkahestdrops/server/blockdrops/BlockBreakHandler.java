@@ -1,6 +1,8 @@
 package com.jaffh.alkahestdrops.server.blockdrops;
 
 import com.jaffh.alkahestdrops.server.drops.DropTable;
+import java.util.List;
+import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.TickTask;
@@ -18,9 +20,6 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-
-import javax.annotation.Nullable;
-import java.util.List;
 
 /**
  * Handles what a loot modifier cannot do on {@link BlockEvent.BreakEvent}, which fires before the block is removed:
@@ -51,7 +50,8 @@ public class BlockBreakHandler {
         if (player.isCreative() || !state.canHarvestBlock(level, pos, player)) return;
 
         LootContext context = createLootContext(level, pos, state, player, player.getMainHandItem());
-        event.setExpToDrop(table.applyExperience(event.getExpToDrop(), context, BlockDropApplier.rollContextOf(context)));
+        event.setExpToDrop(
+                table.applyExperience(event.getExpToDrop(), context, BlockDropApplier.rollContextOf(context)));
     }
 
     /**
@@ -76,7 +76,8 @@ public class BlockBreakHandler {
         BlockPos pos = event.getPos();
         if (player.isCreative() || !state.canHarvestBlock(level, pos, player)) return;
 
-        LootContext context = createLootContext(level, pos, state, player, player.getMainHandItem().copy());
+        LootContext context = createLootContext(
+                level, pos, state, player, player.getMainHandItem().copy());
         MinecraftServer server = level.getServer();
         server.tell(new TickTask(server.getTickCount(), () -> dropIfBroken(level, pos, state, table, context)));
     }
@@ -90,7 +91,8 @@ public class BlockBreakHandler {
      * @param table   Table of the block. Never null.
      * @param context Loot context built when the break started. Never null.
      */
-    private static void dropIfBroken(ServerLevel level, BlockPos pos, BlockState state, DropTable table, LootContext context) {
+    private static void dropIfBroken(
+            ServerLevel level, BlockPos pos, BlockState state, DropTable table, LootContext context) {
         if (level.getBlockState(pos) == state) return;
 
         List<ItemStack> drops = BlockDropApplier.apply(table, List.of(), context);
@@ -109,7 +111,8 @@ public class BlockBreakHandler {
      * @param tool   Tool breaking the block. Never null.
      * @return A loot context with the block state, block entity, origin, tool and player.
      */
-    private static LootContext createLootContext(ServerLevel level, BlockPos pos, BlockState state, Player player, ItemStack tool) {
+    private static LootContext createLootContext(
+            ServerLevel level, BlockPos pos, BlockState state, Player player, ItemStack tool) {
         return toLootContext(lootParamsBuilder(level, pos, state, player, tool));
     }
 
@@ -135,7 +138,8 @@ public class BlockBreakHandler {
      * @return A builder with the block state, block entity, origin, tool and player, to turn into a context with
      *         {@link #toLootContext}.
      */
-    static LootParams.Builder lootParamsBuilder(ServerLevel level, BlockPos pos, BlockState state, @Nullable Player player, ItemStack tool) {
+    static LootParams.Builder lootParamsBuilder(
+            ServerLevel level, BlockPos pos, BlockState state, @Nullable Player player, ItemStack tool) {
         return new LootParams.Builder(level)
                 .withParameter(LootContextParams.BLOCK_STATE, state)
                 .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(pos))

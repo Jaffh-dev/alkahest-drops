@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN" "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<!-- Lint rules of Alkahest Drops, following the project's code conventions. Formatting itself is Spotless's job. -->
+<module name="Checker">
+    <property name="charset" value="UTF-8"/>
+    <property name="severity" value="error"/>
+    <property name="fileExtensions" value="java"/>
+
+    <module name="SuppressionFilter">
+        <property name="file" value="${config_loc}/suppressions.xml"/>
+    </module>
+
+    <module name="FileTabCharacter"/>
+    <module name="NewlineAtEndOfFile"/>
+    <!-- Lines that are a single string literal (full example commands, usage text) may be longer: splitting them
+         with + would make them harder to read and copy. -->
+    <module name="LineLength">
+        <property name="max" value="120"/>
+        <property name="ignorePattern" value="^(package|import) |https?://|^\s*(\+ )?&quot;"/>
+    </module>
+
+    <!-- Interfaces are I-prefixed; sealed interfaces used as sum types (DropOrigin, ItemTarget) are data, not contracts. -->
+    <module name="RegexpSingleline">
+        <property name="format" value="^\s*(public\s+)?(?!sealed\s)interface\s+(?!I[A-Z])\w+"/>
+        <property name="message" value="Interfaces start with I followed by an uppercase letter (IDropSimulator)."/>
+    </module>
+
+    <module name="TreeWalker">
+        <!-- JavaDoc on every type and method, with its tags. -->
+        <module name="MissingJavadocType">
+            <property name="scope" value="private"/>
+        </module>
+        <module name="MissingJavadocMethod">
+            <property name="scope" value="private"/>
+            <property name="allowMissingPropertyJavadoc" value="false"/>
+            <property name="tokens" value="METHOD_DEF,CTOR_DEF,ANNOTATION_FIELD_DEF,COMPACT_CTOR_DEF"/>
+        </module>
+        <module name="JavadocMethod">
+            <property name="accessModifiers" value="public,protected,package,private"/>
+            <property name="validateThrows" value="false"/>
+        </module>
+        <module name="JavadocType">
+            <property name="scope" value="private"/>
+        </module>
+        <module name="NonEmptyAtclauseDescription"/>
+        <module name="InvalidJavadocPosition"/>
+
+        <!-- Naming: PascalCase types, camelCase members, UPPER_SNAKE_CASE constants. -->
+        <module name="TypeName"/>
+        <module name="MethodName"/>
+        <module name="MemberName"/>
+        <module name="ParameterName"/>
+        <module name="LambdaParameterName"/>
+        <module name="LocalVariableName"/>
+        <module name="LocalFinalVariableName"/>
+        <module name="StaticVariableName"/>
+        <module name="ConstantName"/>
+        <module name="PackageName">
+            <property name="format" value="^[a-z]+(\.[a-z][a-z0-9]*)*$"/>
+        </module>
+
+        <!-- Imports. -->
+        <module name="AvoidStarImport"/>
+        <module name="RedundantImport"/>
+        <module name="UnusedImports"/>
+
+        <!-- Common mistakes. -->
+        <module name="EqualsHashCode"/>
+        <module name="EmptyStatement"/>
+        <module name="OneStatementPerLine"/>
+        <module name="MultipleVariableDeclarations"/>
+        <module name="HideUtilityClassConstructor"/>
+        <module name="ModifierOrder"/>
+        <module name="UpperEll"/>
+        <module name="ArrayTypeStyle"/>
+    </module>
+</module>

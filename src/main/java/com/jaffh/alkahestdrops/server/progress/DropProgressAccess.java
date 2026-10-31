@@ -2,10 +2,9 @@ package com.jaffh.alkahestdrops.server.progress;
 
 import com.jaffh.alkahestdrops.server.drops.RealPlayers;
 import com.jaffh.alkahestdrops.server.drops.ServerThread;
-import net.minecraft.world.entity.player.Player;
-
-import javax.annotation.Nullable;
 import java.util.function.Predicate;
+import javax.annotation.Nullable;
+import net.minecraft.world.entity.player.Player;
 
 /**
  * Reads and resets the drop progress of a player for {@link com.jaffh.alkahestdrops.api.AlkahestDropsApi}. Players
@@ -17,8 +16,7 @@ public final class DropProgressAccess {
     /**
      * Prevents instantiation of this utility class.
      */
-    private DropProgressAccess() {
-    }
+    private DropProgressAccess() {}
 
     /**
      * Returns how many times in a row a pity drop missed for a player.

@@ -1,43 +1,43 @@
 package com.jaffh.alkahestdrops.gametest;
 
 import com.jaffh.alkahestdrops.AlkahestDrops;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.common.drops.DropBehavior;
 import com.jaffh.alkahestdrops.common.drops.DropCount;
 import com.jaffh.alkahestdrops.common.drops.EnchantBonus;
 import com.jaffh.alkahestdrops.common.drops.EnchantBonusEntry;
 import com.jaffh.alkahestdrops.common.drops.EnchantBonuses;
-import com.jaffh.alkahestdrops.common.drops.SyncedDrop;
 import com.jaffh.alkahestdrops.common.drops.SyncedCondition;
+import com.jaffh.alkahestdrops.common.drops.SyncedDrop;
 import com.jaffh.alkahestdrops.common.drops.SyncedDropRules;
 import com.jaffh.alkahestdrops.common.drops.SyncedDropSource;
 import com.jaffh.alkahestdrops.common.drops.SyncedTarget;
-import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.common.drops.TriggerSettings;
 import com.jaffh.alkahestdrops.common.network.DropRulesAssembler;
 import com.jaffh.alkahestdrops.common.network.DropRulesSyncPacket;
 import com.jaffh.alkahestdrops.server.sync.SyncedDropFactory;
 import io.netty.buffer.Unpooled;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Predicate;
+import javax.annotation.Nullable;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
-import net.minecraft.world.item.Items;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.Predicate;
-
 /**
- * GameTests for the drop summary sent to clients for JEI: vanilla loot table analysis, vanilla experience, Alkahest Drops
- * drops merged per target, removals, and the packet round trip. Rules come from {@code dstest_a} and {@code dstest_b}.
+ * GameTests for the drop summary sent to clients for JEI: vanilla loot table analysis, vanilla experience, Alkahest
+ * Drops drops merged per target, removals, and the packet round trip. Rules come from {@code dstest_a} and {@code
+ * dstest_b}.
  */
 @GameTestHolder(AlkahestDrops.ID)
 @PrefixGameTestTemplate(false)
@@ -60,18 +60,26 @@ public class SyncGameTests {
         DropTestKit.check(Math.abs(flesh.chance() - 1.0) < EPSILON, "flesh chance " + flesh.chance());
         DropTestKit.check(flesh.count().equals(new DropCount(0, 2)), "flesh count " + flesh.count());
         EnchantBonus fleshLooting = bonusOf(flesh, Enchantments.MOB_LOOTING);
-        DropTestKit.check(fleshLooting.count().bonusMinPerLevel() == 0
-                && fleshLooting.count().bonusMaxPerLevel() == 1, "flesh looting bonus " + fleshLooting.count());
-        DropTestKit.check(flesh.source().id().equals(new ResourceLocation("entities/zombie")), "flesh source " + flesh.source());
+        DropTestKit.check(
+                fleshLooting.count().bonusMinPerLevel() == 0
+                        && fleshLooting.count().bonusMaxPerLevel() == 1,
+                "flesh looting bonus " + fleshLooting.count());
+        DropTestKit.check(
+                flesh.source().id().equals(new ResourceLocation("entities/zombie")), "flesh source " + flesh.source());
 
         SyncedDrop iron = lootDropOf(zombie, Items.IRON_INGOT);
         DropTestKit.check(Math.abs(iron.chance() - 0.025 / 3) < EPSILON, "iron chance " + iron.chance());
         EnchantBonus ironLooting = bonusOf(iron, Enchantments.MOB_LOOTING);
-        DropTestKit.check(Math.abs(ironLooting.chance().bonusPerLevel() - 0.01 / 3) < EPSILON,
+        DropTestKit.check(
+                Math.abs(ironLooting.chance().bonusPerLevel() - 0.01 / 3) < EPSILON,
                 "iron looting chance " + ironLooting.chance());
-        DropTestKit.check(iron.conditions().equals(List.of(SyncedCondition.of(SyncedCondition.Kind.KILLED_BY_PLAYER, false)))
-                && !iron.hasHiddenConditions(), "iron conditions " + iron.conditions());
-        DropTestKit.check(experienceOf(zombie) != null && experienceOf(zombie).count().equals(new DropCount(5, 5)), "zombie experience");
+        DropTestKit.check(
+                iron.conditions().equals(List.of(SyncedCondition.of(SyncedCondition.Kind.KILLED_BY_PLAYER, false)))
+                        && !iron.hasHiddenConditions(),
+                "iron conditions " + iron.conditions());
+        DropTestKit.check(
+                experienceOf(zombie) != null && experienceOf(zombie).count().equals(new DropCount(5, 5)),
+                "zombie experience");
         helper.succeed();
     }
 
@@ -85,14 +93,24 @@ public class SyncGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void removalsAndPatternFilesApplyPerTarget(GameTestHelper helper) {
         SyncedTarget husk = targetOf(rules(helper).mobs(), "minecraft:husk");
-        DropTestKit.check(findDrop(husk, drop -> isLoot(drop) && drop.stack().is(Items.ROTTEN_FLESH)) == null, "loot flesh not removed");
-        SyncedDrop flesh = findDrop(husk, drop -> isFromDropFile(drop) && drop.stack().is(Items.ROTTEN_FLESH));
+        DropTestKit.check(
+                findDrop(husk, drop -> isLoot(drop) && drop.stack().is(Items.ROTTEN_FLESH)) == null,
+                "loot flesh not removed");
+        SyncedDrop flesh =
+                findDrop(husk, drop -> isFromDropFile(drop) && drop.stack().is(Items.ROTTEN_FLESH));
         DropTestKit.check(flesh != null && flesh.count().equals(new DropCount(3, 3)), "dstest_a flesh missing");
-        DropTestKit.check(findDrop(husk, drop -> drop.stack().is(Items.DIAMOND)) == null, "diamond not removed by dstest_b");
+        DropTestKit.check(
+                findDrop(husk, drop -> drop.stack().is(Items.DIAMOND)) == null, "diamond not removed by dstest_b");
         SyncedDrop barrier = findDrop(husk, drop -> drop.stack().is(Items.BARRIER));
-        DropTestKit.check(barrier != null && barrier.source().id().equals(new ResourceLocation("dstest_a", "any_barrier")), "* barrier not merged");
-        SyncedDrop emerald = findDrop(targetOf(rules(helper).mobs(), "minecraft:creeper"), drop -> drop.stack().is(Items.EMERALD));
-        DropTestKit.check(emerald != null && emerald.conditions().contains(SyncedCondition.of(SyncedCondition.Kind.KILLED_BY_PLAYER, false)),
+        DropTestKit.check(
+                barrier != null && barrier.source().id().equals(new ResourceLocation("dstest_a", "any_barrier")),
+                "* barrier not merged");
+        SyncedDrop emerald = findDrop(targetOf(rules(helper).mobs(), "minecraft:creeper"), drop -> drop.stack()
+                .is(Items.EMERALD));
+        DropTestKit.check(
+                emerald != null
+                        && emerald.conditions()
+                                .contains(SyncedCondition.of(SyncedCondition.Kind.KILLED_BY_PLAYER, false)),
                 "creeper file condition " + emerald);
         helper.succeed();
     }
@@ -108,18 +126,26 @@ public class SyncGameTests {
         SyncedDropRules rules = rules(helper);
         SyncedTarget quartz = targetOf(rules.blocks(), "minecraft:nether_quartz_ore");
         DropTestKit.check(experienceOf(quartz) == null, "vanilla quartz experience not removed");
-        List<SyncedDrop> quartzExperience = quartz.drops().stream().filter(SyncedDrop::isExperience).toList();
-        DropTestKit.check(quartzExperience.size() == 1 && quartzExperience.get(0).count().equals(new DropCount(3, 3)),
+        List<SyncedDrop> quartzExperience =
+                quartz.drops().stream().filter(SyncedDrop::isExperience).toList();
+        DropTestKit.check(
+                quartzExperience.size() == 1 && quartzExperience.get(0).count().equals(new DropCount(3, 3)),
                 "expected only dstest_b's 3 XP, got " + quartzExperience);
 
         SyncedDrop emerald = experienceOf(targetOf(rules.blocks(), "minecraft:emerald_ore"));
-        DropTestKit.check(emerald != null && emerald.count().equals(new DropCount(3, 7)), "emerald ore experience " + emerald);
-        DropTestKit.check(emerald.conditions().equals(List.of(SyncedCondition.of(SyncedCondition.Kind.SNEAKING, true)))
-                && !emerald.hasHiddenConditions(), "emerald experience conditions " + emerald.conditions());
+        DropTestKit.check(
+                emerald != null && emerald.count().equals(new DropCount(3, 7)), "emerald ore experience " + emerald);
+        DropTestKit.check(
+                emerald.conditions().equals(List.of(SyncedCondition.of(SyncedCondition.Kind.SNEAKING, true)))
+                        && !emerald.hasHiddenConditions(),
+                "emerald experience conditions " + emerald.conditions());
         SyncedDrop sheep = experienceOf(targetOf(rules.mobs(), "minecraft:sheep"));
-        DropTestKit.check(sheep != null && sheep.conditions().equals(List.of(SyncedCondition.of(SyncedCondition.Kind.SNEAKING, true))),
+        DropTestKit.check(
+                sheep != null
+                        && sheep.conditions().equals(List.of(SyncedCondition.of(SyncedCondition.Kind.SNEAKING, true))),
                 "sheep experience conditions " + sheep);
-        DropTestKit.check(experienceOf(targetOf(rules.mobs(), "minecraft:chicken")) == null, "chicken experience not removed");
+        DropTestKit.check(
+                experienceOf(targetOf(rules.mobs(), "minecraft:chicken")) == null, "chicken experience not removed");
         helper.succeed();
     }
 
@@ -135,11 +161,15 @@ public class SyncGameTests {
         SyncedTarget coal = targetOf(rules.blocks(), "minecraft:coal_ore");
         DropTestKit.check(findDrop(coal, drop -> drop.stack().is(Items.COAL)) == null, "coal not removed");
         SyncedDrop silkTouch = lootDropOf(coal, Items.COAL_ORE);
-        SyncedCondition silk = new SyncedCondition(SyncedCondition.Kind.TOOL_ENCHANTMENTS, false, List.of(new ResourceLocation("silk_touch")));
-        DropTestKit.check(silkTouch.conditions().equals(List.of(silk)), "coal ore conditions " + silkTouch.conditions());
+        SyncedCondition silk = new SyncedCondition(
+                SyncedCondition.Kind.TOOL_ENCHANTMENTS, false, List.of(new ResourceLocation("silk_touch")));
+        DropTestKit.check(
+                silkTouch.conditions().equals(List.of(silk)), "coal ore conditions " + silkTouch.conditions());
         SyncedTarget log = targetOf(rules.blocks(), "minecraft:oak_log");
         SyncedDrop shard = findDrop(log, drop -> drop.stack().is(Items.PRISMARINE_SHARD));
-        DropTestKit.check(shard != null && shard.source().id().equals(new ResourceLocation("dstest_a", "logs_tag")), "log tag drop " + shard);
+        DropTestKit.check(
+                shard != null && shard.source().id().equals(new ResourceLocation("dstest_a", "logs_tag")),
+                "log tag drop " + shard);
         lootDropOf(targetOf(rules.blocks(), "minecraft:stone"), Items.COBBLESTONE);
         DropTestKit.check(findTarget(rules.blocks(), "minecraft:air") == null, "air has a page");
         helper.succeed();
@@ -161,8 +191,10 @@ public class SyncGameTests {
         SyncedDropRules joined = null;
         for (DropRulesSyncPacket packet : packets) joined = assembler.accept(roundTrip(packet));
         DropTestKit.check(joined != null, "last batch did not complete the summary");
-        byte[] original = encode(DropRulesSyncPacket.split(rules, Integer.MAX_VALUE).get(0));
-        byte[] rebuilt = encode(DropRulesSyncPacket.split(joined, Integer.MAX_VALUE).get(0));
+        byte[] original =
+                encode(DropRulesSyncPacket.split(rules, Integer.MAX_VALUE).get(0));
+        byte[] rebuilt =
+                encode(DropRulesSyncPacket.split(joined, Integer.MAX_VALUE).get(0));
         DropTestKit.check(Arrays.equals(original, rebuilt), "joined summary differs from the original");
         helper.succeed();
     }
@@ -189,14 +221,23 @@ public class SyncGameTests {
     public static void largeNbtDropsSplitBySize(GameTestHelper helper) {
         ItemStack heavy = new ItemStack(Items.PAPER);
         heavy.getOrCreateTag().putString("padding", "x".repeat(4000));
-        SyncedDrop drop = new SyncedDrop(heavy, 1.0, new DropCount(1, 1), DropBehavior.UNIFORM, EnchantBonuses.NONE,
-                SyncedDrop.UNTRACKED, List.of(), false, SyncedDropSource.lootTable(new ResourceLocation("entities/test")),
+        SyncedDrop drop = new SyncedDrop(
+                heavy,
+                1.0,
+                new DropCount(1, 1),
+                DropBehavior.UNIFORM,
+                EnchantBonuses.NONE,
+                SyncedDrop.UNTRACKED,
+                List.of(),
+                false,
+                SyncedDropSource.lootTable(new ResourceLocation("entities/test")),
                 TriggerSettings.DEATH);
         List<SyncedTarget> mobs = new ArrayList<>();
-        for (int i = 0; i < 600; i++) mobs.add(new SyncedTarget(new ResourceLocation("test", "mob_" + i), List.of(drop)));
+        for (int i = 0; i < 600; i++)
+            mobs.add(new SyncedTarget(new ResourceLocation("test", "mob_" + i), List.of(drop)));
 
-        List<DropRulesSyncPacket> packets = DropRulesSyncPacket.split(new SyncedDropRules(mobs, List.of()),
-                DropRulesSyncPacket.MAX_BATCH_BYTES);
+        List<DropRulesSyncPacket> packets =
+                DropRulesSyncPacket.split(new SyncedDropRules(mobs, List.of()), DropRulesSyncPacket.MAX_BATCH_BYTES);
         DropTestKit.check(packets.size() >= 5, "expected at least 5 batches, got " + packets.size());
         checkBatchSizes(packets);
         helper.succeed();
@@ -211,15 +252,20 @@ public class SyncGameTests {
     @GameTest(template = DropTestKit.ARENA)
     public static void bonusesAreSyncedPerEnchantment(GameTestHelper helper) {
         SyncedDropRules rules = rules(helper);
-        SyncedDropRules decoded = new DropRulesAssembler().accept(
-                roundTrip(DropRulesSyncPacket.split(rules, Integer.MAX_VALUE).get(0)));
+        SyncedDropRules decoded = new DropRulesAssembler()
+                .accept(roundTrip(
+                        DropRulesSyncPacket.split(rules, Integer.MAX_VALUE).get(0)));
         DropTestKit.check(decoded != null, "single batch did not complete the summary");
-        SyncedDrop shard = findDrop(targetOf(decoded.mobs(), "minecraft:evoker"), drop -> drop.stack().is(Items.ECHO_SHARD));
+        SyncedDrop shard = findDrop(targetOf(decoded.mobs(), "minecraft:evoker"), drop -> drop.stack()
+                .is(Items.ECHO_SHARD));
         DropTestKit.check(shard != null && shard.enchantBonuses().entries().size() == 2, "echo shard bonuses " + shard);
-        DropTestKit.check(bonusOf(shard, Enchantments.MOB_LOOTING).count().bonusMaxPerLevel() == 1
-                && bonusOf(shard, Enchantments.SHARPNESS).count().bonusMaxPerLevel() == 2, "echo shard bonus values");
+        DropTestKit.check(
+                bonusOf(shard, Enchantments.MOB_LOOTING).count().bonusMaxPerLevel() == 1
+                        && bonusOf(shard, Enchantments.SHARPNESS).count().bonusMaxPerLevel() == 2,
+                "echo shard bonus values");
         SyncedDrop dust = lootDropOf(targetOf(rules.blocks(), "minecraft:glowstone"), Items.GLOWSTONE_DUST);
-        DropTestKit.check(bonusOf(dust, Enchantments.BLOCK_FORTUNE).count().bonusMaxPerLevel() == 1, "glowstone fortune bonus");
+        DropTestKit.check(
+                bonusOf(dust, Enchantments.BLOCK_FORTUNE).count().bonusMaxPerLevel() == 1, "glowstone fortune bonus");
         helper.succeed();
     }
 
@@ -240,13 +286,18 @@ public class SyncGameTests {
 
         SyncedTarget turtle = targetOf(rules.mobs(), "minecraft:turtle");
         SyncedDrop slime = findDrop(turtle, drop -> drop.stack().is(Items.SLIME_BALL));
-        DropTestKit.check(slime != null && slime.trigger().equals(new TriggerSettings(DropTrigger.PERIODIC, 10)),
+        DropTestKit.check(
+                slime != null && slime.trigger().equals(new TriggerSettings(DropTrigger.PERIODIC, 10)),
                 "periodic slime ball " + slime);
-        SyncedDropRules decoded = new DropRulesAssembler().accept(
-                roundTrip(DropRulesSyncPacket.split(rules, Integer.MAX_VALUE).get(0)));
+        SyncedDropRules decoded = new DropRulesAssembler()
+                .accept(roundTrip(
+                        DropRulesSyncPacket.split(rules, Integer.MAX_VALUE).get(0)));
         DropTestKit.check(decoded != null, "single batch did not complete the summary");
-        SyncedDrop decodedSlime = findDrop(targetOf(decoded.mobs(), "minecraft:turtle"), drop -> drop.stack().is(Items.SLIME_BALL));
-        DropTestKit.check(decodedSlime != null && decodedSlime.trigger().equals(slime.trigger()), "decoded trigger " + decodedSlime);
+        SyncedDrop decodedSlime = findDrop(targetOf(decoded.mobs(), "minecraft:turtle"), drop -> drop.stack()
+                .is(Items.SLIME_BALL));
+        DropTestKit.check(
+                decodedSlime != null && decodedSlime.trigger().equals(slime.trigger()),
+                "decoded trigger " + decodedSlime);
         helper.succeed();
     }
 
@@ -258,7 +309,8 @@ public class SyncGameTests {
     private static void checkBatchSizes(List<DropRulesSyncPacket> packets) {
         for (DropRulesSyncPacket packet : packets) {
             int size = encode(packet).length;
-            DropTestKit.check(size <= DropRulesSyncPacket.MAX_BATCH_BYTES + BATCH_HEADER_BYTES && size < PAYLOAD_LIMIT,
+            DropTestKit.check(
+                    size <= DropRulesSyncPacket.MAX_BATCH_BYTES + BATCH_HEADER_BYTES && size < PAYLOAD_LIMIT,
                     "batch " + packet.batch() + " is " + size + " bytes");
         }
     }
@@ -334,7 +386,8 @@ public class SyncGameTests {
      * @return The drop.
      */
     private static SyncedDrop lootDropOf(SyncedTarget target, Item item) {
-        SyncedDrop drop = findDrop(target, candidate -> isLoot(candidate) && candidate.stack().is(item));
+        SyncedDrop drop = findDrop(
+                target, candidate -> isLoot(candidate) && candidate.stack().is(item));
         DropTestKit.check(drop != null, "no loot table drop of " + item + " on " + target.id());
         return drop;
     }

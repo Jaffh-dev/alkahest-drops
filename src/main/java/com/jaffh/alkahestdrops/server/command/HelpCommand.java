@@ -1,13 +1,12 @@
 package com.jaffh.alkahestdrops.server.command;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * {@code /alkdrops help [files|simulate|sources|validate] [page <n>]}: without a topic, lists the subcommands;
@@ -20,8 +19,7 @@ final class HelpCommand {
     /**
      * Prevents instantiation of this utility class.
      */
-    private HelpCommand() {
-    }
+    private HelpCommand() {}
 
     /**
      * Builds the {@code help} node.
@@ -32,8 +30,8 @@ final class HelpCommand {
         LiteralArgumentBuilder<CommandSourceStack> help =
                 PagedOutput.withPages(Commands.literal("help"), (context, page) -> runIndex(context.getSource(), page));
         for (HelpTopic topic : HelpTopic.values()) {
-            help.then(PagedOutput.withPages(Commands.literal(topic.keyword()),
-                    (context, page) -> runTopic(context.getSource(), topic, page)));
+            help.then(PagedOutput.withPages(
+                    Commands.literal(topic.keyword()), (context, page) -> runTopic(context.getSource(), topic, page)));
         }
         return help;
     }
@@ -50,7 +48,9 @@ final class HelpCommand {
         List<Component> lines = new ArrayList<>();
         for (HelpTopic topic : HelpTopic.values()) {
             lines.add(CommandText.text("")
-                    .append(CommandText.runnable(topic.keyword(), CommandText.lang("help.show", "/alkdrops " + topic.keyword()),
+                    .append(CommandText.runnable(
+                            topic.keyword(),
+                            CommandText.lang("help.show", "/alkdrops " + topic.keyword()),
                             COMMAND + " " + topic.keyword()))
                     .append(CommandText.text(": ", ChatFormatting.GREEN))
                     .append(topic.summary().copy().withStyle(ChatFormatting.WHITE)));
@@ -68,7 +68,8 @@ final class HelpCommand {
      * @return The number of body lines.
      */
     private static int runTopic(CommandSourceStack source, HelpTopic topic, int page) {
-        Component intro = CommandText.lang("help.topic", CommandText.bold("/alkdrops " + topic.keyword(), ChatFormatting.BLUE))
+        Component intro = CommandText.lang(
+                        "help.topic", CommandText.bold("/alkdrops " + topic.keyword(), ChatFormatting.BLUE))
                 .withStyle(ChatFormatting.BLUE);
         List<Component> lines = new ArrayList<>();
         lines.add(topic.summary().copy().withStyle(ChatFormatting.WHITE));

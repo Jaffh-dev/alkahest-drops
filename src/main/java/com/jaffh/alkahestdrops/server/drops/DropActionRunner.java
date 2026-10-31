@@ -3,6 +3,7 @@ package com.jaffh.alkahestdrops.server.drops;
 import com.jaffh.alkahestdrops.AlkahestDrops;
 import com.jaffh.alkahestdrops.api.event.OnDropEvent;
 import com.jaffh.alkahestdrops.common.drops.DropActions;
+import javax.annotation.Nullable;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.ServerFunctionManager;
@@ -10,8 +11,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.common.MinecraftForge;
-
-import javax.annotation.Nullable;
 
 /**
  * Carries out what happens when an Alkahest Drops item spawns: the glow of {@code on_drop}, then the
@@ -26,8 +25,7 @@ public final class DropActionRunner {
     /**
      * Prevents instantiation of this utility class.
      */
-    private DropActionRunner() {
-    }
+    private DropActionRunner() {}
 
     /**
      * Makes an item glow when its drop asks for it. Called as the item spawns, so the glow is there from its first
@@ -50,8 +48,12 @@ public final class DropActionRunner {
     public static void finishDrop(ItemEntity item, SpawningDropQueue.RolledFrom rolled) {
         if (item.isRemoved()) return;
         Player player = rolled.roll().player();
-        OnDropEvent event = new OnDropEvent(item, rolled.roll().origin(), rolled.entry().tracking().key(),
-                rolled.entry().trigger().trigger(), player);
+        OnDropEvent event = new OnDropEvent(
+                item,
+                rolled.roll().origin(),
+                rolled.entry().tracking().key(),
+                rolled.entry().trigger().trigger(),
+                player);
         if (MinecraftForge.EVENT_BUS.post(event)) return;
         ResourceLocation function = rolled.entry().onDrop().runFunction();
         if (function != null && !item.isRemoved()) runFunction(item, function, player);
@@ -66,7 +68,8 @@ public final class DropActionRunner {
      * @param player     Player the drop was rolled for, or null.
      */
     private static void runFunction(ItemEntity item, ResourceLocation functionId, @Nullable Player player) {
-        ServerFunctionManager functions = ((ServerLevel) item.level()).getServer().getFunctions();
+        ServerFunctionManager functions =
+                ((ServerLevel) item.level()).getServer().getFunctions();
         functions.get(functionId).ifPresent(function -> {
             boolean isTagged = player != null && RealPlayers.isReal(player) && player.addTag(PLAYER_TAG);
             try {
@@ -85,7 +88,8 @@ public final class DropActionRunner {
      * @return The game loop source, as the item, at the item, in its level.
      */
     private static CommandSourceStack sourceOf(ServerFunctionManager functions, ItemEntity item) {
-        return functions.getGameLoopSender()
+        return functions
+                .getGameLoopSender()
                 .withEntity(item)
                 .withPosition(item.position())
                 .withLevel((ServerLevel) item.level());

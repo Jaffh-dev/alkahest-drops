@@ -3,6 +3,8 @@ plugins {
     id 'idea'
     id 'maven-publish'
     id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    id 'checkstyle'
+    id 'com.diffplug.spotless' version '6.25.0'
 }
 
 version = mod_version
@@ -246,6 +248,29 @@ publishing {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+}
+
+// Formatting: `./gradlew spotlessApply` fixes it, `spotlessCheck` (part of `build`) fails on unformatted files.
+spotless {
+    java {
+        target 'src/*/java/**/*.java'
+        palantirJavaFormat('2.50.0')
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+    format 'misc', {
+        target '*.gradle', '.gitattributes', '.gitignore', '.github/**/*.yml', '.github/**/*.md'
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+// Linting: the project's coding conventions (JavaDoc everywhere, naming, imports, line length), part of `build`.
+checkstyle {
+    toolVersion = '10.26.1'
+    configFile = file('config/checkstyle/checkstyle.xml')
+    maxWarnings = 0
 }
 
 tasks.matching { it.name == 'runGameTestServer' || (it.name == 'runClient' && project.hasProperty('withGameTests')) }.configureEach {

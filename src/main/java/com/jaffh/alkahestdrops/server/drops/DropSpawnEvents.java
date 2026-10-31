@@ -1,13 +1,12 @@
 package com.jaffh.alkahestdrops.server.drops;
 
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Follows queued drop file stacks as they spawn: applies the glow right away, and at the end of the tick fires the
@@ -29,7 +28,8 @@ public class DropSpawnEvents {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onEntityJoin(EntityJoinLevelEvent event) {
         SpawningDropQueue queue = SpawningDropQueue.INSTANCE;
-        if (queue.isEmpty() || event.getLevel().isClientSide() || !(event.getEntity() instanceof ItemEntity item)) return;
+        if (queue.isEmpty() || event.getLevel().isClientSide() || !(event.getEntity() instanceof ItemEntity item))
+            return;
         SpawningDropQueue.RolledFrom rolled = queue.take(item.getItem());
         if (rolled == null) return;
         DropActionRunner.applyGlow(item, rolled.entry().onDrop());
@@ -59,6 +59,5 @@ public class DropSpawnEvents {
      * @param item   Spawned item entity. Never null.
      * @param rolled Drop and roll of its stack. Never null.
      */
-    private record SpawnedDrop(ItemEntity item, SpawningDropQueue.RolledFrom rolled) {
-    }
+    private record SpawnedDrop(ItemEntity item, SpawningDropQueue.RolledFrom rolled) {}
 }

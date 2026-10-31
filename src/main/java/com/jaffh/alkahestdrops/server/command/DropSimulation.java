@@ -4,10 +4,6 @@ import com.jaffh.alkahestdrops.common.drops.DropTracking;
 import com.jaffh.alkahestdrops.server.drops.IDropSimulator;
 import com.jaffh.alkahestdrops.server.drops.SimulatedDrop;
 import com.jaffh.alkahestdrops.server.drops.SimulatedStack;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -15,6 +11,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nullable;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * Runs a simulator many times and counts what it dropped, per item and for the experience. Only what the filter
@@ -26,6 +25,7 @@ public final class DropSimulation {
     private final Map<TallyKey, Tally> tallies = new HashMap<>();
     /** Experience lines: null for the experience of other drops, else one per pity or one-time drop. */
     private final Map<DropTracking, Tally> experienceTallies = new HashMap<>();
+
     private final List<ItemStack> keptStacks = new ArrayList<>();
     private int runCount;
     private long experience;
@@ -51,7 +51,8 @@ public final class DropSimulation {
      * @param shouldKeepStacks Whether to keep the counted stacks to drop them afterward.
      * @return The counts of every run.
      */
-    public static DropSimulation run(IDropSimulator simulator, int runs, SimulationFilter filter, boolean shouldKeepStacks) {
+    public static DropSimulation run(
+            IDropSimulator simulator, int runs, SimulationFilter filter, boolean shouldKeepStacks) {
         DropSimulation simulation = new DropSimulation(filter, shouldKeepStacks);
         for (int i = 0; i < runs; i++) {
             simulation.record(simulator.simulateOnce());
@@ -142,7 +143,8 @@ public final class DropSimulation {
      */
     public List<ItemResult> itemResults() {
         List<ItemResult> results = new ArrayList<>(tallies.size());
-        tallies.forEach((key, tally) -> results.add(new ItemResult(key.item(), key.tracking(), tally.total, tally.runsWithDrop)));
+        tallies.forEach((key, tally) ->
+                results.add(new ItemResult(key.item(), key.tracking(), tally.total, tally.runsWithDrop)));
         results.sort(Comparator.comparingLong(ItemResult::total).reversed());
         return results;
     }
@@ -155,7 +157,8 @@ public final class DropSimulation {
      */
     public List<ExperienceResult> experienceResults() {
         List<ExperienceResult> results = new ArrayList<>(experienceTallies.size());
-        experienceTallies.forEach((tracking, tally) -> results.add(new ExperienceResult(tracking, tally.total, tally.runsWithDrop)));
+        experienceTallies.forEach(
+                (tracking, tally) -> results.add(new ExperienceResult(tracking, tally.total, tally.runsWithDrop)));
         results.sort(Comparator.comparing((ExperienceResult result) -> result.tracking() != null)
                 .thenComparing(Comparator.comparingLong(ExperienceResult::total).reversed()));
         return results;
@@ -205,8 +208,7 @@ public final class DropSimulation {
      * @param total        Summed count over every run.
      * @param runsWithDrop Number of runs that dropped at least one.
      */
-    public record ItemResult(Item item, @Nullable DropTracking tracking, long total, int runsWithDrop) {
-    }
+    public record ItemResult(Item item, @Nullable DropTracking tracking, long total, int runsWithDrop) {}
 
     /**
      * Represents what one experience line dropped over every run.
@@ -215,8 +217,7 @@ public final class DropSimulation {
      * @param total        Summed experience over every run.
      * @param runsWithDrop Number of runs that dropped experience on this line.
      */
-    public record ExperienceResult(@Nullable DropTracking tracking, long total, int runsWithDrop) {
-    }
+    public record ExperienceResult(@Nullable DropTracking tracking, long total, int runsWithDrop) {}
 
     /**
      * Identifies one line of the report: an item, alone or from one pity or one-time drop.
@@ -224,8 +225,7 @@ public final class DropSimulation {
      * @param item     Dropped item. Never null.
      * @param tracking Settings of the pity or one-time drop, or null for the other drops.
      */
-    private record TallyKey(Item item, @Nullable DropTracking tracking) {
-    }
+    private record TallyKey(Item item, @Nullable DropTracking tracking) {}
 
     /**
      * Counts one line while the simulation runs.

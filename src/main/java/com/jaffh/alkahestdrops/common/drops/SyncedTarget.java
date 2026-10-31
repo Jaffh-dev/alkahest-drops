@@ -1,8 +1,7 @@
 package com.jaffh.alkahestdrops.common.drops;
 
-import net.minecraft.resources.ResourceLocation;
-
 import java.util.List;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * Represents everything one mob or block drops, as sent to clients: its loot table, its experience and every

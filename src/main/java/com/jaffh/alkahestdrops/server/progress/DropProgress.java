@@ -1,5 +1,11 @@
 package com.jaffh.alkahestdrops.server.progress;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Predicate;
+import javax.annotation.Nullable;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -9,13 +15,6 @@ import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.common.capabilities.CapabilityToken;
 
-import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Predicate;
-
 /**
  * Holds the drop progress of one player, attached as a capability: the misses in a row of every pity drop and the
  * one-time drops ({@code first_kill}, {@code first_break}) already received. Keys are the progress keys of the drops
@@ -23,8 +22,7 @@ import java.util.function.Predicate;
  */
 public final class DropProgress {
     /** Capability of the drop progress, attached to every player on the server. */
-    public static final Capability<DropProgress> CAPABILITY = CapabilityManager.get(new CapabilityToken<>() {
-    });
+    public static final Capability<DropProgress> CAPABILITY = CapabilityManager.get(new CapabilityToken<>() {});
 
     private static final String MISSES_KEY = "misses";
     private static final String FIRST_DROPS_KEY = "first_drops";

@@ -1,12 +1,11 @@
 package com.jaffh.alkahestdrops.server.progress;
 
+import javax.annotation.Nullable;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilitySerializable;
 import net.minecraftforge.common.util.LazyOptional;
-
-import javax.annotation.Nullable;
 
 /**
  * Exposes and saves the {@link DropProgress} of one player.

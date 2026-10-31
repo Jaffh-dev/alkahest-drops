@@ -9,10 +9,9 @@ import com.jaffh.alkahestdrops.server.drops.DropTable;
 import com.jaffh.alkahestdrops.server.drops.ParseContext;
 import com.jaffh.alkahestdrops.server.drops.ParsedDropFile;
 import com.jaffh.alkahestdrops.server.drops.TargetMatcher;
+import java.util.List;
 import net.minecraft.world.entity.EntityType;
 import net.minecraftforge.registries.ForgeRegistries;
-
-import java.util.List;
 
 /**
  * Datapack reload listener for {@code data/<namespace>/mob_drops/*.json}, with rules indexed by entity type.
@@ -26,7 +25,9 @@ public final class MobDropManager extends DropManager<EntityType<?>> {
      * {@code *}) never match players: their drops are their inventory.
      */
     private MobDropManager() {
-        super("mob_drops", DropFileFormat.MOB,
+        super(
+                "mob_drops",
+                DropFileFormat.MOB,
                 new TargetMatcher<>(ForgeRegistries.ENTITY_TYPES, EntityType::is, type -> type != EntityType.PLAYER),
                 "mob");
     }
@@ -70,7 +71,8 @@ public final class MobDropManager extends DropManager<EntityType<?>> {
      * @throws DropDataException If a removal file targets players.
      */
     @Override
-    protected void checkTarget(ParsedDropFile parsed, TargetMatcher.Target<EntityType<?>> target, ParseContext ctx) throws DropDataException {
+    protected void checkTarget(ParsedDropFile parsed, TargetMatcher.Target<EntityType<?>> target, ParseContext ctx)
+            throws DropDataException {
         if (parsed instanceof ParsedDropFile.Removals
                 && target instanceof TargetMatcher.Target.Values<EntityType<?>> values
                 && values.values().contains(EntityType.PLAYER)) {

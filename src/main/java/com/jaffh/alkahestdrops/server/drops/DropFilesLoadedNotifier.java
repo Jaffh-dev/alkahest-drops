@@ -18,8 +18,7 @@ public final class DropFilesLoadedNotifier {
     /**
      * Prevents instantiation of this utility class.
      */
-    private DropFilesLoadedNotifier() {
-    }
+    private DropFilesLoadedNotifier() {}
 
     /**
      * Fires the event when the server has started.

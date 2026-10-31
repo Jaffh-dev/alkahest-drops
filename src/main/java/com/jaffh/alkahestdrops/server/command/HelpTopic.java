@@ -1,13 +1,12 @@
 package com.jaffh.alkahestdrops.server.command;
 
-import net.minecraft.network.chat.Component;
-
-import java.util.List;
-import java.util.Locale;
-
 import static com.jaffh.alkahestdrops.server.command.HelpSection.argument;
 import static com.jaffh.alkahestdrops.server.command.HelpSection.describedArgument;
 import static com.jaffh.alkahestdrops.server.command.HelpSection.example;
+
+import java.util.List;
+import java.util.Locale;
+import net.minecraft.network.chat.Component;
 
 /**
  * Defines the {@code /alkdrops help} topics, one per subcommand, with the keys of their text.
@@ -48,9 +47,7 @@ enum HelpTopic {
     /** {@code /alkdrops drops}. */
     DROPS(List.of(
             HelpSection.usage("/alkdrops drops <entity | block> [page <n>]"),
-            HelpSection.arguments(
-                    argument("entity | block", "drops.arg.target"),
-                    argument("page <n>", "arg.page")),
+            HelpSection.arguments(argument("entity | block", "drops.arg.target"), argument("page <n>", "arg.page")),
             HelpSection.examples(
                     example("/alkdrops drops minecraft:zombie", "drops.example.zombie"),
                     example("/alkdrops drops minecraft:stone", "drops.example.stone")))),
@@ -80,9 +77,13 @@ enum HelpTopic {
                     argument("page <n>", "simulate.arg.page")),
             HelpSection.examples(
                     example("/alkdrops simulate entity minecraft:zombie 1000", "simulate.example.zombie"),
-                    example("/alkdrops simulate entity minecraft:cow 1000 enchant [{id:\"minecraft:looting\",lvl:3}] only minecraft:beef", "simulate.example.cow"),
+                    example(
+                            "/alkdrops simulate entity minecraft:cow 1000 enchant [{id:\"minecraft:looting\",lvl:3}] only minecraft:beef",
+                            "simulate.example.cow"),
                     example("/alkdrops simulate entity minecraft:sheep on shear 100", "simulate.example.shear"),
-                    example("/alkdrops simulate block minecraft:diamond_ore 500 enchant [{id:\"minecraft:fortune\",lvl:3}] by none", "simulate.example.diamond_ore"),
+                    example(
+                            "/alkdrops simulate block minecraft:diamond_ore 500 enchant [{id:\"minecraft:fortune\",lvl:3}] by none",
+                            "simulate.example.diamond_ore"),
                     example("/alkdrops simulate entity minecraft:zombie drop no-text", "simulate.example.silent")))),
     /** {@code /alkdrops reset}. */
     RESET(List.of(

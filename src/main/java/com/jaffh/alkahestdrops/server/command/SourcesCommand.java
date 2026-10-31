@@ -7,6 +7,9 @@ import com.jaffh.alkahestdrops.server.drops.ParsedDropFile;
 import com.jaffh.alkahestdrops.server.drops.RemovalEntry;
 import com.jaffh.alkahestdrops.server.drops.RemovalRule;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
@@ -15,10 +18,6 @@ import net.minecraft.commands.arguments.item.ItemArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.registries.ForgeRegistries;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Predicate;
 
 /**
  * {@code /alkdrops sources <item|experience> [page <n>]}: reverse lookup of every drop file that adds an item (or
@@ -30,8 +29,7 @@ final class SourcesCommand {
     /**
      * Prevents instantiation of this utility class.
      */
-    private SourcesCommand() {
-    }
+    private SourcesCommand() {}
 
     /**
      * Builds the {@code sources} node.
@@ -41,10 +39,16 @@ final class SourcesCommand {
      */
     static LiteralArgumentBuilder<CommandSourceStack> build(CommandBuildContext buildContext) {
         return Commands.literal("sources")
-                .then(PagedOutput.withPages(Commands.literal("experience"),
+                .then(PagedOutput.withPages(
+                        Commands.literal("experience"),
                         (context, page) -> run(context.getSource(), Lookup.EXPERIENCE, page)))
-                .then(PagedOutput.withPages(Commands.argument("item", ItemArgument.item(buildContext)),
-                        (context, page) -> run(context.getSource(), Lookup.ofItem(ItemArgument.getItem(context, "item").getItem()), page)));
+                .then(PagedOutput.withPages(
+                        Commands.argument("item", ItemArgument.item(buildContext)),
+                        (context, page) -> run(
+                                context.getSource(),
+                                Lookup.ofItem(
+                                        ItemArgument.getItem(context, "item").getItem()),
+                                page)));
     }
 
     /**
@@ -76,7 +80,8 @@ final class SourcesCommand {
 
         List<Component> lines = new ArrayList<>(addLines);
         lines.addAll(removeLines);
-        Component title = CommandText.lang("sources.header", lookup.name()).withStyle(ChatFormatting.BLUE)
+        Component title = CommandText.lang("sources.header", lookup.name())
+                .withStyle(ChatFormatting.BLUE)
                 .append(CommandText.text(": ", ChatFormatting.YELLOW))
                 .append(RuleText.counts(addLines.size(), removeLines.size()));
         PagedOutput.send(source, TITLE, List.of(title), lines, page, "/alkdrops sources " + lookup.argument());
@@ -91,14 +96,16 @@ final class SourcesCommand {
      * @param lookup  What to look up. Never null.
      * @param lines   Receives the lines. Never null.
      */
-    private static void collectAdds(ParsedDropFile.Drops drops, DropManager<?> manager, Lookup lookup, List<Component> lines) {
+    private static void collectAdds(
+            ParsedDropFile.Drops drops, DropManager<?> manager, Lookup lookup, List<Component> lines) {
         DropFile file = drops.file();
         for (DropEntry entry : file.entries()) {
             if (!lookup.matchesDrop().test(entry)) continue;
             boolean isConditional = file.hasGlobalConditions() || entry.hasConditions();
             lines.add(RuleText.fileLine("+ ", ChatFormatting.GREEN, drops, manager)
                     .append(CommandText.text(": ", ChatFormatting.WHITE))
-                    .append(RuleText.describeDrop(entry, manager.format(), isConditional).withStyle(ChatFormatting.WHITE)));
+                    .append(RuleText.describeDrop(entry, manager.format(), isConditional)
+                            .withStyle(ChatFormatting.WHITE)));
         }
     }
 
@@ -110,16 +117,22 @@ final class SourcesCommand {
      * @param lookup   What to look up. Never null.
      * @param lines    Receives the lines. Never null.
      */
-    private static void collectRemovals(ParsedDropFile.Removals removals, DropManager<?> manager, Lookup lookup, List<Component> lines) {
+    private static void collectRemovals(
+            ParsedDropFile.Removals removals, DropManager<?> manager, Lookup lookup, List<Component> lines) {
         RemovalRule rule = removals.rule();
         for (RemovalEntry entry : rule.entries()) {
             if (!lookup.matchesRemoval().test(entry)) continue;
             boolean isConditional = rule.hasGlobalConditions() || entry.hasConditions();
             lines.add(RuleText.fileLine("- ", ChatFormatting.RED, removals, manager)
                     .append(CommandText.text(": ", ChatFormatting.WHITE))
-                    .append(CommandText.lang("rule.removes", RuleText.describeRemovalMatch(entry)).withStyle(ChatFormatting.WHITE))
+                    .append(CommandText.lang("rule.removes", RuleText.describeRemovalMatch(entry))
+                            .withStyle(ChatFormatting.WHITE))
                     .append(RuleText.removalTrigger(rule.trigger()))
-                    .append(isConditional ? CommandText.text(", ", ChatFormatting.WHITE).append(RuleText.conditional()) : CommandText.text("")));
+                    .append(
+                            isConditional
+                                    ? CommandText.text(", ", ChatFormatting.WHITE)
+                                            .append(RuleText.conditional())
+                                    : CommandText.text("")));
         }
     }
 
@@ -131,11 +144,14 @@ final class SourcesCommand {
      * @param matchesDrop    Tells whether a drop gives it. Never null.
      * @param matchesRemoval Tells whether a removal entry removes it. Never null.
      */
-    private record Lookup(Component name, String argument, Predicate<DropEntry> matchesDrop, Predicate<RemovalEntry> matchesRemoval) {
+    private record Lookup(
+            Component name, String argument, Predicate<DropEntry> matchesDrop, Predicate<RemovalEntry> matchesRemoval) {
         /** Experience drops and experience removal entries. */
         static final Lookup EXPERIENCE = new Lookup(
-                CommandText.lang("sources.experience").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD), "experience",
-                DropEntry::isExperience, RemovalEntry::isExperience);
+                CommandText.lang("sources.experience").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD),
+                "experience",
+                DropEntry::isExperience,
+                RemovalEntry::isExperience);
 
         /**
          * Creates the lookup of an item: drops of the item, and removal entries whose id, tag or {@code *} names it.
@@ -144,8 +160,11 @@ final class SourcesCommand {
          * @return The lookup.
          */
         static Lookup ofItem(Item item) {
-            return new Lookup(CommandText.itemName(item), String.valueOf(ForgeRegistries.ITEMS.getKey(item)),
-                    entry -> entry.item() == item, entry -> entry.removes(item));
+            return new Lookup(
+                    CommandText.itemName(item),
+                    String.valueOf(ForgeRegistries.ITEMS.getKey(item)),
+                    entry -> entry.item() == item,
+                    entry -> entry.removes(item));
         }
     }
 }

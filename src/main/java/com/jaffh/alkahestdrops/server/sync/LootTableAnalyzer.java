@@ -9,9 +9,13 @@ import com.jaffh.alkahestdrops.common.drops.EnchantBonus;
 import com.jaffh.alkahestdrops.common.drops.EnchantBonusEntry;
 import com.jaffh.alkahestdrops.common.drops.EnchantBonuses;
 import com.jaffh.alkahestdrops.common.drops.SyncedDrop;
-import com.jaffh.alkahestdrops.common.drops.TriggerSettings;
 import com.jaffh.alkahestdrops.common.drops.SyncedDropSource;
+import com.jaffh.alkahestdrops.common.drops.TriggerSettings;
 import com.mojang.logging.LogUtils;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -26,11 +30,6 @@ import net.minecraft.world.level.storage.loot.LootDataResolver;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.slf4j.Logger;
-
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Turns a loot table into the drops JEI shows: one entry per item, with its chance, count range, enchantment
@@ -137,12 +136,22 @@ final class LootTableAnalyzer {
                 functions.addAll(outerFunctions);
                 LootCountSummary count = LootCountSummary.of(functions);
                 EnchantBonuses bonus = bonusesOf(conditions, count, factor * pick);
-                DropCount range = new DropCount(count.count().min(), count.count().max() * Math.max(1, rolls.maxInt()));
+                DropCount range =
+                        new DropCount(count.count().min(), count.count().max() * Math.max(1, rolls.maxInt()));
                 ConditionDescriber.Description described = conditionDescriber.describeJson(conditions.others());
                 for (Item item : leaf.items()) {
-                    output.drops().add(new SyncedDrop(new ItemStack(item), Math.min(1.0, chance), range, DropBehavior.UNIFORM,
-                            bonus, SyncedDrop.UNTRACKED, described.conditions(), described.hasHidden(), output.source(),
-                            TriggerSettings.DEATH));
+                    output.drops()
+                            .add(new SyncedDrop(
+                                    new ItemStack(item),
+                                    Math.min(1.0, chance),
+                                    range,
+                                    DropBehavior.UNIFORM,
+                                    bonus,
+                                    SyncedDrop.UNTRACKED,
+                                    described.conditions(),
+                                    described.hasHidden(),
+                                    output.source(),
+                                    TriggerSettings.DEATH));
                 }
             }
         }
@@ -157,7 +166,8 @@ final class LootTableAnalyzer {
      * @param chanceScale Factor of the chance bonus: the chance the table is rolled times the entry's pick chance.
      * @return The bonuses, chance bonuses first.
      */
-    private static EnchantBonuses bonusesOf(LootConditionSummary conditions, LootCountSummary count, double chanceScale) {
+    private static EnchantBonuses bonusesOf(
+            LootConditionSummary conditions, LootCountSummary count, double chanceScale) {
         Set<ResourceLocation> ids = new LinkedHashSet<>(conditions.bonuses().keySet());
         ids.addAll(count.bonuses().keySet());
         List<EnchantBonusEntry> entries = new ArrayList<>(ids.size());
@@ -165,10 +175,16 @@ final class LootTableAnalyzer {
             Enchantment enchantment = ForgeRegistries.ENCHANTMENTS.getValue(id);
             if (enchantment == null) continue;
             EnchantBonus.ChanceBonus chance = conditions.bonuses().get(id);
-            EnchantBonus.ChanceBonus scaledChance = chance == null ? EnchantBonus.ChanceBonus.NONE
-                    : new EnchantBonus.ChanceBonus(chance.bonusPerLevel() * chanceScale, chance.maxBonus() * chanceScale);
-            entries.add(new EnchantBonusEntry(enchantment, new EnchantBonus(scaledChance, EnchantBonus.RollBonus.NONE,
-                    count.bonuses().getOrDefault(id, EnchantBonus.CountBonus.NONE))));
+            EnchantBonus.ChanceBonus scaledChance = chance == null
+                    ? EnchantBonus.ChanceBonus.NONE
+                    : new EnchantBonus.ChanceBonus(
+                            chance.bonusPerLevel() * chanceScale, chance.maxBonus() * chanceScale);
+            entries.add(new EnchantBonusEntry(
+                    enchantment,
+                    new EnchantBonus(
+                            scaledChance,
+                            EnchantBonus.RollBonus.NONE,
+                            count.bonuses().getOrDefault(id, EnchantBonus.CountBonus.NONE))));
         }
         return entries.isEmpty() ? EnchantBonuses.NONE : new EnchantBonuses(entries);
     }
@@ -209,7 +225,8 @@ final class LootTableAnalyzer {
         if (TAG.equals(type) && name != null) {
             List<Item> items = itemsOfTag(name);
             if (LootJson.bool(entry, "expand", false)) {
-                for (Item item : items) choices.add(Choice.of(new Leaf(weight, List.of(item), null, conditions, functions)));
+                for (Item item : items)
+                    choices.add(Choice.of(new Leaf(weight, List.of(item), null, conditions, functions)));
             } else {
                 choices.add(Choice.of(new Leaf(weight, items, null, conditions, functions)));
             }
@@ -244,8 +261,7 @@ final class LootTableAnalyzer {
      * @param source Source given to every drop: the analyzed table, also for drops of referenced tables. Never null.
      * @param drops  Receives the drops. Never null.
      */
-    private record Output(SyncedDropSource source, List<SyncedDrop> drops) {
-    }
+    private record Output(SyncedDropSource source, List<SyncedDrop> drops) {}
 
     /**
      * Represents one choice of a pool's weighted pick.
@@ -274,7 +290,10 @@ final class LootTableAnalyzer {
      * @param conditions Its conditions, with those of the composite entries around it. Never null.
      * @param functions  Its own functions. Never null.
      */
-    private record Leaf(double weight, List<Item> items, ResourceLocation tableId, List<JsonElement> conditions,
-                        List<JsonElement> functions) {
-    }
+    private record Leaf(
+            double weight,
+            List<Item> items,
+            ResourceLocation tableId,
+            List<JsonElement> conditions,
+            List<JsonElement> functions) {}
 }

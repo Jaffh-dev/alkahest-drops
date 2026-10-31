@@ -8,5 +8,4 @@ import net.minecraft.world.item.enchantment.Enchantment;
  * @param enchantment Enchantment whose level scales the bonus. Never null.
  * @param bonus       Per-level bonuses of that enchantment. Never null.
  */
-public record EnchantBonusEntry(Enchantment enchantment, EnchantBonus bonus) {
-}
+public record EnchantBonusEntry(Enchantment enchantment, EnchantBonus bonus) {}

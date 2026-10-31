@@ -17,8 +17,7 @@ public sealed interface DropOrigin {
      * @param mob Mob that dropped, dead on a death drop. Never null.
      * @since 1.0.0
      */
-    record Mob(LivingEntity mob) implements DropOrigin {
-    }
+    record Mob(LivingEntity mob) implements DropOrigin {}
 
     /**
      * Represents a drop of a broken block.
@@ -27,6 +26,5 @@ public sealed interface DropOrigin {
      * @param pos   Position of the block. Never null.
      * @since 1.0.0
      */
-    record Block(BlockState state, BlockPos pos) implements DropOrigin {
-    }
+    record Block(BlockState state, BlockPos pos) implements DropOrigin {}
 }

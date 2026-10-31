@@ -4,14 +4,13 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.jaffh.alkahestdrops.common.drops.SyncedCondition;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.storage.loot.Deserializers;
-import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.storage.loot.Deserializers;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 
 /**
  * Turns loot conditions into the {@link SyncedCondition}s clients can describe: killed by a player (or a real
@@ -104,8 +103,10 @@ final class ConditionDescriber {
             return isComplete;
         }
         if (type.equals(KILLED_BY_PLAYER)) return addOf(out, SyncedCondition.Kind.KILLED_BY_PLAYER, isNegated);
-        if (type.getPath().equals(KILLED_BY_REAL_PLAYER)) return addOf(out, SyncedCondition.Kind.KILLED_BY_REAL_PLAYER, isNegated);
-        if (type.getPath().equals(BROKEN_BY_REAL_PLAYER)) return addOf(out, SyncedCondition.Kind.BROKEN_BY_REAL_PLAYER, isNegated);
+        if (type.getPath().equals(KILLED_BY_REAL_PLAYER))
+            return addOf(out, SyncedCondition.Kind.KILLED_BY_REAL_PLAYER, isNegated);
+        if (type.getPath().equals(BROKEN_BY_REAL_PLAYER))
+            return addOf(out, SyncedCondition.Kind.BROKEN_BY_REAL_PLAYER, isNegated);
         if (type.equals(ENTITY_PROPERTIES)) return addEntityFlags(condition, isNegated, out);
         if (type.equals(MATCH_TOOL)) return addTool(condition, isNegated, out);
         return false;
@@ -219,8 +220,11 @@ final class ConditionDescriber {
 
         /**
          * Creates a description and stores an immutable copy of its conditions.
+         *
+         * @param conditions Conditions that could be described. Never null.
+         * @param hasHidden  Whether some conditions could not be described.
          */
-        Description {
+        public Description {
             conditions = List.copyOf(conditions);
         }
 
@@ -241,7 +245,8 @@ final class ConditionDescriber {
          * @return The conditions the drop needs.
          */
         Description asRemoval() {
-            if (conditions.size() == 1 && !hasHidden) return new Description(List.of(conditions.get(0).negate()), false);
+            if (conditions.size() == 1 && !hasHidden)
+                return new Description(List.of(conditions.get(0).negate()), false);
             return new Description(List.of(), true);
         }
     }

@@ -2,10 +2,15 @@ package com.jaffh.alkahestdrops.server.mobdrops;
 
 import com.jaffh.alkahestdrops.api.DropOrigin;
 import com.jaffh.alkahestdrops.server.drops.DropTable;
-import com.jaffh.alkahestdrops.server.drops.RemovalRule;
 import com.jaffh.alkahestdrops.server.drops.EnchantLevels;
+import com.jaffh.alkahestdrops.server.drops.RemovalRule;
 import com.jaffh.alkahestdrops.server.drops.RollContext;
 import com.jaffh.alkahestdrops.server.drops.RolledDrop;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
+import javax.annotation.Nullable;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
@@ -25,16 +30,10 @@ import net.minecraftforge.event.entity.living.LivingExperienceDropEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.WeakHashMap;
-
 /**
  * Applies the mob drop tables: on {@link LivingDropsEvent} it removes drops first, then rolls and adds Alkahest Drops
- * item drops (per-player drops once per attacking player, locked to them); on {@link LivingExperienceDropEvent} it turns off the experience when a removal file asks for it and
- * adds drop file experience drops.
+ * item drops (per-player drops once per attacking player, locked to them); on {@link LivingExperienceDropEvent} it
+ * turns off the experience when a removal file asks for it and adds drop file experience drops.
  */
 public class MobDropInjector {
     /**
@@ -78,11 +77,14 @@ public class MobDropInjector {
 
         Entity killer = event.getSource().getEntity();
         DropOrigin origin = new DropOrigin.Mob(entity);
-        RollContext rollContext = new RollContext(killLevelsOf(killer, event.getLootingLevel()), entity.getMaxHealth(),
-                level.getRandom(), playerOf(killer)).withOrigin(origin);
-        List<RollContext> attackerRolls = table.hasPerPlayerDrops()
-                ? attackerRollsOf(entity, level, killer, event.getLootingLevel())
-                : List.of();
+        RollContext rollContext = new RollContext(
+                        killLevelsOf(killer, event.getLootingLevel()),
+                        entity.getMaxHealth(),
+                        level.getRandom(),
+                        playerOf(killer))
+                .withOrigin(origin);
+        List<RollContext> attackerRolls =
+                table.hasPerPlayerDrops() ? attackerRollsOf(entity, level, killer, event.getLootingLevel()) : List.of();
         for (RolledDrop drop : table.rollDrops(activeRemovals, context, rollContext, attackerRolls)) {
             ItemEntity itemEntity = new ItemEntity(level, entity.getX(), entity.getY(), entity.getZ(), drop.stack());
             itemEntity.setTarget(drop.owner());
@@ -100,11 +102,15 @@ public class MobDropInjector {
      * @param killerLooting Looting level of the kill.
      * @return One roll context per attacker, each with its player set; empty when no attacker is online.
      */
-    private static List<RollContext> attackerRollsOf(LivingEntity entity, ServerLevel level, @Nullable Entity killer, int killerLooting) {
+    private static List<RollContext> attackerRollsOf(
+            LivingEntity entity, ServerLevel level, @Nullable Entity killer, int killerLooting) {
         List<RollContext> rolls = new ArrayList<>();
         for (ServerPlayer player : HitTracker.onlineAttackersOf(entity, level.getServer(), killer)) {
-            EnchantLevels levels = player == killer ? killLevelsOf(killer, killerLooting) : EnchantLevels.ofItem(player.getMainHandItem());
-            rolls.add(new RollContext(levels, entity.getMaxHealth(), level.getRandom(), player).withOrigin(new DropOrigin.Mob(entity)));
+            EnchantLevels levels = player == killer
+                    ? killLevelsOf(killer, killerLooting)
+                    : EnchantLevels.ofItem(player.getMainHandItem());
+            rolls.add(new RollContext(levels, entity.getMaxHealth(), level.getRandom(), player)
+                    .withOrigin(new DropOrigin.Mob(entity)));
         }
         return rolls;
     }
@@ -118,7 +124,9 @@ public class MobDropInjector {
      * @return The levels; only Looting without a living killer.
      */
     static EnchantLevels killLevelsOf(@Nullable Entity killer, int lootingLevel) {
-        EnchantLevels levels = killer instanceof LivingEntity living ? EnchantLevels.ofItem(living.getMainHandItem()) : EnchantLevels.NONE;
+        EnchantLevels levels = killer instanceof LivingEntity living
+                ? EnchantLevels.ofItem(living.getMainHandItem())
+                : EnchantLevels.NONE;
         return levels.withOverride(Enchantments.MOB_LOOTING, lootingLevel);
     }
 
@@ -153,8 +161,11 @@ public class MobDropInjector {
         DamageSource source = deathSourceOf(entity);
         LootContext context = table.needsLootContext() ? createLootContext(level, entity, source) : null;
         int lootingLevel = ForgeHooks.getLootingLevel(entity, source.getEntity(), source);
-        RollContext rollContext = new RollContext(killLevelsOf(source.getEntity(), lootingLevel), entity.getMaxHealth(),
-                level.getRandom(), playerOf(source.getEntity()));
+        RollContext rollContext = new RollContext(
+                killLevelsOf(source.getEntity(), lootingLevel),
+                entity.getMaxHealth(),
+                level.getRandom(),
+                playerOf(source.getEntity()));
         event.setDroppedExperience(table.applyExperience(event.getDroppedExperience(), context, rollContext));
     }
 

@@ -1,9 +1,8 @@
 package com.jaffh.alkahestdrops.server.command;
 
-import net.minecraft.world.item.ItemStack;
-
-import javax.annotation.Nullable;
 import java.util.function.Predicate;
+import javax.annotation.Nullable;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * Represents what a simulation shows (and drops with {@code drop}). The filter never changes what is rolled, only

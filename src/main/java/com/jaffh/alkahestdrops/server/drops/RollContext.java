@@ -2,10 +2,9 @@ package com.jaffh.alkahestdrops.server.drops;
 
 import com.jaffh.alkahestdrops.api.DropOrigin;
 import com.jaffh.alkahestdrops.server.progress.DropProgress;
+import javax.annotation.Nullable;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
-
-import javax.annotation.Nullable;
 
 /**
  * Represents what one kill or block break gives to the roll of its drops.
@@ -18,8 +17,13 @@ import javax.annotation.Nullable;
  *                      null without a player (pity is then ignored and one-time drops never happen).
  * @param origin        Mob or block the drops spawn from, or null in simulations, whose drops never spawn as rolled.
  */
-public record RollContext(EnchantLevels enchantLevels, float scaleValue, float damageTaken, RandomSource random,
-                          @Nullable Player player, @Nullable DropOrigin origin) {
+public record RollContext(
+        EnchantLevels enchantLevels,
+        float scaleValue,
+        float damageTaken,
+        RandomSource random,
+        @Nullable Player player,
+        @Nullable DropOrigin origin) {
     /**
      * Creates the context of a roll without an origin.
      *
@@ -29,7 +33,12 @@ public record RollContext(EnchantLevels enchantLevels, float scaleValue, float d
      * @param random        Random source of the level. Never null.
      * @param player        Player of the roll, or null.
      */
-    public RollContext(EnchantLevels enchantLevels, float scaleValue, float damageTaken, RandomSource random, @Nullable Player player) {
+    public RollContext(
+            EnchantLevels enchantLevels,
+            float scaleValue,
+            float damageTaken,
+            RandomSource random,
+            @Nullable Player player) {
         this(enchantLevels, scaleValue, damageTaken, random, player, null);
     }
 

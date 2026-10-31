@@ -2,12 +2,11 @@ package com.jaffh.alkahestdrops.api.event;
 
 import com.jaffh.alkahestdrops.api.DropOrigin;
 import com.jaffh.alkahestdrops.api.DropTrigger;
+import javax.annotation.Nullable;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.eventbus.api.Cancelable;
 import net.minecraftforge.eventbus.api.Event;
-
-import javax.annotation.Nullable;
 
 /**
  * Fired on the Forge event bus, on the server thread, when an item rolled by a drop file has spawned in the
@@ -24,6 +23,7 @@ public class OnDropEvent extends Event {
     private final DropOrigin origin;
     private final String dropKey;
     private final DropTrigger trigger;
+
     @Nullable
     private final Player player;
 
@@ -37,7 +37,8 @@ public class OnDropEvent extends Event {
      * @param player  Player the drop was rolled for, or null without a player.
      * @since 1.0.0
      */
-    public OnDropEvent(ItemEntity item, DropOrigin origin, String dropKey, DropTrigger trigger, @Nullable Player player) {
+    public OnDropEvent(
+            ItemEntity item, DropOrigin origin, String dropKey, DropTrigger trigger, @Nullable Player player) {
         this.item = item;
         this.origin = origin;
         this.dropKey = dropKey;

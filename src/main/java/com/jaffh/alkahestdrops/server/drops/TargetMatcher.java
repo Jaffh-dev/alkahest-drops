@@ -1,13 +1,12 @@
 package com.jaffh.alkahestdrops.server.drops;
 
+import java.util.List;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraftforge.registries.IForgeRegistry;
-
-import java.util.List;
-import java.util.function.BiPredicate;
-import java.util.function.Predicate;
 
 /**
  * Parses the target of a file ({@code entity} or {@code block}) for one registry: an id, {@code "mod:*"}
@@ -54,9 +53,11 @@ public final class TargetMatcher<T> {
     public Target<T> parse(String raw, ParseContext ctx) throws DropDataException {
         if (raw.equals(ANY)) return new Target.Any<>();
         if (raw.startsWith(TAG_PREFIX)) {
-            return new Target.Tagged<>(TagKey.create(registry.getRegistryKey(), DropValues.parseId(raw.substring(1), ctx)));
+            return new Target.Tagged<>(
+                    TagKey.create(registry.getRegistryKey(), DropValues.parseId(raw.substring(1), ctx)));
         }
-        if (raw.endsWith(NAMESPACE_SUFFIX)) return parseNamespace(raw.substring(0, raw.length() - NAMESPACE_SUFFIX.length()), ctx);
+        if (raw.endsWith(NAMESPACE_SUFFIX))
+            return parseNamespace(raw.substring(0, raw.length() - NAMESPACE_SUFFIX.length()), ctx);
 
         ResourceLocation id = DropValues.parseId(raw, ctx);
         if (!registry.containsKey(id)) throw ctx.unknownId("unknown_target", id, entryName);
@@ -78,7 +79,8 @@ public final class TargetMatcher<T> {
         }
 
         boolean hasEntry = registry.getEntries().stream()
-                .anyMatch(entry -> entry.getKey().location().getNamespace().equals(namespace) && canMatchPattern.test(entry.getValue()));
+                .anyMatch(entry -> entry.getKey().location().getNamespace().equals(namespace)
+                        && canMatchPattern.test(entry.getValue()));
         if (!hasEntry) throw ctx.unknownId("empty_namespace", entryName, namespace);
         return new Target.Namespace<>(namespace);
     }
@@ -115,7 +117,8 @@ public final class TargetMatcher<T> {
     public boolean matches(Target<T> target, T value) {
         if (target instanceof Target.Values<T> values) return values.values().contains(value);
         if (!canMatchPattern(value)) return false;
-        if (target instanceof Target.Namespace<T> namespace) return namespaceOf(value).equals(namespace.namespace());
+        if (target instanceof Target.Namespace<T> namespace)
+            return namespaceOf(value).equals(namespace.namespace());
         if (target instanceof Target.Tagged<T> tagged) return isInTag(value, tagged.tag());
         return true;
     }
@@ -143,8 +146,7 @@ public final class TargetMatcher<T> {
          * @param values Targeted entries. Immutable, never null.
          * @param <T>    Registry entry type.
          */
-        record Values<T>(List<T> values) implements Target<T> {
-        }
+        record Values<T>(List<T> values) implements Target<T> {}
 
         /**
          * Targets every entry of a namespace that patterns may match ({@code mod:*}), checked when the drop happens.
@@ -152,8 +154,7 @@ public final class TargetMatcher<T> {
          * @param namespace Targeted namespace. Never null.
          * @param <T>       Registry entry type.
          */
-        record Namespace<T>(String namespace) implements Target<T> {
-        }
+        record Namespace<T>(String namespace) implements Target<T> {}
 
         /**
          * Targets every entry of a tag, checked when the drop happens.
@@ -161,15 +162,13 @@ public final class TargetMatcher<T> {
          * @param tag Targeted tag. Never null.
          * @param <T> Registry entry type.
          */
-        record Tagged<T>(TagKey<T> tag) implements Target<T> {
-        }
+        record Tagged<T>(TagKey<T> tag) implements Target<T> {}
 
         /**
          * Targets every entry patterns may match.
          *
          * @param <T> Registry entry type.
          */
-        record Any<T>() implements Target<T> {
-        }
+        record Any<T>() implements Target<T> {}
     }
 }

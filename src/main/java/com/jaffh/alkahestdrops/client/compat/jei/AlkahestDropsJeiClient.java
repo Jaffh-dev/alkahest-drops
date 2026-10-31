@@ -11,8 +11,7 @@ public final class AlkahestDropsJeiClient {
     /**
      * Prevents instantiation of this utility class.
      */
-    private AlkahestDropsJeiClient() {
-    }
+    private AlkahestDropsJeiClient() {}
 
     /**
      * Registers how the custom tooltip lines of the drop pages (chance bar, icon lines) are drawn.

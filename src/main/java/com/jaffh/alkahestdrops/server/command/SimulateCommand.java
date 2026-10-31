@@ -1,7 +1,7 @@
 package com.jaffh.alkahestdrops.server.command;
 
-import com.jaffh.alkahestdrops.common.drops.DropTracking;
 import com.jaffh.alkahestdrops.api.DropTrigger;
+import com.jaffh.alkahestdrops.common.drops.DropTracking;
 import com.jaffh.alkahestdrops.server.blockdrops.BlockDropSimulator;
 import com.jaffh.alkahestdrops.server.drops.IDropSimulator;
 import com.jaffh.alkahestdrops.server.drops.InvalidSimulationException;
@@ -20,6 +20,19 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.OptionalInt;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
+import javax.annotation.Nullable;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
@@ -47,31 +60,17 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.registries.ForgeRegistries;
 
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.OptionalInt;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.function.UnaryOperator;
-
 /**
  * {@code /alkdrops simulate entity <type> [on <trigger>] [kills] [enchant <enchantments>] [by player|none|<entity>]
- * [sneaking] [burning] [only <filter>] [drop [no-text]]} and {@code simulate block <block> [breaks]
- * [enchant <enchantments>] [by player|none|explosion] [sneaking] [only <filter>] [drop [no-text]]}: rolls the vanilla
- * loot table and the drop file rules many times without killing or breaking anything and reports, per item, the total,
- * the average per run and the share of runs that dropped it, plus the experience. Options are optional but keep this
- * order; the run count defaults to 1. {@code enchant} takes enchantments in the item NBT format, such as
- * {@code [{id:"minecraft:looting",lvl:3}]}, and replaces those levels of the held item. {@code only} shows just the items an item id or
- * {@code #tag} matches, or just the experience; {@code drop} also drops what is shown at the command's position, and
- * {@code drop no-text} only drops, without any chat output (for datapack functions).
- * The last report of each command source is kept for {@code /alkdrops simulate page <n>}, so paging never re-rolls.
+ * [sneaking] [burning] [only <filter>] [drop [no-text]]} and {@code simulate block <block> [breaks] [enchant
+ * <enchantments>] [by player|none|explosion] [sneaking] [only <filter>] [drop [no-text]]}: rolls the vanilla loot table
+ * and the drop file rules many times without killing or breaking anything and reports, per item, the total, the average
+ * per run and the share of runs that dropped it, plus the experience. Options are optional but keep this order; the run
+ * count defaults to 1. {@code enchant} takes enchantments in the item NBT format, such as {@code
+ * [{id:"minecraft:looting",lvl:3}]}, and replaces those levels of the held item. {@code only} shows just the items an
+ * item id or {@code #tag} matches, or just the experience; {@code drop} also drops what is shown at the command's
+ * position, and {@code drop no-text} only drops, without any chat output (for datapack functions). The last report of
+ * each command source is kept for {@code /alkdrops simulate page <n>}, so paging never re-rolls.
  */
 final class SimulateCommand {
     private static final int MAX_RUNS = 1_000_000;
@@ -95,16 +94,17 @@ final class SimulateCommand {
     /** Suggests every trigger id. */
     private static final SuggestionProvider<CommandSourceStack> TRIGGERS = (context, builder) ->
             SharedSuggestionProvider.suggest(Arrays.stream(DropTrigger.values()).map(DropTrigger::id), builder);
-    private static final DynamicCommandExceptionType UNKNOWN_TRIGGER = new DynamicCommandExceptionType(
-            id -> CommandText.lang("simulate.unknown_trigger", id));
-    private static final SimpleCommandExceptionType BAD_ENCHANTMENTS = new SimpleCommandExceptionType(
-            CommandText.lang("simulate.enchant.format"));
-    private static final DynamicCommandExceptionType UNKNOWN_ENCHANTMENT = new DynamicCommandExceptionType(
-            id -> CommandText.lang("simulate.enchant.unknown", id));
-    private static final DynamicCommandExceptionType DUPLICATE_ENCHANTMENT = new DynamicCommandExceptionType(
-            id -> CommandText.lang("simulate.enchant.duplicate", id));
-    private static final DynamicCommandExceptionType BAD_ENCHANTMENT_LEVEL = new DynamicCommandExceptionType(
-            id -> CommandText.lang("simulate.enchant.level", id, MAX_ENCHANT_LEVEL));
+
+    private static final DynamicCommandExceptionType UNKNOWN_TRIGGER =
+            new DynamicCommandExceptionType(id -> CommandText.lang("simulate.unknown_trigger", id));
+    private static final SimpleCommandExceptionType BAD_ENCHANTMENTS =
+            new SimpleCommandExceptionType(CommandText.lang("simulate.enchant.format"));
+    private static final DynamicCommandExceptionType UNKNOWN_ENCHANTMENT =
+            new DynamicCommandExceptionType(id -> CommandText.lang("simulate.enchant.unknown", id));
+    private static final DynamicCommandExceptionType DUPLICATE_ENCHANTMENT =
+            new DynamicCommandExceptionType(id -> CommandText.lang("simulate.enchant.duplicate", id));
+    private static final DynamicCommandExceptionType BAD_ENCHANTMENT_LEVEL =
+            new DynamicCommandExceptionType(id -> CommandText.lang("simulate.enchant.level", id, MAX_ENCHANT_LEVEL));
 
     /** Last report of each command source, by source name; server thread only. */
     private static final Map<String, Report> LAST_REPORTS = new HashMap<>();
@@ -112,8 +112,7 @@ final class SimulateCommand {
     /**
      * Prevents instantiation of this utility class.
      */
-    private SimulateCommand() {
-    }
+    private SimulateCommand() {}
 
     /**
      * Builds the {@code simulate} node.
@@ -122,11 +121,16 @@ final class SimulateCommand {
      * @return The node.
      */
     static LiteralArgumentBuilder<CommandSourceStack> build(CommandBuildContext buildContext) {
-        return PagedOutput.withPages(Commands.literal("simulate"), (context, page) -> showPage(context.getSource(), page))
+        return PagedOutput.withPages(
+                        Commands.literal("simulate"), (context, page) -> showPage(context.getSource(), page))
                 .then(Commands.literal("entity")
                         .then(continueFrom(entityArgument("entity", buildContext), Kind.ENTITY, 0, buildContext)))
                 .then(Commands.literal("block")
-                        .then(continueFrom(Commands.argument("block", BlockStateArgument.block(buildContext)), Kind.BLOCK, 0, buildContext)));
+                        .then(continueFrom(
+                                Commands.argument("block", BlockStateArgument.block(buildContext)),
+                                Kind.BLOCK,
+                                0,
+                                buildContext)));
     }
 
     /**
@@ -136,7 +140,8 @@ final class SimulateCommand {
      * @param buildContext Registry access of the command arguments. Never null.
      * @return The node.
      */
-    private static ArgumentBuilder<CommandSourceStack, ?> entityArgument(String name, CommandBuildContext buildContext) {
+    private static ArgumentBuilder<CommandSourceStack, ?> entityArgument(
+            String name, CommandBuildContext buildContext) {
         return Commands.argument(name, ResourceArgument.resource(buildContext, Registries.ENTITY_TYPE))
                 .suggests(SuggestionProviders.SUMMONABLE_ENTITIES);
     }
@@ -151,8 +156,8 @@ final class SimulateCommand {
      * @param buildContext Registry access of the command arguments. Never null.
      * @return The node.
      */
-    private static ArgumentBuilder<CommandSourceStack, ?> continueFrom(ArgumentBuilder<CommandSourceStack, ?> node, Kind kind,
-                                                                       int firstStage, CommandBuildContext buildContext) {
+    private static ArgumentBuilder<CommandSourceStack, ?> continueFrom(
+            ArgumentBuilder<CommandSourceStack, ?> node, Kind kind, int firstStage, CommandBuildContext buildContext) {
         node.executes(context -> simulate(context, kind));
         for (int i = firstStage; i < kind.stages.size(); i++) {
             Stage stage = kind.stages.get(i);
@@ -175,8 +180,12 @@ final class SimulateCommand {
         CommandSourceStack source = context.getSource();
         Set<String> usedNodes = usedNodeNames(context);
         DropTrigger trigger = readTrigger(context, usedNodes);
-        SimulationSetup setup = new SimulationSetup(source.getLevel(), source.getPosition(),
-                readActor(context, usedNodes, trigger), readFlags(usedNodes), readEnchantments(context, usedNodes));
+        SimulationSetup setup = new SimulationSetup(
+                source.getLevel(),
+                source.getPosition(),
+                readActor(context, usedNodes, trigger),
+                readFlags(usedNodes),
+                readEnchantments(context, usedNodes));
 
         IDropSimulator simulator;
         try {
@@ -188,7 +197,9 @@ final class SimulateCommand {
 
         SimulationFilter filter = readFilter(context, usedNodes);
         boolean shouldDrop = usedNodes.contains(DROP_OPTION);
-        int runs = usedNodes.contains(kind.runArgument) ? IntegerArgumentType.getInteger(context, kind.runArgument) : DEFAULT_RUNS;
+        int runs = usedNodes.contains(kind.runArgument)
+                ? IntegerArgumentType.getInteger(context, kind.runArgument)
+                : DEFAULT_RUNS;
         DropSimulation simulation = DropSimulation.run(simulator, runs, filter, shouldDrop);
 
         Component dropLine = shouldDrop ? dropResults(setup, simulation) : null;
@@ -240,7 +251,8 @@ final class SimulateCommand {
      * @return The trigger after {@code on}, death when missing.
      * @throws CommandSyntaxException If the trigger id is unknown.
      */
-    private static DropTrigger readTrigger(CommandContext<CommandSourceStack> context, Set<String> usedNodes) throws CommandSyntaxException {
+    private static DropTrigger readTrigger(CommandContext<CommandSourceStack> context, Set<String> usedNodes)
+            throws CommandSyntaxException {
         if (!usedNodes.contains(TRIGGER)) return DropTrigger.DEATH;
         String id = StringArgumentType.getString(context, TRIGGER);
         return DropTrigger.fromId(id).orElseThrow(() -> UNKNOWN_TRIGGER.create(id));
@@ -256,11 +268,13 @@ final class SimulateCommand {
      * @return The actor.
      * @throws CommandSyntaxException If the killer type is not summonable.
      */
-    private static SimulationActor readActor(CommandContext<CommandSourceStack> context, Set<String> usedNodes,
-                                             DropTrigger trigger) throws CommandSyntaxException {
+    private static SimulationActor readActor(
+            CommandContext<CommandSourceStack> context, Set<String> usedNodes, DropTrigger trigger)
+            throws CommandSyntaxException {
         Player sourcePlayer = context.getSource().getEntity() instanceof Player player ? player : null;
         if (usedNodes.contains(KILLER)) {
-            return new SimulationActor.AsEntity(ResourceArgument.getSummonableEntityType(context, KILLER).value());
+            return new SimulationActor.AsEntity(
+                    ResourceArgument.getSummonableEntityType(context, KILLER).value());
         }
         if (usedNodes.contains(EXPLOSION)) return new SimulationActor.Explosion();
         if (usedNodes.contains(NOBODY)) return new SimulationActor.Nobody();
@@ -294,20 +308,22 @@ final class SimulateCommand {
      * @throws CommandSyntaxException If the tag is not such a list, an id is unknown or repeated, or a level is out of
      *                                range.
      */
-    private static Map<Enchantment, Integer> readEnchantments(CommandContext<CommandSourceStack> context, Set<String> usedNodes)
-            throws CommandSyntaxException {
+    private static Map<Enchantment, Integer> readEnchantments(
+            CommandContext<CommandSourceStack> context, Set<String> usedNodes) throws CommandSyntaxException {
         if (!usedNodes.contains(ENCHANTMENTS)) return Map.of();
         if (!(NbtTagArgument.getNbtTag(context, ENCHANTMENTS) instanceof ListTag list)) throw BAD_ENCHANTMENTS.create();
         Map<Enchantment, Integer> levels = new LinkedHashMap<>();
         for (Tag element : list) {
-            if (!(element instanceof CompoundTag compound) || !compound.contains(ENCHANTMENT_ID_KEY, Tag.TAG_STRING)
+            if (!(element instanceof CompoundTag compound)
+                    || !compound.contains(ENCHANTMENT_ID_KEY, Tag.TAG_STRING)
                     || !compound.contains(ENCHANTMENT_LEVEL_KEY, Tag.TAG_ANY_NUMERIC)) {
                 throw BAD_ENCHANTMENTS.create();
             }
             String id = compound.getString(ENCHANTMENT_ID_KEY);
             ResourceLocation location = ResourceLocation.tryParse(id);
             Enchantment enchantment = location != null && ForgeRegistries.ENCHANTMENTS.containsKey(location)
-                    ? ForgeRegistries.ENCHANTMENTS.getValue(location) : null;
+                    ? ForgeRegistries.ENCHANTMENTS.getValue(location)
+                    : null;
             if (enchantment == null) throw UNKNOWN_ENCHANTMENT.create(id);
             int level = compound.getInt(ENCHANTMENT_LEVEL_KEY);
             if (level < 0 || level > MAX_ENCHANT_LEVEL) throw BAD_ENCHANTMENT_LEVEL.create(id);
@@ -324,7 +340,8 @@ final class SimulateCommand {
      * @return The filter.
      * @throws CommandSyntaxException If the filter names an unknown tag.
      */
-    private static SimulationFilter readFilter(CommandContext<CommandSourceStack> context, Set<String> usedNodes) throws CommandSyntaxException {
+    private static SimulationFilter readFilter(CommandContext<CommandSourceStack> context, Set<String> usedNodes)
+            throws CommandSyntaxException {
         if (usedNodes.contains(EXPERIENCE)) return SimulationFilter.EXPERIENCE;
         if (!usedNodes.contains(FILTER)) return SimulationFilter.ALL;
 
@@ -336,12 +353,12 @@ final class SimulateCommand {
     }
 
     /**
-     * Builds the report: the header lines, then one line per shown item and per experience line; pity and one-time drops get lines of their own.
+     * Builds the report: the header lines, then one line per shown item and per experience line; pity and one-time
+     * drops get lines of their own.
      *
      * @param simulator  Simulator that ran. Never null.
      * @param simulation Counts of the runs. Never null.
      * @param filter     Filter of the command. Never null.
-     * @param kind       Mob or block simulation. Never null.
      * @return The report, with a mutable intro.
      */
     private static Report buildReport(IDropSimulator simulator, DropSimulation simulation, SimulationFilter filter) {
@@ -350,26 +367,38 @@ final class SimulateCommand {
         RunInfo runInfo = new RunInfo(runs, simulator);
         List<Component> intro = new ArrayList<>();
         String headerKey = "simulate.header." + runNoun + (runs == 1 ? ".one" : ".many");
-        intro.add(CommandText.lang(headerKey, CommandText.bold(String.valueOf(runs), ChatFormatting.BLUE),
+        intro.add(CommandText.lang(
+                        headerKey,
+                        CommandText.bold(String.valueOf(runs), ChatFormatting.BLUE),
                         simulator.targetName().copy().withStyle(ChatFormatting.BLUE, ChatFormatting.BOLD))
                 .withStyle(ChatFormatting.BLUE)
-                .append(CommandText.text(" (", ChatFormatting.GRAY).append(simulator.describeSetup()).append(")")));
-        if (filter.isFiltered()) intro.add(CommandText.lang("simulate.only", filter.label()).withStyle(ChatFormatting.GRAY));
+                .append(CommandText.text(" (", ChatFormatting.GRAY)
+                        .append(simulator.describeSetup())
+                        .append(")")));
+        if (filter.isFiltered())
+            intro.add(CommandText.lang("simulate.only", filter.label()).withStyle(ChatFormatting.GRAY));
 
         List<Component> lines = new ArrayList<>();
         if (simulation.isEmpty()) {
             Component runText = CommandText.plural("count." + runNoun, runs);
             lines.add((filter.isFiltered()
-                    ? CommandText.lang("simulate.empty.filtered", filter.label(), runText)
-                    : CommandText.lang("simulate.empty.all", runText)).withStyle(ChatFormatting.GRAY));
+                            ? CommandText.lang("simulate.empty.filtered", filter.label(), runText)
+                            : CommandText.lang("simulate.empty.all", runText))
+                    .withStyle(ChatFormatting.GRAY));
         }
         for (DropSimulation.ItemResult result : simulation.itemResults()) {
-            lines.add(resultLine(CommandText.itemName(result.item()), ChatFormatting.YELLOW,
-                    new LineCounts(result.total(), result.runsWithDrop(), result.tracking()), runInfo));
+            lines.add(resultLine(
+                    CommandText.itemName(result.item()),
+                    ChatFormatting.YELLOW,
+                    new LineCounts(result.total(), result.runsWithDrop(), result.tracking()),
+                    runInfo));
         }
         for (DropSimulation.ExperienceResult result : simulation.experienceResults()) {
-            lines.add(resultLine(CommandText.experienceName(), ChatFormatting.GREEN,
-                    new LineCounts(result.total(), result.runsWithDrop(), result.tracking()), runInfo));
+            lines.add(resultLine(
+                    CommandText.experienceName(),
+                    ChatFormatting.GREEN,
+                    new LineCounts(result.total(), result.runsWithDrop(), result.tracking()),
+                    runInfo));
         }
         return new Report(intro, lines);
     }
@@ -389,16 +418,21 @@ final class SimulateCommand {
      */
     private static Component resultLine(Component name, ChatFormatting nameColor, LineCounts counts, RunInfo runInfo) {
         int runs = runInfo.runs();
-        OptionalInt interval = counts.tracking() != null ? runInfo.simulator().intervalOf(counts.tracking()) : OptionalInt.empty();
+        OptionalInt interval =
+                counts.tracking() != null ? runInfo.simulator().intervalOf(counts.tracking()) : OptionalInt.empty();
         long rateRuns = interval.isPresent() ? runs - runs % interval.getAsInt() : runs;
         double rate = (double) counts.total() * runInfo.simulator().runsPerRate() / Math.max(1, rateRuns);
         MutableComponent line = CommandText.text("")
-                .append(CommandText.text("[", ChatFormatting.AQUA).append(CommandText.lang("simulate.total", counts.total())).append("] "))
+                .append(CommandText.text("[", ChatFormatting.AQUA)
+                        .append(CommandText.lang("simulate.total", counts.total()))
+                        .append("] "))
                 .append(name)
                 .append(CommandText.text(": ", nameColor))
-                .append(CommandText.lang("simulate.rate." + rateNounOf(counts.tracking(), runInfo.simulator()),
+                .append(CommandText.lang(
+                                "simulate.rate." + rateNounOf(counts.tracking(), runInfo.simulator()),
                                 CommandText.text(CommandText.number(rate), ChatFormatting.GRAY),
-                                CommandText.text(CommandText.percent((double) counts.runsWithAny() / runs), ChatFormatting.GRAY))
+                                CommandText.text(
+                                        CommandText.percent((double) counts.runsWithAny() / runs), ChatFormatting.GRAY))
                         .withStyle(ChatFormatting.WHITE));
         if (interval.isPresent()) {
             return line.append(note(CommandText.lang("simulate.every", interval.getAsInt())));
@@ -469,9 +503,14 @@ final class SimulateCommand {
         int experience = (int) Math.min(simulation.experience(), Integer.MAX_VALUE);
         if (experience > 0) ExperienceOrb.award(level, origin, experience);
 
-        return CommandText.lang("simulate.dropped", CommandText.plural("count.item", itemCount),
-                CommandText.plural("count.stack", entityCount), experience,
-                CommandText.number(origin.x), CommandText.number(origin.y), CommandText.number(origin.z))
+        return CommandText.lang(
+                        "simulate.dropped",
+                        CommandText.plural("count.item", itemCount),
+                        CommandText.plural("count.stack", entityCount),
+                        experience,
+                        CommandText.number(origin.x),
+                        CommandText.number(origin.y),
+                        CommandText.number(origin.z))
                 .withStyle(ChatFormatting.GREEN);
     }
 
@@ -481,17 +520,16 @@ final class SimulateCommand {
      * @param intro Lines shown on every page. Mutable while the report is built, never null.
      * @param lines Result lines, split into pages. Never null.
      */
-    private record Report(List<Component> intro, List<Component> lines) {
-    }
+    private record Report(List<Component> intro, List<Component> lines) {}
 
     /**
      * Groups what the result lines need to know about the runs.
      *
      * @param runs      Number of runs, 1 or more.
-     * @param simulator Simulator that ran: names the runs, the rate unit and the interval of periodic drops. Never null.
+     * @param simulator Simulator that ran: names the runs, the rate unit and the interval of periodic drops. Never
+     *                  null.
      */
-    private record RunInfo(int runs, IDropSimulator simulator) {
-    }
+    private record RunInfo(int runs, IDropSimulator simulator) {}
 
     /**
      * Groups the counts of one result line.
@@ -500,8 +538,7 @@ final class SimulateCommand {
      * @param runsWithAny Number of runs with at least one.
      * @param tracking    Drop the line counts on its own (pity, one-time or periodic drops), or null.
      */
-    private record LineCounts(long total, int runsWithAny, @Nullable DropTracking tracking) {
-    }
+    private record LineCounts(long total, int runsWithAny, @Nullable DropTracking tracking) {}
 
     /**
      * Creates the simulator of a command.
@@ -530,59 +567,76 @@ final class SimulateCommand {
         /** {@code on <trigger>}, mobs only; death when missing. */
         ON {
             @Override
-            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, CommandBuildContext buildContext,
-                                                          UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
+            ArgumentBuilder<CommandSourceStack, ?> create(
+                    Kind kind,
+                    CommandBuildContext buildContext,
+                    UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
                 return Commands.literal("on")
-                        .then(next.apply(Commands.argument(TRIGGER, StringArgumentType.word()).suggests(TRIGGERS)));
+                        .then(next.apply(Commands.argument(TRIGGER, StringArgumentType.word())
+                                .suggests(TRIGGERS)));
             }
         },
         /** {@code <kills>} or {@code <breaks>}; 1 when missing. */
         RUNS {
             @Override
-            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, CommandBuildContext buildContext,
-                                                          UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
+            ArgumentBuilder<CommandSourceStack, ?> create(
+                    Kind kind,
+                    CommandBuildContext buildContext,
+                    UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
                 return next.apply(Commands.argument(kind.runArgument, IntegerArgumentType.integer(1, MAX_RUNS)));
             }
         },
         /** {@code enchant <enchantments>}, in the item NBT format. */
         ENCHANT {
             @Override
-            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, CommandBuildContext buildContext,
-                                                          UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
-                return Commands.literal("enchant").then(next.apply(Commands.argument(ENCHANTMENTS, NbtTagArgument.nbtTag())));
+            ArgumentBuilder<CommandSourceStack, ?> create(
+                    Kind kind,
+                    CommandBuildContext buildContext,
+                    UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
+                return Commands.literal("enchant")
+                        .then(next.apply(Commands.argument(ENCHANTMENTS, NbtTagArgument.nbtTag())));
             }
         },
         /** {@code by <actor>}. */
         BY {
             @Override
-            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, CommandBuildContext buildContext,
-                                                          UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
+            ArgumentBuilder<CommandSourceStack, ?> create(
+                    Kind kind,
+                    CommandBuildContext buildContext,
+                    UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
                 LiteralArgumentBuilder<CommandSourceStack> by = Commands.literal("by");
-                for (ArgumentBuilder<CommandSourceStack, ?> actor : kind.actorNodes.apply(buildContext)) by.then(next.apply(actor));
+                for (ArgumentBuilder<CommandSourceStack, ?> actor : kind.actorNodes.apply(buildContext))
+                    by.then(next.apply(actor));
                 return by;
             }
         },
         /** {@code sneaking}. */
         SNEAKING {
             @Override
-            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, CommandBuildContext buildContext,
-                                                          UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
+            ArgumentBuilder<CommandSourceStack, ?> create(
+                    Kind kind,
+                    CommandBuildContext buildContext,
+                    UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
                 return next.apply(Commands.literal(SimulationFlag.SNEAKING.keyword()));
             }
         },
         /** {@code burning}, mobs only. */
         BURNING {
             @Override
-            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, CommandBuildContext buildContext,
-                                                          UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
+            ArgumentBuilder<CommandSourceStack, ?> create(
+                    Kind kind,
+                    CommandBuildContext buildContext,
+                    UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
                 return next.apply(Commands.literal(SimulationFlag.BURNING.keyword()));
             }
         },
         /** {@code only experience} or {@code only <item filter>}. */
         ONLY {
             @Override
-            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, CommandBuildContext buildContext,
-                                                          UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
+            ArgumentBuilder<CommandSourceStack, ?> create(
+                    Kind kind,
+                    CommandBuildContext buildContext,
+                    UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
                 return Commands.literal("only")
                         .then(next.apply(Commands.literal(EXPERIENCE)))
                         .then(next.apply(Commands.argument(FILTER, ItemPredicateArgument.itemPredicate(buildContext))));
@@ -591,8 +645,10 @@ final class SimulateCommand {
         /** {@code drop}, optionally followed by {@code no-text}. */
         DROP {
             @Override
-            ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, CommandBuildContext buildContext,
-                                                          UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
+            ArgumentBuilder<CommandSourceStack, ?> create(
+                    Kind kind,
+                    CommandBuildContext buildContext,
+                    UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next) {
                 return next.apply(Commands.literal(DROP_OPTION)).then(next.apply(Commands.literal(NO_TEXT)));
             }
         };
@@ -605,8 +661,10 @@ final class SimulateCommand {
          * @param next         Attaches the later stages to a node that ends this stage, and returns it. Never null.
          * @return The first node of this stage.
          */
-        abstract ArgumentBuilder<CommandSourceStack, ?> create(Kind kind, CommandBuildContext buildContext,
-                                                          UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next);
+        abstract ArgumentBuilder<CommandSourceStack, ?> create(
+                Kind kind,
+                CommandBuildContext buildContext,
+                UnaryOperator<ArgumentBuilder<CommandSourceStack, ?>> next);
     }
 
     /**
@@ -614,20 +672,34 @@ final class SimulateCommand {
      */
     private enum Kind {
         /** Mob kills or another trigger, with optional enchantments, a killer and the mob on fire. */
-        ENTITY("kill",
-                List.of(Stage.ON, Stage.RUNS, Stage.ENCHANT, Stage.BY, Stage.SNEAKING, Stage.BURNING, Stage.ONLY, Stage.DROP),
-                buildContext -> List.of(Commands.literal(PLAYER), Commands.literal(NOBODY), entityArgument(KILLER, buildContext)),
+        ENTITY(
+                "kill",
+                List.of(
+                        Stage.ON,
+                        Stage.RUNS,
+                        Stage.ENCHANT,
+                        Stage.BY,
+                        Stage.SNEAKING,
+                        Stage.BURNING,
+                        Stage.ONLY,
+                        Stage.DROP),
+                buildContext -> List.of(
+                        Commands.literal(PLAYER), Commands.literal(NOBODY), entityArgument(KILLER, buildContext)),
                 (context, setup, trigger) -> {
-                    EntityType<?> type = ResourceArgument.getSummonableEntityType(context, "entity").value();
+                    EntityType<?> type = ResourceArgument.getSummonableEntityType(context, "entity")
+                            .value();
                     return trigger == DropTrigger.DEATH
                             ? MobDropSimulator.create(type, setup)
                             : MobTriggerSimulator.create(type, trigger, setup);
                 }),
         /** Block breaks, with optional enchantments and a breaker. */
-        BLOCK("break",
+        BLOCK(
+                "break",
                 List.of(Stage.RUNS, Stage.ENCHANT, Stage.BY, Stage.SNEAKING, Stage.ONLY, Stage.DROP),
-                buildContext -> List.of(Commands.literal(PLAYER), Commands.literal(NOBODY), Commands.literal(EXPLOSION)),
-                (context, setup, trigger) -> BlockDropSimulator.create(BlockStateArgument.getBlock(context, "block").getState(), setup));
+                buildContext ->
+                        List.of(Commands.literal(PLAYER), Commands.literal(NOBODY), Commands.literal(EXPLOSION)),
+                (context, setup, trigger) -> BlockDropSimulator.create(
+                        BlockStateArgument.getBlock(context, "block").getState(), setup));
 
         private final String runNoun;
         private final String runArgument;
@@ -644,8 +716,11 @@ final class SimulateCommand {
          * @param actorNodes    Creates fresh nodes for the values of {@code by}. Never null.
          * @param factory       Creates the simulator. Never null.
          */
-        Kind(String runNoun, List<Stage> stages,
-             Function<CommandBuildContext, List<ArgumentBuilder<CommandSourceStack, ?>>> actorNodes, SimulatorFactory factory) {
+        Kind(
+                String runNoun,
+                List<Stage> stages,
+                Function<CommandBuildContext, List<ArgumentBuilder<CommandSourceStack, ?>>> actorNodes,
+                SimulatorFactory factory) {
             this.runNoun = runNoun;
             this.runArgument = runNoun + "s";
             this.stages = stages;

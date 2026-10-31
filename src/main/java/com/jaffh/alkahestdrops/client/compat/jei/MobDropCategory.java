@@ -2,6 +2,8 @@ package com.jaffh.alkahestdrops.client.compat.jei;
 
 import com.jaffh.alkahestdrops.AlkahestDrops;
 import com.jaffh.alkahestdrops.api.DropTrigger;
+import java.util.EnumMap;
+import java.util.Map;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawableStatic;
 import mezz.jei.api.helpers.IGuiHelper;
@@ -17,9 +19,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraftforge.common.ForgeSpawnEggItem;
-
-import java.util.EnumMap;
-import java.util.Map;
 
 /**
  * JEI category of mob drops: one page per mob with its full drops (loot table, experience and drop file drops).
@@ -48,7 +47,12 @@ final class MobDropCategory extends DropCategory<EntityType<?>> {
      * @param previews  Mob previews shared with the ingredient list. Never null.
      */
     MobDropCategory(IGuiHelper guiHelper, EntityPreviews previews) {
-        super(TYPE, DropDisplayFormat.MOB, guiHelper.createDrawableItemStack(new ItemStack(Items.ZOMBIE_HEAD)), guiHelper, GRID);
+        super(
+                TYPE,
+                DropDisplayFormat.MOB,
+                guiHelper.createDrawableItemStack(new ItemStack(Items.ZOMBIE_HEAD)),
+                guiHelper,
+                GRID);
         this.previews = previews;
         this.cardRenderer = MobIngredientRenderer.card(previews, CARD.width() - 2, CARD.height() - 2);
         this.arrow = guiHelper.getRecipeArrow();
@@ -78,7 +82,8 @@ final class MobDropCategory extends DropCategory<EntityType<?>> {
                 .addIngredient(MobIngredient.TYPE, mob);
         builder.addInvisibleIngredients(RecipeIngredientRole.OUTPUT).addIngredient(MobIngredient.TYPE, mob);
         SpawnEggItem egg = ForgeSpawnEggItem.fromEntityType(recipe.target());
-        if (egg != null) builder.addInvisibleIngredients(RecipeIngredientRole.INPUT).addItemStack(new ItemStack(egg));
+        if (egg != null)
+            builder.addInvisibleIngredients(RecipeIngredientRole.INPUT).addItemStack(new ItemStack(egg));
     }
 
     /**
@@ -95,7 +100,8 @@ final class MobDropCategory extends DropCategory<EntityType<?>> {
         drawTitle(guiGraphics, recipe, 0, 0, WIDTH);
         drawCard(guiGraphics, CARD.x(), CARD.y(), CARD.width(), CARD.height());
         if (!previews.draw(guiGraphics, recipe.target(), CARD, mouseX, mouseY)) {
-            guiGraphics.drawWordWrap(font, nameOf(recipe.target()), CARD.x() + 3, CARD.y() + 4, CARD.width() - 6, TEXT_COLOR);
+            guiGraphics.drawWordWrap(
+                    font, nameOf(recipe.target()), CARD.x() + 3, CARD.y() + 4, CARD.width() - 6, TEXT_COLOR);
         }
         int arrowX = CARD.width() + (GRID.x() - CARD.width() - arrow.getWidth()) / 2;
         int arrowY = CARD.y() + (CARD.height() - arrow.getHeight()) / 2;
@@ -117,11 +123,6 @@ final class MobDropCategory extends DropCategory<EntityType<?>> {
     }
 
     /**
-     * Creates the recipe type, whose class is the raw {@link DropRecipe} class.
-     *
-     * @return The recipe type of mob drops.
-     */
-    /**
      * Creates the icon of every trigger, drawn beside the trigger's name under the mob.
      *
      * @return An icon per trigger.
@@ -136,9 +137,14 @@ final class MobDropCategory extends DropCategory<EntityType<?>> {
         return icons;
     }
 
+    /**
+     * Creates the recipe type, whose class is the raw {@link DropRecipe} class.
+     *
+     * @return The recipe type of mob drops.
+     */
     @SuppressWarnings("unchecked")
     private static RecipeType<DropRecipe<EntityType<?>>> createType() {
-        return new RecipeType<>(new ResourceLocation(AlkahestDrops.ID, "mob_drops"),
-                (Class<DropRecipe<EntityType<?>>>) (Class<?>) DropRecipe.class);
+        return new RecipeType<>(new ResourceLocation(AlkahestDrops.ID, "mob_drops"), (Class<DropRecipe<EntityType<?>>>)
+                (Class<?>) DropRecipe.class);
     }
 }
