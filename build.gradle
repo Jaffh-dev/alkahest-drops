@@ -210,6 +210,14 @@ tasks.named('processResources', ProcessResources).configure {
     }
 }
 
+// The LGPL texts ship inside the jar, as the license requires for every copy of the mod.
+tasks.named('jar', Jar).configure {
+    from(['COPYING', 'COPYING.LESSER']) {
+        into 'META-INF'
+        rename { name -> "${name}_${mod_id}" }
+    }
+}
+
 // Example for how to get properties into the manifest for reading at runtime.
 tasks.named('jar', Jar).configure {
     manifest {
