@@ -1,0 +1,16 @@
+#!/bin/sh
+# Runs the same checks as CI (build + every GameTest) before each push, so nothing untested reaches the remote.
+# Enable once per clone:  git config core.hooksPath .githooks
+# Skip for one push:      git push --no-verify
+
+LOG=build/pre-push.log
+mkdir -p build
+echo "pre-push: running ./gradlew build runGameTestServer (skip with: git push --no-verify)"
+if ./gradlew build runGameTestServer --console=plain > "$LOG" 2>&1; then
+    SUMMARY=$(grep -o "All [0-9]* required tests passed" run-gametest/logs/latest.log)
+    echo "pre-push: build passed, ${SUMMARY:-GameTests passed}"
+else
+    tail -n 30 "$LOG"
+    echo "pre-push: build or GameTests failed, push aborted. Full output: $LOG, GameTest log: run-gametest/logs/latest.log"
+    exit 1
+fi
