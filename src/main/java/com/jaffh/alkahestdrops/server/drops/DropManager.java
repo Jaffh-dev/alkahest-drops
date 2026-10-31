@@ -5,7 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.jaffh.alkahestdrops.common.AlkahestDropsConfig;
 import com.jaffh.alkahestdrops.common.drops.DropEntry;
-import com.jaffh.alkahestdrops.common.drops.DropTrigger;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.ServerFunctionLibrary;

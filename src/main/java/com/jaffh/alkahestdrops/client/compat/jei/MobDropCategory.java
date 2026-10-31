@@ -1,7 +1,7 @@
 package com.jaffh.alkahestdrops.client.compat.jei;
 
 import com.jaffh.alkahestdrops.AlkahestDrops;
-import com.jaffh.alkahestdrops.common.drops.DropTrigger;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawableStatic;
 import mezz.jei.api.helpers.IGuiHelper;

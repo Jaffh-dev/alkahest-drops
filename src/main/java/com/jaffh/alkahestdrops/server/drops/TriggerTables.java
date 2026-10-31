@@ -1,7 +1,7 @@
 package com.jaffh.alkahestdrops.server.drops;
 
 import com.jaffh.alkahestdrops.common.drops.DropEntry;
-import com.jaffh.alkahestdrops.common.drops.DropTrigger;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 
 import java.util.ArrayList;
 import java.util.EnumMap;

@@ -3,7 +3,7 @@ package com.jaffh.alkahestdrops.gametest;
 import com.jaffh.alkahestdrops.AlkahestDrops;
 import com.jaffh.alkahestdrops.api.DropOrigin;
 import com.jaffh.alkahestdrops.api.event.OnDropEvent;
-import com.jaffh.alkahestdrops.common.drops.DropTrigger;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.server.drops.DropActionRunner;
 import com.jaffh.alkahestdrops.server.mobdrops.MobDropManager;
 import net.minecraft.gametest.framework.GameTest;
@@ -64,7 +64,7 @@ public class OnDropGameTests {
     }
 
     /**
-     * An online real player carries the drop-player tag while the function runs, and loses it afterwards. The player
+     * An online real player carries the drop-player tag while the function runs, and loses it afterward. The player
      * is put in the player list only, which is all {@code @a} reads, through its private list, since
      * {@code getPlayers()} is read-only and {@code makeMockServerPlayerInLevel} fails on Forge's network setup in the
      * GameTest server.

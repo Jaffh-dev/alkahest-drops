@@ -1,6 +1,6 @@
 package com.jaffh.alkahestdrops.server.mobdrops;
 
-import com.jaffh.alkahestdrops.common.drops.DropTrigger;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.server.drops.DropDataException;
 import com.jaffh.alkahestdrops.server.drops.DropFileFormat;
 import com.jaffh.alkahestdrops.server.drops.DropIssue;

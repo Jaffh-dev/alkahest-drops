@@ -4,7 +4,7 @@ import com.jaffh.alkahestdrops.common.drops.DropBehavior;
 import com.jaffh.alkahestdrops.common.drops.DropBehaviorType;
 import com.jaffh.alkahestdrops.common.drops.DropCount;
 import com.jaffh.alkahestdrops.common.drops.DropTracking;
-import com.jaffh.alkahestdrops.common.drops.DropTrigger;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.common.drops.EnchantBonus;
 import com.jaffh.alkahestdrops.common.drops.EnchantBonusEntry;
 import com.jaffh.alkahestdrops.common.drops.EnchantBonuses;

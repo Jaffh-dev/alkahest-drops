@@ -11,7 +11,7 @@ import com.jaffh.alkahestdrops.common.drops.SyncedCondition;
 import com.jaffh.alkahestdrops.common.drops.SyncedDropRules;
 import com.jaffh.alkahestdrops.common.drops.SyncedDropSource;
 import com.jaffh.alkahestdrops.common.drops.SyncedTarget;
-import com.jaffh.alkahestdrops.common.drops.DropTrigger;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.common.drops.TriggerSettings;
 import com.jaffh.alkahestdrops.common.network.DropRulesAssembler;
 import com.jaffh.alkahestdrops.common.network.DropRulesSyncPacket;

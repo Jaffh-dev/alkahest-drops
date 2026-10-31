@@ -1,6 +1,6 @@
 package com.jaffh.alkahestdrops.server.drops;
 
-import com.jaffh.alkahestdrops.common.drops.DropTrigger;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import net.minecraft.tags.TagKey;
 
 import java.util.ArrayList;

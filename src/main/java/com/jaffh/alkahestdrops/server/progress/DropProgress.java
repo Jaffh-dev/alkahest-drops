@@ -83,6 +83,16 @@ public final class DropProgress {
     }
 
     /**
+     * Tells whether a one-time drop was already received.
+     *
+     * @param key Progress key of the drop. Never null.
+     * @return True when the drop happened for this player.
+     */
+    public boolean hasReceivedFirstDrop(String key) {
+        return firstDropsDone.contains(key);
+    }
+
+    /**
      * Forgets the one-time drops received whose key matches, so they can drop again.
      *
      * @param keys Which progress keys to forget. Never null.

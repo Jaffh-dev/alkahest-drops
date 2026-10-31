@@ -1,5 +1,6 @@
 package com.jaffh.alkahestdrops.client.compat.jei;
 
+import com.jaffh.alkahestdrops.common.drops.TriggerRules;
 import com.jaffh.alkahestdrops.common.drops.DropBehavior;
 import com.jaffh.alkahestdrops.common.drops.DropCount;
 import com.jaffh.alkahestdrops.common.drops.DropNumbers;
@@ -114,7 +115,7 @@ final class DropTooltip {
         }
         TriggerSettings trigger = drop.trigger();
         if (trigger.ticks() > 0) {
-            tooltip.add(DropDisplayFormat.text("ticks." + trigger.trigger().ticksKey(), durationOf(trigger.ticks()).withStyle(ChatFormatting.WHITE))
+            tooltip.add(DropDisplayFormat.text("ticks." + TriggerRules.of(trigger.trigger()).ticksKey(), durationOf(trigger.ticks()).withStyle(ChatFormatting.WHITE))
                     .withStyle(ChatFormatting.GRAY));
         }
         if (hasBonus(drop)) {

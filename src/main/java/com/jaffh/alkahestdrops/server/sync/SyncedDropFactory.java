@@ -1,7 +1,7 @@
 package com.jaffh.alkahestdrops.server.sync;
 
 import com.jaffh.alkahestdrops.common.drops.DropCount;
-import com.jaffh.alkahestdrops.common.drops.DropTrigger;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.common.drops.SyncedDrop;
 import com.jaffh.alkahestdrops.common.drops.SyncedDropRules;
 import com.jaffh.alkahestdrops.common.drops.SyncedTarget;

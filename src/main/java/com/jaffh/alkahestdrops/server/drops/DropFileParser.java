@@ -4,7 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.jaffh.alkahestdrops.common.drops.DropEntry;
-import com.jaffh.alkahestdrops.common.drops.DropTrigger;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.server.drops.json.DropFileJson;
 import com.jaffh.alkahestdrops.server.drops.json.RemovalEntryJson;
 import com.mojang.logging.LogUtils;

@@ -1,5 +1,6 @@
 package com.jaffh.alkahestdrops.server.drops;
 
+import com.jaffh.alkahestdrops.common.drops.TriggerRules;
 import com.google.gson.JsonElement;
 import com.jaffh.alkahestdrops.common.drops.DropBehavior;
 import com.jaffh.alkahestdrops.common.drops.DropBehaviorType;
@@ -7,7 +8,7 @@ import com.jaffh.alkahestdrops.common.drops.DropActions;
 import com.jaffh.alkahestdrops.common.drops.DropCount;
 import com.jaffh.alkahestdrops.common.drops.DropEntry;
 import com.jaffh.alkahestdrops.common.drops.DropTracking;
-import com.jaffh.alkahestdrops.common.drops.DropTrigger;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.common.drops.EnchantBonus;
 import com.jaffh.alkahestdrops.common.drops.EnchantBonuses;
 import com.jaffh.alkahestdrops.common.drops.ScaleFormula;
@@ -84,7 +85,7 @@ public final class DropEntryParser {
         ParseContext itemCtx = ctx.at("item");
         TriggerSettings trigger = parseTrigger(drop, ctx);
         JsonElement bonusJson = drop.enchantBonus;
-        if (bonusJson != null && !trigger.trigger().hasEnchantBonus()) {
+        if (bonusJson != null && !TriggerRules.of(trigger.trigger()).hasEnchantBonus()) {
             ctx.at(BONUS_KEY).warn("bonus_unused_by_trigger", trigger.trigger().id());
             bonusJson = null;
         }
@@ -170,7 +171,7 @@ public final class DropEntryParser {
             if (!format.canUseTriggers()) throw onCtx.error("trigger_in_block_file");
             trigger = DropTrigger.fromId(drop.on).orElseThrow(() -> onCtx.error("unknown_trigger", drop.on));
         }
-        int ticks = trigger.defaultTicks();
+        int ticks = TriggerRules.of(trigger).defaultTicks();
         ticks = parseTicks(drop.interval, "interval", trigger, ticks, ctx);
         ticks = parseTicks(drop.cooldown, "cooldown", trigger, ticks, ctx);
         return trigger == DropTrigger.DEATH ? TriggerSettings.DEATH : new TriggerSettings(trigger, ticks);
@@ -191,11 +192,11 @@ public final class DropEntryParser {
             throws DropDataException {
         if (value == null) return ticks;
         ParseContext keyCtx = ctx.at(key);
-        if (!key.equals(trigger.ticksKey())) {
+        if (!key.equals(TriggerRules.of(trigger).ticksKey())) {
             keyCtx.warn("ignored_by_trigger", trigger.id());
             return ticks;
         }
-        keyCtx.requireAtLeast(value, trigger.minTicks());
+        keyCtx.requireAtLeast(value, TriggerRules.of(trigger).minTicks());
         return value;
     }
 

@@ -1,6 +1,6 @@
 package com.jaffh.alkahestdrops.client.compat.jei;
 
-import com.jaffh.alkahestdrops.common.drops.DropTrigger;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.common.drops.SyncedDrop;
 import com.jaffh.alkahestdrops.common.drops.SyncedTarget;
 import net.minecraft.resources.ResourceLocation;

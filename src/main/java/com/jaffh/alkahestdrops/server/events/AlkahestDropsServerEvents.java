@@ -4,6 +4,7 @@ import com.jaffh.alkahestdrops.common.network.AlkahestDropsNetwork;
 import com.jaffh.alkahestdrops.server.blockdrops.BlockBreakHandler;
 import com.jaffh.alkahestdrops.server.blockdrops.BlockDropManager;
 import com.jaffh.alkahestdrops.server.command.AlkahestDropsCommand;
+import com.jaffh.alkahestdrops.server.drops.DropFilesLoadedNotifier;
 import com.jaffh.alkahestdrops.server.drops.DropSpawnEvents;
 import com.jaffh.alkahestdrops.server.mobdrops.HitTracker;
 import com.jaffh.alkahestdrops.server.mobdrops.LootingOverride;
@@ -56,6 +57,8 @@ public final class AlkahestDropsServerEvents {
         forgeEventBus.addGenericListener(Entity.class, DropProgressEvents::onAttachCapabilities);
         forgeEventBus.addListener(DropProgressEvents::onPlayerClone);
         forgeEventBus.addListener(ProgressPruner::onDatapackSync);
+        forgeEventBus.addListener(DropFilesLoadedNotifier::onServerStarted);
+        forgeEventBus.addListener(DropFilesLoadedNotifier::onDatapackSync);
         if (AlkahestDropsNetwork.isEnabled()) {
             forgeEventBus.addListener(new DropRulesSender()::onDatapackSync);
         }

@@ -1,7 +1,7 @@
 package com.jaffh.alkahestdrops.api.event;
 
 import com.jaffh.alkahestdrops.api.DropOrigin;
-import com.jaffh.alkahestdrops.common.drops.DropTrigger;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.eventbus.api.Cancelable;
@@ -15,6 +15,8 @@ import javax.annotation.Nullable;
  * drop file item drop, with or without {@code on_drop}; never for experience drops, simulations, or stacks that never
  * spawned as an item (a grave mod cancelling the drops, an auto-pickup mod). The item already glows when its drop
  * asks for it. Cancelling the event skips the drop's {@code run_function}. Part of the public API.
+ *
+ * @since 1.0.0
  */
 @Cancelable
 public class OnDropEvent extends Event {
@@ -33,6 +35,7 @@ public class OnDropEvent extends Event {
      * @param dropKey Key of the drop that rolled the item. Never null.
      * @param trigger What made the drop happen. Never null.
      * @param player  Player the drop was rolled for, or null without a player.
+     * @since 1.0.0
      */
     public OnDropEvent(ItemEntity item, DropOrigin origin, String dropKey, DropTrigger trigger, @Nullable Player player) {
         this.item = item;
@@ -46,6 +49,7 @@ public class OnDropEvent extends Event {
      * Returns the spawned item.
      *
      * @return The item entity, already in the level. Never null.
+     * @since 1.0.0
      */
     public ItemEntity getItem() {
         return item;
@@ -55,6 +59,7 @@ public class OnDropEvent extends Event {
      * Returns what the drop came from.
      *
      * @return The mob or the broken block. Never null.
+     * @since 1.0.0
      */
     public DropOrigin getOrigin() {
         return origin;
@@ -66,6 +71,7 @@ public class OnDropEvent extends Event {
      *
      * @return {@code "<mob|block>:<file id>@<id>"} for a drop with an {@code id}, such as
      *         {@code "mob:mypack:dragon@legendary_scale"}, else {@code "<mob|block>:<file id>#<index in drops>"}.
+     * @since 1.0.0
      */
     public String getDropKey() {
         return dropKey;
@@ -75,6 +81,7 @@ public class OnDropEvent extends Event {
      * Returns what made the drop happen.
      *
      * @return The trigger; always death for blocks. Never null.
+     * @since 1.0.0
      */
     public DropTrigger getTrigger() {
         return trigger;
@@ -85,6 +92,7 @@ public class OnDropEvent extends Event {
      * of a per-player drop. Machines' fake players are returned too; check for {@code FakePlayer} to skip them.
      *
      * @return The player, or null without a player (lightning, periodic, explosions, kills by mobs).
+     * @since 1.0.0
      */
     @Nullable
     public Player getPlayer() {

@@ -1,11 +1,12 @@
 package com.jaffh.alkahestdrops.server.command;
 
+import com.jaffh.alkahestdrops.common.drops.TriggerRules;
 import com.jaffh.alkahestdrops.common.drops.DropActions;
 import com.jaffh.alkahestdrops.common.drops.DropBehaviorType;
 import com.jaffh.alkahestdrops.common.drops.DropEntry;
 import com.jaffh.alkahestdrops.common.drops.DropNumbers;
 import com.jaffh.alkahestdrops.common.drops.DropTracking;
-import com.jaffh.alkahestdrops.common.drops.DropTrigger;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.common.drops.TriggerSettings;
 import com.jaffh.alkahestdrops.server.drops.DropFileFormat;
 import com.jaffh.alkahestdrops.server.drops.DropManager;
@@ -97,7 +98,7 @@ final class RuleText {
     static MutableComponent trigger(TriggerSettings settings) {
         MutableComponent text = CommandText.lang("rule.trigger." + settings.trigger().id());
         if (settings.ticks() > 0) {
-            text.append(", ").append(CommandText.lang("rule.ticks." + settings.trigger().ticksKey(), settings.ticks()));
+            text.append(", ").append(CommandText.lang("rule.ticks." + TriggerRules.of(settings.trigger()).ticksKey(), settings.ticks()));
         }
         return text;
     }

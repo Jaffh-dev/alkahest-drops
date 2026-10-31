@@ -2,7 +2,7 @@ package com.jaffh.alkahestdrops.server.mobdrops;
 
 import com.jaffh.alkahestdrops.AlkahestDrops;
 import com.jaffh.alkahestdrops.common.drops.DropEntry;
-import com.jaffh.alkahestdrops.common.drops.DropTrigger;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.server.drops.DropFile;
 import com.jaffh.alkahestdrops.server.drops.DropTable;
 import net.minecraft.nbt.CompoundTag;

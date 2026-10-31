@@ -1,9 +1,10 @@
 package com.jaffh.alkahestdrops.server.mobdrops;
 
+import com.jaffh.alkahestdrops.common.drops.TriggerRules;
 import com.jaffh.alkahestdrops.common.drops.DropEntry;
 import com.jaffh.alkahestdrops.common.drops.DropNumbers;
 import com.jaffh.alkahestdrops.common.drops.DropTracking;
-import com.jaffh.alkahestdrops.common.drops.DropTrigger;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.server.drops.DropFile;
 import com.jaffh.alkahestdrops.server.drops.DropTable;
 import com.jaffh.alkahestdrops.server.drops.EnchantLevels;
@@ -87,7 +88,7 @@ public final class MobTriggerSimulator implements IDropSimulator {
         this.source = damageSourceOf(trigger, level, player);
         this.table = MobDropManager.getTable(mob.getType(), trigger);
         this.setup = setup;
-        this.enchantLevels = trigger.hasEnchantBonus() && player != null ? setup.levelsOf(player.getMainHandItem()) : EnchantLevels.NONE;
+        this.enchantLevels = TriggerRules.of(trigger).hasEnchantBonus() && player != null ? setup.levelsOf(player.getMainHandItem()) : EnchantLevels.NONE;
         this.hitDamage = trigger == DropTrigger.HIT ? Math.min(HIT_DAMAGE, mob.getHealth()) : 0.0F;
         for (DropFile file : table.dropFiles()) {
             for (DropEntry entry : file.entries()) {
@@ -107,7 +108,7 @@ public final class MobTriggerSimulator implements IDropSimulator {
      * @throws InvalidSimulationException If the type is not living or the setup does not fit the trigger.
      */
     public static MobTriggerSimulator create(EntityType<?> type, DropTrigger trigger, SimulationSetup setup) {
-        if (!setup.enchantments().isEmpty() && !trigger.hasEnchantBonus()) {
+        if (!setup.enchantments().isEmpty() && !TriggerRules.of(trigger).hasEnchantBonus()) {
             throw new InvalidSimulationException(IDropSimulator.setupText("enchant_with_trigger", trigger.id()));
         }
         Player player = playerOf(trigger, setup);
@@ -356,7 +357,7 @@ public final class MobTriggerSimulator implements IDropSimulator {
         if (trigger == DropTrigger.HIT) {
             text.append(", ").append(IDropSimulator.setupText("damage", DropNumbers.number(hitDamage)));
         }
-        if (trigger.hasEnchantBonus() && player != null) {
+        if (TriggerRules.of(trigger).hasEnchantBonus() && player != null) {
             text.append(", ").append(IDropSimulator.enchantmentsText(setup.effectiveEnchantments(player.getMainHandItem())));
         }
         return text;

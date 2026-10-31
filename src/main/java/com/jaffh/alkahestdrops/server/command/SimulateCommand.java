@@ -1,7 +1,7 @@
 package com.jaffh.alkahestdrops.server.command;
 
 import com.jaffh.alkahestdrops.common.drops.DropTracking;
-import com.jaffh.alkahestdrops.common.drops.DropTrigger;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.server.blockdrops.BlockDropSimulator;
 import com.jaffh.alkahestdrops.server.drops.IDropSimulator;
 import com.jaffh.alkahestdrops.server.drops.InvalidSimulationException;

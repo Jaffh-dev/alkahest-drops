@@ -7,7 +7,7 @@ import com.jaffh.alkahestdrops.common.drops.EnchantBonuses;
 import com.jaffh.alkahestdrops.common.drops.SyncedDrop;
 import com.jaffh.alkahestdrops.common.drops.SyncedDropSource;
 import com.jaffh.alkahestdrops.common.drops.SyncedTarget;
-import com.jaffh.alkahestdrops.common.drops.DropTrigger;
+import com.jaffh.alkahestdrops.api.DropTrigger;
 import com.jaffh.alkahestdrops.common.drops.TriggerSettings;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
