@@ -1,0 +1,1100 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://jaffh-dev.github.io/alkahest-wiki/schemas/alkahest-drops/v1/common.schema.json",
+  "title": "Alkahest Drops format 1: shared definitions",
+  "description": "Parts shared by mob_drops and block_drops files. Not a file schema by itself.",
+  "definitions": {
+    "version": {
+      "description": "File format version, 1 for this version. A missing or newer version skips the whole file.",
+      "const": 1
+    },
+    "id": {
+      "description": "A namespaced id such as minecraft:diamond. Without a namespace, minecraft is used.",
+      "type": "string",
+      "pattern": "^(?:[a-z0-9_.-]+:)?[a-z0-9_./-]+$"
+    },
+    "target": {
+      "description": "What the file is about: an id (minecraft:zombie), a tag (#minecraft:skeletons), every entry of a namespace (twilightforest:*) or everything (*). An unknown id or a namespace with nothing registered skips the file with a warning.",
+      "type": "string",
+      "pattern": "^(?:\\*|#(?:[a-z0-9_.-]+:)?[a-z0-9_./-]+|[a-z0-9_.-]+:\\*|(?:[a-z0-9_.-]+:)?[a-z0-9_./-]+)$"
+    },
+    "trigger": {
+      "description": "What makes the drop happen (mob files only): death (default), shear, hit, lightning or periodic.",
+      "enum": [
+        "death",
+        "shear",
+        "hit",
+        "lightning",
+        "periodic"
+      ]
+    },
+    "condition": {
+      "description": "A loot condition, as in loot tables and predicates. Conditions of other mods work too.",
+      "type": "object",
+      "required": [
+        "condition"
+      ],
+      "properties": {
+        "condition": {
+          "description": "Loot condition type, such as minecraft:killed_by_player or alkahestdrops:killed_by_real_player.",
+          "type": "string",
+          "pattern": "^(?:[a-z0-9_.-]+:)?[a-z0-9_./-]+$"
+        }
+      }
+    },
+    "conditions": {
+      "description": "Loot conditions. They must all pass. At the top of a file they gate every entry (global); inside an entry they apply to that entry only (local), on top of the global ones.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/condition"
+      }
+    },
+    "function": {
+      "description": "A loot function, as in loot tables. Functions of other mods work too.",
+      "type": "object",
+      "required": [
+        "function"
+      ],
+      "properties": {
+        "function": {
+          "description": "Loot function type, such as minecraft:enchant_randomly or minecraft:furnace_smelt.",
+          "type": "string",
+          "pattern": "^(?:[a-z0-9_.-]+:)?[a-z0-9_./-]+$"
+        },
+        "conditions": {
+          "description": "Conditions of this function only.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/condition"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "function"
+            ],
+            "properties": {
+              "function": {
+                "enum": [
+                  "minecraft:set_count",
+                  "set_count"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "add"
+            ],
+            "properties": {
+              "add": {
+                "description": "Without \"add\": true, set_count replaces the count Alkahest Drops rolled (warning).",
+                "const": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "chance": {
+      "description": "Chance that the drop happens, from 0 to 1 (0.05 = 5%). Above 1 is clamped to 1 with a warning. 0 needs an enchant_bonus entry with bonus_chance.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "count": {
+      "description": "How many items (or how much experience) drop when the chance succeeds. Both keys are required; min must not be above max. For max_health, hardness and damage_taken it clamps the scaled count.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "description": "Lowest count, 0 or more.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "max": {
+          "description": "Highest count, up to the server limit max_count (1024 by default; above it is clamped with a warning).",
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "nbt": {
+      "description": "Item NBT in the /give text format (SNBT), such as \"{display:{Name:'\\\"Ruby\\\"'}}\". A JSON object is also read as NBT.",
+      "type": [
+        "string",
+        "object"
+      ]
+    },
+    "rolls": {
+      "description": "Number of rolls, 0 to max_rolls (1024 by default). 0 becomes 1 with a warning unless an enchant_bonus entry has bonus_roll.bonus_rolls_per_level.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "chancePerRoll": {
+      "description": "Chance of each roll, 0 to 1. 0 is an error unless an enchant_bonus entry has bonus_roll.bonus_roll_chance_per_level.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "incrementValue": {
+      "description": "Added to the count on each successful roll, 0 to max_increment (1024 by default). 0 becomes 1 with a warning unless an enchant_bonus entry has bonus_roll.bonus_increment_per_level.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "scaleFunction": {
+      "description": "linear (f(x) = x) or log (f(x) = ln x). Optional, linear by default.",
+      "enum": [
+        "linear",
+        "log"
+      ]
+    },
+    "multiplier": {
+      "description": "count = round(multiplier × f(value / divisor)). Optional, 1 by default, must be above 0.",
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "divisor": {
+      "description": "count = round(multiplier × f(value / divisor)). Optional, 1 by default, must be above 0.",
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "bonusChance": {
+      "description": "Raises the drop's chance: + bonus_chance_per_level × level, the bonus capped at max_bonus_chance. The chance never goes above 1.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bonus_chance_per_level"
+      ],
+      "properties": {
+        "bonus_chance_per_level": {
+          "description": "Chance added per enchantment level, above 0 and up to 1.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "max_bonus_chance": {
+          "description": "Cap of the bonus (not of the total), from bonus_chance_per_level to 1. Missing = no cap.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "bonusRoll": {
+      "description": "Raises the roll settings of fixed_rolls and chained_rolls. Each bonus is per-level value × level, capped by its max_* key (missing = no cap). Ignored with a warning on other behaviors.",
+      "type": "object",
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "bonus_rolls_per_level"
+          ]
+        },
+        {
+          "required": [
+            "bonus_roll_chance_per_level"
+          ]
+        },
+        {
+          "required": [
+            "bonus_increment_per_level"
+          ]
+        }
+      ],
+      "dependencies": {
+        "max_bonus_rolls": [
+          "bonus_rolls_per_level"
+        ],
+        "max_bonus_roll_chance": [
+          "bonus_roll_chance_per_level"
+        ],
+        "max_bonus_increment": [
+          "bonus_increment_per_level"
+        ]
+      },
+      "properties": {
+        "bonus_rolls_per_level": {
+          "description": "Rolls added per level, 1 to max_rolls.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_bonus_rolls": {
+          "description": "Cap of the added rolls.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "bonus_roll_chance_per_level": {
+          "description": "chance_per_roll added per level, above 0 and up to 1.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "max_bonus_roll_chance": {
+          "description": "Cap of the added roll chance.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "bonus_increment_per_level": {
+          "description": "increment_value added per level, 1 to max_increment.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_bonus_increment": {
+          "description": "Cap of the added increment.",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "bonusCount": {
+      "description": "Raises count.min and/or count.max: per-level value × level, capped by its max_* key (missing = no cap). For scaled behaviors it raises the clamp bounds.",
+      "type": "object",
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "bonus_min_per_level"
+          ]
+        },
+        {
+          "required": [
+            "bonus_max_per_level"
+          ]
+        }
+      ],
+      "dependencies": {
+        "max_bonus_min": [
+          "bonus_min_per_level"
+        ],
+        "max_bonus_max": [
+          "bonus_max_per_level"
+        ]
+      },
+      "properties": {
+        "bonus_min_per_level": {
+          "description": "Added to count.min per level.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "bonus_max_per_level": {
+          "description": "Added to count.max per level.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_bonus_min": {
+          "description": "Cap of the bonus to count.min.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_bonus_max": {
+          "description": "Cap of the bonus to count.max.",
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "enchantBonusEntry": {
+      "description": "Bonus from one enchantment of the held item (weapon, shears or tool).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enchant",
+        "on_enchant"
+      ],
+      "properties": {
+        "enchant": {
+          "description": "Enchantment id, such as minecraft:looting or minecraft:fortune. An unknown enchantment skips this entry with a warning. Each enchantment at most once per drop.",
+          "type": "string",
+          "pattern": "^(?:[a-z0-9_.-]+:)?[a-z0-9_./-]+$"
+        },
+        "on_enchant": {
+          "description": "What the enchantment raises: at least one of bonus_chance, bonus_roll, bonus_count.",
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "bonus_chance": {
+              "$ref": "#/definitions/bonusChance"
+            },
+            "bonus_roll": {
+              "$ref": "#/definitions/bonusRoll"
+            },
+            "bonus_count": {
+              "$ref": "#/definitions/bonusCount"
+            }
+          }
+        }
+      }
+    },
+    "enchantBonus": {
+      "description": "Bonuses from enchantments of the held item: Looting, Fortune or any other. Bonuses of different enchantments add up.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/enchantBonusEntry"
+      }
+    },
+    "pity": {
+      "description": "Bad-luck protection: after this many misses in a row for a player, the roll is forced to drop. 1 or more. Give the drop an id so updates keep the progress.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "progressId": {
+      "description": "Stable name of the drop's pity and first-drop progress, unique in the file. Letters a-z, digits and _ . / -. Only useful with pity, first_kill or first_break.",
+      "type": "string",
+      "pattern": "^[a-z0-9_./-]+$"
+    },
+    "onDrop": {
+      "description": "Actions when the item lands: glow, and/or run a datapack function as the item, at the item. At least one must be on.",
+      "type": "object",
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "run_function"
+          ]
+        },
+        {
+          "required": [
+            "glow"
+          ],
+          "properties": {
+            "glow": {
+              "const": true
+            }
+          }
+        }
+      ],
+      "properties": {
+        "glow": {
+          "description": "Give the item the glowing outline.",
+          "type": "boolean"
+        },
+        "run_function": {
+          "description": "Datapack function to run, such as mypack:legendary_drop. The drop's player has the tag alkahestdrops.drop_player while it runs. Function tags are not supported.",
+          "type": "string",
+          "pattern": "^(?:[a-z0-9_.-]+:)?[a-z0-9_./-]+$"
+        }
+      }
+    },
+    "removalEntry": {
+      "description": "What to remove: an item id, #item_tag or * (every item), or an object with item and conditions, or { \"experience\": true }.",
+      "type": [
+        "string",
+        "object"
+      ],
+      "if": {
+        "type": "string"
+      },
+      "then": {
+        "pattern": "^(?:\\*|#(?:[a-z0-9_.-]+:)?[a-z0-9_./-]+|(?:[a-z0-9_.-]+:)?[a-z0-9_./-]+)$"
+      },
+      "else": {
+        "additionalProperties": false,
+        "properties": {
+          "item": {
+            "description": "Item id, #item_tag or * (every item).",
+            "type": "string",
+            "pattern": "^(?:\\*|#(?:[a-z0-9_.-]+:)?[a-z0-9_./-]+|(?:[a-z0-9_.-]+:)?[a-z0-9_./-]+)$"
+          },
+          "experience": {
+            "description": "true removes experience instead of items.",
+            "type": "boolean"
+          },
+          "conditions": {
+            "description": "Local conditions: the entry removes only when they pass. Required with item, optional with experience.",
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/condition"
+            }
+          }
+        },
+        "if": {
+          "required": [
+            "item"
+          ]
+        },
+        "then": {
+          "required": [
+            "conditions"
+          ],
+          "properties": {
+            "experience": {
+              "const": false
+            }
+          }
+        },
+        "else": {
+          "required": [
+            "experience"
+          ],
+          "properties": {
+            "experience": {
+              "const": true
+            }
+          }
+        }
+      }
+    },
+    "removals": {
+      "description": "What the file removes. Removes drops of the loot table, of other mods and of drop files in other namespaces, never of its own namespace.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/removalEntry"
+      }
+    },
+    "zeroNeedsBonus": {
+      "description": "Rules that let a value be 0 only when an enchantment bonus raises it.",
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "chance"
+            ],
+            "properties": {
+              "chance": {
+                "const": 0
+              }
+            },
+            "not": {
+              "required": [
+                "enchant_bonus"
+              ],
+              "properties": {
+                "enchant_bonus": {
+                  "contains": {
+                    "required": [
+                      "on_enchant"
+                    ],
+                    "properties": {
+                      "on_enchant": {
+                        "required": [
+                          "bonus_chance"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "chance": {
+                "description": "A chance of 0 needs an enchant_bonus entry with bonus_chance.",
+                "exclusiveMinimum": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "count"
+            ],
+            "properties": {
+              "count": {
+                "properties": {
+                  "min": {
+                    "const": 0
+                  },
+                  "max": {
+                    "const": 0
+                  }
+                }
+              }
+            },
+            "not": {
+              "required": [
+                "enchant_bonus"
+              ],
+              "properties": {
+                "enchant_bonus": {
+                  "allOf": [
+                    {
+                      "contains": {
+                        "properties": {
+                          "on_enchant": {
+                            "properties": {
+                              "bonus_count": {
+                                "required": [
+                                  "bonus_min_per_level"
+                                ],
+                                "properties": {
+                                  "bonus_min_per_level": {
+                                    "minimum": 1
+                                  }
+                                }
+                              }
+                            },
+                            "required": [
+                              "bonus_count"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "on_enchant"
+                        ]
+                      }
+                    },
+                    {
+                      "contains": {
+                        "properties": {
+                          "on_enchant": {
+                            "properties": {
+                              "bonus_count": {
+                                "required": [
+                                  "bonus_max_per_level"
+                                ],
+                                "properties": {
+                                  "bonus_max_per_level": {
+                                    "minimum": 1
+                                  }
+                                }
+                              }
+                            },
+                            "required": [
+                              "bonus_count"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "on_enchant"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "count": {
+                "description": "A count of 0 to 0 needs enchant_bonus entries that raise both min and max.",
+                "not": {}
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "drop_behavior"
+            ],
+            "properties": {
+              "drop_behavior": {
+                "required": [
+                  "chance_per_roll"
+                ],
+                "properties": {
+                  "chance_per_roll": {
+                    "const": 0
+                  }
+                }
+              }
+            },
+            "not": {
+              "required": [
+                "enchant_bonus"
+              ],
+              "properties": {
+                "enchant_bonus": {
+                  "contains": {
+                    "required": [
+                      "on_enchant"
+                    ],
+                    "properties": {
+                      "on_enchant": {
+                        "required": [
+                          "bonus_roll"
+                        ],
+                        "properties": {
+                          "bonus_roll": {
+                            "required": [
+                              "bonus_roll_chance_per_level"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "drop_behavior": {
+                "properties": {
+                  "chance_per_roll": {
+                    "description": "0 needs an enchant_bonus entry with bonus_roll.bonus_roll_chance_per_level.",
+                    "exclusiveMinimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "drop_behavior"
+            ],
+            "properties": {
+              "drop_behavior": {
+                "required": [
+                  "rolls"
+                ],
+                "properties": {
+                  "rolls": {
+                    "const": 0
+                  }
+                }
+              }
+            },
+            "not": {
+              "required": [
+                "enchant_bonus"
+              ],
+              "properties": {
+                "enchant_bonus": {
+                  "contains": {
+                    "required": [
+                      "on_enchant"
+                    ],
+                    "properties": {
+                      "on_enchant": {
+                        "required": [
+                          "bonus_roll"
+                        ],
+                        "properties": {
+                          "bonus_roll": {
+                            "required": [
+                              "bonus_rolls_per_level"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "drop_behavior": {
+                "properties": {
+                  "rolls": {
+                    "description": "0 becomes 1 (warning) unless an enchant_bonus entry has bonus_roll.bonus_rolls_per_level.",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "drop_behavior"
+            ],
+            "properties": {
+              "drop_behavior": {
+                "required": [
+                  "increment_value"
+                ],
+                "properties": {
+                  "increment_value": {
+                    "const": 0
+                  }
+                }
+              }
+            },
+            "not": {
+              "required": [
+                "enchant_bonus"
+              ],
+              "properties": {
+                "enchant_bonus": {
+                  "contains": {
+                    "required": [
+                      "on_enchant"
+                    ],
+                    "properties": {
+                      "on_enchant": {
+                        "required": [
+                          "bonus_roll"
+                        ],
+                        "properties": {
+                          "bonus_roll": {
+                            "required": [
+                              "bonus_increment_per_level"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "drop_behavior": {
+                "properties": {
+                  "increment_value": {
+                    "description": "0 becomes 1 (warning) unless an enchant_bonus entry has bonus_roll.bonus_increment_per_level.",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "commonDropRules": {
+      "description": "Rules shared by mob and block drops.",
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "item"
+            ]
+          },
+          "then": {
+            "properties": {
+              "experience": {
+                "description": "item and \"experience\": true cannot be combined.",
+                "const": false
+              }
+            }
+          },
+          "else": {
+            "required": [
+              "experience"
+            ],
+            "properties": {
+              "experience": {
+                "description": "A drop needs item, or \"experience\": true.",
+                "const": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "experience"
+            ],
+            "properties": {
+              "experience": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "nbt": {
+                "description": "Ignored on experience drops (warning).",
+                "not": {}
+              },
+              "functions": {
+                "description": "Ignored on experience drops (warning).",
+                "not": {}
+              },
+              "on_drop": {
+                "description": "Ignored on experience drops (warning).",
+                "not": {}
+              },
+              "per_player": {
+                "description": "Ignored on experience drops (warning).",
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "id"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "pity"
+                  ]
+                },
+                {
+                  "required": [
+                    "first_kill"
+                  ],
+                  "properties": {
+                    "first_kill": {
+                      "const": true
+                    }
+                  }
+                },
+                {
+                  "required": [
+                    "first_break"
+                  ],
+                  "properties": {
+                    "first_break": {
+                      "const": true
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "description": "id has no effect without pity, first_kill or first_break (warning).",
+                "not": {}
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "anyOf": [
+              {
+                "required": [
+                  "first_kill"
+                ],
+                "properties": {
+                  "first_kill": {
+                    "const": true
+                  }
+                }
+              },
+              {
+                "required": [
+                  "first_break"
+                ],
+                "properties": {
+                  "first_break": {
+                    "const": true
+                  }
+                }
+              }
+            ]
+          },
+          "then": {
+            "properties": {
+              "pity": {
+                "description": "Ignored on one-time drops (warning).",
+                "not": {}
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "pity",
+              "chance",
+              "count",
+              "drop_behavior"
+            ],
+            "properties": {
+              "chance": {
+                "const": 1
+              },
+              "count": {
+                "required": [
+                  "min"
+                ],
+                "properties": {
+                  "min": {
+                    "minimum": 1
+                  }
+                }
+              },
+              "drop_behavior": {
+                "required": [
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "const": "uniform"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "pity": {
+                "description": "This drop can never miss, so pity has no effect (warning).",
+                "not": {}
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "drop_behavior"
+            ],
+            "properties": {
+              "drop_behavior": {
+                "required": [
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "not": {
+                      "enum": [
+                        "fixed_rolls",
+                        "chained_rolls"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "enchant_bonus": {
+                "items": {
+                  "properties": {
+                    "on_enchant": {
+                      "properties": {
+                        "bonus_roll": {
+                          "description": "bonus_roll only applies to fixed_rolls and chained_rolls (warning).",
+                          "not": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "$ref": "#/definitions/zeroNeedsBonus"
+        }
+      ]
+    },
+    "dropBehaviorRules": {
+      "description": "Keys allowed per behavior type.",
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "enum": [
+                  "fixed_rolls",
+                  "chained_rolls"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "rolls",
+              "chance_per_roll",
+              "increment_value"
+            ],
+            "properties": {
+              "function": {
+                "description": "Only for scaled behaviors (warning).",
+                "not": {}
+              },
+              "multiplier": {
+                "description": "Only for scaled behaviors (warning).",
+                "not": {}
+              },
+              "divisor": {
+                "description": "Only for scaled behaviors (warning).",
+                "not": {}
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "not": {
+                  "enum": [
+                    "fixed_rolls",
+                    "chained_rolls"
+                  ]
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "rolls": {
+                "description": "Only for fixed_rolls and chained_rolls (warning).",
+                "not": {}
+              },
+              "chance_per_roll": {
+                "description": "Only for fixed_rolls and chained_rolls (warning).",
+                "not": {}
+              },
+              "increment_value": {
+                "description": "Only for fixed_rolls and chained_rolls (warning).",
+                "not": {}
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "uniform"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "function": {
+                "description": "Only for scaled behaviors (warning).",
+                "not": {}
+              },
+              "multiplier": {
+                "description": "Only for scaled behaviors (warning).",
+                "not": {}
+              },
+              "divisor": {
+                "description": "Only for scaled behaviors (warning).",
+                "not": {}
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
