@@ -23,6 +23,8 @@ sourceSets {
         compileClasspath += sourceSets.main.output
         runtimeClasspath += sourceSets.main.output
     }
+    // Plain JUnit tests without Minecraft: the test files of the GameTests checked against the JSON Schema.
+    schemaTest
 }
 
 configurations {
@@ -176,18 +178,12 @@ dependencies {
 
     // spark profiler: dev runtime only, never shipped and not declared in mods.toml
     runtimeOnly fg.deobf("curse.maven:spark-361579:${spark_file_id}")
-    // Real mod deobf dependency examples - these get remapped to your current mappings
-    // implementation fg.deobf("com.tterrag.registrate:Registrate:MC${mc_version}-${registrate_version}") // Adds registrate as a dependency
 
-
-    // Example mod dependency using a mod jar from ./libs with a flat dir repository
-    // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
-    // The group id is ignored when searching -- in this case, it is "blank"
-    // implementation fg.deobf("blank:coolmod-${mc_version}:${coolmod_version}")
-
-    // For more info:
-    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
-    // http://www.gradle.org/docs/current/userguide/dependency_management.html
+    // Schema test (never in the mod jar)
+    schemaTestImplementation 'com.networknt:json-schema-validator:1.5.1'
+    schemaTestImplementation platform('org.junit:junit-bom:5.10.2')
+    schemaTestImplementation 'org.junit.jupiter:junit-jupiter'
+    schemaTestRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
@@ -236,20 +232,29 @@ tasks.named('jar', Jar).configure {
     finalizedBy 'reobfJar'
 }
 
-// However if you are in a multi-project build, dev time needs unobfed jar files, so you can delay the obfuscation until publishing by doing:
-// tasks.named('publish').configure {
-//     dependsOn 'reobfJar'
-// }
+// Sources and javadoc jars for mod developers; the javadoc covers only the public API (`api` package), the rest of
+// the code is internal.
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
 
+tasks.named('javadoc', Javadoc).configure {
+    include 'com/jaffh/alkahestdrops/api/**'
+    options.encoding = 'UTF-8'
+    title = "${mod_name} ${mod_version} API"
+}
+
+// Release jars are on Modrinth (Modrinth Maven: `maven.modrinth:alkahest-drops:<version>`). `publishToMavenLocal`
+// installs the current build as `com.jaffh.alkahestdrops:alkahestdrops:<version>`, to try the API from another mod
+// before a release.
 publishing {
     publications {
         register('mavenJava', MavenPublication) {
+            artifactId = mod_id
             artifact jar
-        }
-    }
-    repositories {
-        maven {
-            url "file://${project.projectDir}/mcmodsrepo"
+            artifact sourcesJar
+            artifact javadocJar
         }
     }
 }
@@ -281,7 +286,30 @@ checkstyle {
     maxWarnings = 0
 }
 
-tasks.matching { it.name == 'runGameTestServer' || (it.name == 'runClient' && project.hasProperty('withGameTests')) }.configureEach {
+// Schema test, part of `check` (so of `build`): the GameTest files must agree with the JSON Schema of the docs site.
+// The schema is a copy of the wiki's (`src/schemaTest/resources/schemas`); when the wiki folder exists (default
+// `../Alkahest Wiki`, or `-PwikiDir=<path>`), the test also fails if the two copies differ.
+def schemaTest = tasks.register('schemaTest', Test) {
+    description = 'Checks the GameTest drop files against the JSON Schema of the docs site.'
+    group = 'verification'
+    testClassesDirs = sourceSets.schemaTest.output.classesDirs
+    classpath = sourceSets.schemaTest.runtimeClasspath
+    useJUnitPlatform()
+    def dataDir = file('src/gametest/resources/data')
+    def gameTestSources = file('src/gametest/java')
+    def wikiSchemaDir = file("${project.findProperty('wikiDir') ?: '../Alkahest Wiki'}/schemas")
+    inputs.dir(dataDir).withPropertyName('gameTestData')
+    inputs.dir(gameTestSources).withPropertyName('gameTestSources')
+    if (wikiSchemaDir.isDirectory()) {
+        inputs.dir(wikiSchemaDir).withPropertyName('wikiSchemas')
+    }
+    systemProperty 'schemaTest.dataDir', dataDir.absolutePath
+    systemProperty 'schemaTest.gameTestSources', gameTestSources.absolutePath
+    systemProperty 'schemaTest.wikiSchemaDir', wikiSchemaDir.absolutePath
+}
+tasks.named('check') { dependsOn schemaTest }
+
+tasks.matching { it.name == 'runGameTestServer' ||(it.name == 'runClient' && project.hasProperty('withGameTests')) }.configureEach {
     dependsOn 'gametestClasses'
 }
 

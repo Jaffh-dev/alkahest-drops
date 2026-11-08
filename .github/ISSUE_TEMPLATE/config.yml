@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://jaffh-dev.github.io/alkahest-wiki/mods/alkahest-drops/index.html
+    about: Drop file format, commands, recipes and the API for mod developers.

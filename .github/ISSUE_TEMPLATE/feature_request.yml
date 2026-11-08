@@ -1,0 +1,36 @@
+name: Feature request
+description: Suggest something new for Alkahest Drops.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the [docs](https://jaffh-dev.github.io/alkahest-wiki/mods/alkahest-drops/index.html) first: the
+        feature may already exist, or be doable with loot conditions, loot functions or `on_drop` functions.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What do you want to do
+      description: The goal in plain words, and why the current features don't cover it.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: How it could work
+      description: Your idea for it, such as a new key in drop files, a command option or an API method.
+  - type: dropdown
+    id: audience
+    attributes:
+      label: Who is it for?
+      options:
+        - Datapack and modpack makers
+        - Mod developers (API)
+        - Players
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Example
+      description: A drop file, command or code sketch showing how you would use it, if you have one.

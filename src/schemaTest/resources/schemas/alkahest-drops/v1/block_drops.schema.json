@@ -1,0 +1,109 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://jaffh-dev.github.io/alkahest-wiki/schemas/alkahest-drops/v1/block_drops.schema.json",
+  "title": "Alkahest Drops block file (format 1)",
+  "description": "A file in data/<namespace>/block_drops/: a drop file (drops) or a removal file (removals), never both. Docs: https://jaffh-dev.github.io/alkahest-wiki/mods/alkahest-drops/",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "block"],
+  "properties": {
+    "$schema": { "description": "This schema, for editor autocomplete. Ignored by the game.", "type": "string" },
+    "version": { "$ref": "common.schema.json#/definitions/version" },
+    "block": { "$ref": "common.schema.json#/definitions/target" },
+    "entity": { "description": "Block files use block; entity is for mob_drops files. The file is skipped.", "not": {} },
+    "conditions": { "$ref": "common.schema.json#/definitions/conditions" },
+    "drops": {
+      "description": "The drops this file adds. A drop file must not also have removals.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/drop" }
+    },
+    "removals": { "$ref": "common.schema.json#/definitions/removals" },
+    "on": { "description": "Triggers are for mob files only. The file is skipped.", "not": {} }
+  },
+  "anyOf": [{ "required": ["drops"] }, { "required": ["removals"] }],
+  "allOf": [
+    {
+      "if": { "required": ["drops"] },
+      "then": {
+        "properties": {
+          "removals": { "description": "A file is either a drop file or a removal file. The file is skipped.", "not": {} }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "dropBehavior": {
+      "description": "How the count is chosen inside count: uniform, fixed_rolls, chained_rolls or hardness.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "description": "uniform: any count from min to max. fixed_rolls: a fixed number of independent rolls. chained_rolls: rolls until the first failure. hardness: scales with the block's hardness.",
+          "enum": ["uniform", "fixed_rolls", "chained_rolls", "hardness"]
+        },
+        "rolls": { "$ref": "common.schema.json#/definitions/rolls" },
+        "chance_per_roll": { "$ref": "common.schema.json#/definitions/chancePerRoll" },
+        "increment_value": { "$ref": "common.schema.json#/definitions/incrementValue" },
+        "function": { "$ref": "common.schema.json#/definitions/scaleFunction" },
+        "multiplier": { "$ref": "common.schema.json#/definitions/multiplier" },
+        "divisor": { "$ref": "common.schema.json#/definitions/divisor" }
+      },
+      "allOf": [{ "$ref": "common.schema.json#/definitions/dropBehaviorRules" }]
+    },
+    "drop": {
+      "description": "One drop. Needs item (or \"experience\": true), chance, count and drop_behavior. Blocks drop only with a tool that can harvest them.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["chance", "count", "drop_behavior"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/definitions/progressId" },
+        "item": {
+          "description": "Item to drop. An item of a mod that is not installed skips the drop with a warning.",
+          "allOf": [{ "$ref": "common.schema.json#/definitions/id" }]
+        },
+        "experience": {
+          "description": "true makes this an experience drop: count is the amount of experience. Only player breaks with a harvesting tool drop experience.",
+          "type": "boolean"
+        },
+        "chance": { "$ref": "common.schema.json#/definitions/chance" },
+        "count": { "$ref": "common.schema.json#/definitions/count" },
+        "nbt": { "$ref": "common.schema.json#/definitions/nbt" },
+        "drop_behavior": { "$ref": "#/definitions/dropBehavior" },
+        "enchant_bonus": { "$ref": "common.schema.json#/definitions/enchantBonus" },
+        "conditions": { "$ref": "common.schema.json#/definitions/conditions" },
+        "functions": {
+          "description": "Loot functions applied to the dropped stack, in order, after count and nbt.",
+          "type": "array",
+          "items": { "$ref": "#/definitions/blockFunction" }
+        },
+        "pity": { "$ref": "common.schema.json#/definitions/pity" },
+        "first_break": {
+          "description": "Drop once per player, the first time, ignoring the chance.",
+          "type": "boolean"
+        },
+        "first_kill": { "description": "Mob files only: block files use first_break (ignored, warning).", "not": {} },
+        "per_player": { "description": "Mob files only (ignored, warning).", "not": {} },
+        "on": { "description": "Triggers are for mob files only (error).", "not": {} },
+        "interval": { "description": "Triggers are for mob files only (ignored).", "not": {} },
+        "cooldown": { "description": "Triggers are for mob files only (ignored).", "not": {} },
+        "on_drop": { "$ref": "common.schema.json#/definitions/onDrop" }
+      },
+      "allOf": [{ "$ref": "common.schema.json#/definitions/commonDropRules" }]
+    },
+    "blockFunction": {
+      "allOf": [
+        { "$ref": "common.schema.json#/definitions/function" },
+        {
+          "properties": {
+            "function": {
+              "description": "looting_enchant reads the killer, which block drops never have (warning).",
+              "not": { "enum": ["minecraft:looting_enchant", "looting_enchant"] }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

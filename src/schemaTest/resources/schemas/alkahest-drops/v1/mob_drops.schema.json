@@ -1,0 +1,194 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://jaffh-dev.github.io/alkahest-wiki/schemas/alkahest-drops/v1/mob_drops.schema.json",
+  "title": "Alkahest Drops mob file (format 1)",
+  "description": "A file in data/<namespace>/mob_drops/: a drop file (drops) or a removal file (removals), never both. Docs: https://jaffh-dev.github.io/alkahest-wiki/mods/alkahest-drops/",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "entity"],
+  "properties": {
+    "$schema": { "description": "This schema, for editor autocomplete. Ignored by the game.", "type": "string" },
+    "version": { "$ref": "common.schema.json#/definitions/version" },
+    "entity": { "$ref": "common.schema.json#/definitions/target" },
+    "block": { "description": "Mob files use entity; block is for block_drops files. The file is skipped.", "not": {} },
+    "conditions": { "$ref": "common.schema.json#/definitions/conditions" },
+    "drops": {
+      "description": "The drops this file adds. A drop file must not also have removals.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/drop" }
+    },
+    "removals": { "$ref": "common.schema.json#/definitions/removals" },
+    "on": {
+      "description": "Removal files only: the trigger whose drops the file removes (death by default). In drop files, set on per drop.",
+      "allOf": [{ "$ref": "common.schema.json#/definitions/trigger" }]
+    }
+  },
+  "anyOf": [{ "required": ["drops"] }, { "required": ["removals"] }],
+  "allOf": [
+    {
+      "if": { "required": ["drops"] },
+      "then": {
+        "properties": {
+          "removals": { "description": "A file is either a drop file or a removal file. The file is skipped.", "not": {} },
+          "on": { "description": "Ignored in drop files (warning): set on per drop.", "not": {} }
+        }
+      }
+    },
+    {
+      "if": { "required": ["removals"] },
+      "then": {
+        "properties": {
+          "entity": {
+            "description": "A player's drops are their inventory: removal files cannot target players.",
+            "not": { "enum": ["minecraft:player", "player"] }
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "dropBehavior": {
+      "description": "How the count is chosen inside count: uniform, fixed_rolls, chained_rolls, max_health, or damage_taken (hit drops only).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "description": "uniform: any count from min to max. fixed_rolls: a fixed number of independent rolls. chained_rolls: rolls until the first failure. max_health: scales with the mob's max health. damage_taken: scales with the damage of a hit (\"on\": \"hit\" only).",
+          "enum": ["uniform", "fixed_rolls", "chained_rolls", "max_health", "damage_taken"]
+        },
+        "rolls": { "$ref": "common.schema.json#/definitions/rolls" },
+        "chance_per_roll": { "$ref": "common.schema.json#/definitions/chancePerRoll" },
+        "increment_value": { "$ref": "common.schema.json#/definitions/incrementValue" },
+        "function": { "$ref": "common.schema.json#/definitions/scaleFunction" },
+        "multiplier": { "$ref": "common.schema.json#/definitions/multiplier" },
+        "divisor": { "$ref": "common.schema.json#/definitions/divisor" }
+      },
+      "allOf": [{ "$ref": "common.schema.json#/definitions/dropBehaviorRules" }]
+    },
+    "drop": {
+      "description": "One drop. Needs item (or \"experience\": true), chance, count and drop_behavior.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["chance", "count", "drop_behavior"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/definitions/progressId" },
+        "item": {
+          "description": "Item to drop. An item of a mod that is not installed skips the drop with a warning.",
+          "allOf": [{ "$ref": "common.schema.json#/definitions/id" }]
+        },
+        "experience": {
+          "description": "true makes this an experience drop: count is the amount of experience. Use instead of item.",
+          "type": "boolean"
+        },
+        "chance": { "$ref": "common.schema.json#/definitions/chance" },
+        "count": { "$ref": "common.schema.json#/definitions/count" },
+        "nbt": { "$ref": "common.schema.json#/definitions/nbt" },
+        "drop_behavior": { "$ref": "#/definitions/dropBehavior" },
+        "enchant_bonus": { "$ref": "common.schema.json#/definitions/enchantBonus" },
+        "conditions": { "$ref": "common.schema.json#/definitions/conditions" },
+        "functions": {
+          "description": "Loot functions applied to the dropped stack, in order, after count and nbt.",
+          "type": "array",
+          "items": { "$ref": "#/definitions/mobFunction" }
+        },
+        "pity": { "$ref": "common.schema.json#/definitions/pity" },
+        "first_kill": {
+          "description": "Drop once per player, the first time, ignoring the chance.",
+          "type": "boolean"
+        },
+        "first_break": { "description": "Block files only: mob files use first_kill (ignored, warning).", "not": {} },
+        "per_player": {
+          "description": "Every player who damaged the mob gets their own roll, locked to them. Death drops only.",
+          "type": "boolean"
+        },
+        "on": { "$ref": "common.schema.json#/definitions/trigger" },
+        "interval": {
+          "description": "Periodic drops: ticks between drops (default 6000 = 5 minutes), 1 or more.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "cooldown": {
+          "description": "Hit drops: ticks to wait after a drop before the next hit can drop (default 0).",
+          "type": "integer",
+          "minimum": 0
+        },
+        "on_drop": { "$ref": "common.schema.json#/definitions/onDrop" }
+      },
+      "allOf": [
+        { "$ref": "common.schema.json#/definitions/commonDropRules" },
+        {
+          "if": { "required": ["on"], "properties": { "on": { "enum": ["lightning", "periodic"] } } },
+          "then": {
+            "properties": {
+              "pity": { "description": "Lightning and periodic drops have no player: pity is ignored (warning).", "not": {} },
+              "first_kill": { "description": "Lightning and periodic drops have no player: first_kill is an error.", "const": false },
+              "enchant_bonus": { "description": "Lightning and periodic drops read no enchantment (warning).", "not": {} }
+            }
+          }
+        },
+        {
+          "if": { "required": ["on"], "properties": { "on": { "not": { "const": "death" } } } },
+          "then": {
+            "properties": { "per_player": { "description": "per_player only applies to death drops (warning).", "const": false } }
+          }
+        },
+        {
+          "if": { "not": { "required": ["on"], "properties": { "on": { "const": "periodic" } } } },
+          "then": { "properties": { "interval": { "description": "interval only applies to \"on\": \"periodic\" (warning).", "not": {} } } }
+        },
+        {
+          "if": { "not": { "required": ["on"], "properties": { "on": { "const": "hit" } } } },
+          "then": {
+            "properties": {
+              "cooldown": { "description": "cooldown only applies to \"on\": \"hit\" (warning).", "not": {} },
+              "drop_behavior": {
+                "properties": {
+                  "type": { "description": "damage_taken only works with \"on\": \"hit\".", "not": { "const": "damage_taken" } }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["enchant_bonus"],
+            "properties": {
+              "enchant_bonus": {
+                "contains": { "properties": { "enchant": { "enum": ["minecraft:looting", "looting"] } }, "required": ["enchant"] }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "functions": {
+                "items": {
+                  "properties": {
+                    "function": {
+                      "description": "looting_enchant and an enchant_bonus entry for Looting both apply (warning).",
+                      "not": { "enum": ["minecraft:looting_enchant", "looting_enchant"] }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "mobFunction": {
+      "allOf": [
+        { "$ref": "common.schema.json#/definitions/function" },
+        {
+          "properties": {
+            "function": {
+              "description": "apply_bonus reads the tool, which mob drops never have (warning).",
+              "not": { "enum": ["minecraft:apply_bonus", "apply_bonus"] }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

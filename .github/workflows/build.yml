@@ -32,7 +32,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Check formatting (Spotless) and lint (Checkstyle)
-        run: ./gradlew spotlessCheck checkstyleMain checkstyleGametest --console=plain
+        run: ./gradlew spotlessCheck checkstyleMain checkstyleGametest checkstyleSchemaTest --console=plain
 
       - name: Upload Checkstyle report
         if: failure()
@@ -44,6 +44,14 @@ jobs:
 
       - name: Build
         run: ./gradlew build --console=plain
+
+      - name: Upload schema test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-test-report
+          path: build/reports/tests/schemaTest/
+          if-no-files-found: ignore
 
       - name: Run GameTests
         run: ./gradlew runGameTestServer --console=plain
@@ -60,4 +68,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: alkahestdrops-jar
-          path: build/libs/*.jar
+          path: build/libs/alkahestdrops-*.jar
