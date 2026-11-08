@@ -1,0 +1,64 @@
+name: Bug report
+description: Something in Alkahest Drops does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before reporting, run `/alkdrops validate` and check
+        [Known limits](https://jaffh-dev.github.io/alkahest-wiki/mods/alkahest-drops/1.20.1-1.0.0/datapacks/known-limits.html):
+        some behaviors (drops added in code by other mods, dispenser shearing...) are expected.
+  - type: input
+    id: mod-version
+    attributes:
+      label: Alkahest Drops version
+      placeholder: 1.20.1-1.0.0
+    validations:
+      required: true
+  - type: input
+    id: forge-version
+    attributes:
+      label: Forge version
+      placeholder: 47.4.0
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Where does it happen?
+      options:
+        - Singleplayer
+        - Dedicated server
+        - Both
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: drop-file
+    attributes:
+      label: Drop or removal file
+      description: The file involved, if any. Paste it whole.
+      render: json
+  - type: textarea
+    id: commands
+    attributes:
+      label: Command output
+      description: >-
+        Output of `/alkdrops validate` and, for a wrong drop, `/alkdrops sources <item>` or
+        `/alkdrops drops <mob or block>`.
+  - type: input
+    id: log
+    attributes:
+      label: Log or crash report
+      description: Link to `latest.log` or the crash report (use a paste site such as mclo.gs).
+  - type: textarea
+    id: other-mods
+    attributes:
+      label: Other mods
+      description: The mod list, or at least the mods that change drops or loot.
