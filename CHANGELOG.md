@@ -3,7 +3,7 @@
 All notable changes to Alkahest Drops. Versions follow `<minecraft>-<major>.<minor>.<patch>`; the API
 (`com.jaffh.alkahestdrops.api`) follows semantic versioning.
 
-## [1.20.1-1.0.0] - Unreleased
+## [1.20.1-1.0.0] - 2026-11-08
 
 First release.
 
