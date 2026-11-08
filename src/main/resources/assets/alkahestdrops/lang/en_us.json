@@ -328,7 +328,6 @@
   "issue.alkahestdrops.files.block": "block drop files",
   "issue.alkahestdrops.files.mob": "mob drop files",
   "issue.alkahestdrops.first_drop_without_player": "can never drop with 'on': '%s', which has no player",
-  "issue.alkahestdrops.id_unused": "has no effect without 'pity' or '%s'",
   "issue.alkahestdrops.ignored_by_experience": "is ignored by experience drops",
   "issue.alkahestdrops.no_drop_actions": "turns no action on; ignored",
   "issue.alkahestdrops.ignored_by_trigger": "is ignored with 'on': '%s'",

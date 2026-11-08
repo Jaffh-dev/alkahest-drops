@@ -386,14 +386,14 @@ public class MobDropGameTests {
         DropTestKit.assertIssue(issues, "tracking_issues", "drops[3].first_break", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "tracking_issues", "drops[4].id", DropIssue.Severity.ERROR);
         DropTestKit.assertIssue(issues, "tracking_issues", "drops[6].id", DropIssue.Severity.ERROR);
-        DropTestKit.assertIssue(issues, "tracking_issues", "drops[7].id", DropIssue.Severity.WARNING);
         DropTestKit.assertIssue(issues, "tracking_issues", "drops[8].pity", DropIssue.Severity.WARNING);
         DropTestKit.check(
                 issues.stream()
                         .noneMatch(issue -> issue.fileId().getPath().equals("tracking_issues")
-                                && (issue.field().equals("drops[9].pity")
+                                && (issue.field().equals("drops[7].id")
+                                        || issue.field().equals("drops[9].pity")
                                         || issue.field().equals("drops[10].pity"))),
-                "pity on a drop that can miss must not warn");
+                "an id without pity and pity on a drop that can miss must not warn");
         DropTestKit.check(
                 issues.stream()
                         .noneMatch(issue -> issue.field().startsWith("drops[3].functions")

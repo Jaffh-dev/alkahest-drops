@@ -328,7 +328,6 @@
   "issue.alkahestdrops.files.block": "arquivos de drops de blocos",
   "issue.alkahestdrops.files.mob": "arquivos de drops de mobs",
   "issue.alkahestdrops.first_drop_without_player": "nunca dropa com 'on': '%s', que não tem jogador",
-  "issue.alkahestdrops.id_unused": "não tem efeito sem 'pity' ou '%s'",
   "issue.alkahestdrops.ignored_by_experience": "é ignorado em drops de experiência",
   "issue.alkahestdrops.no_drop_actions": "não liga nenhuma ação; ignorado",
   "issue.alkahestdrops.ignored_by_trigger": "é ignorado com 'on': '%s'",

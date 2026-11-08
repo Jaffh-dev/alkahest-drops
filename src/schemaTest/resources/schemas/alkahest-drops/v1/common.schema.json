@@ -348,7 +348,7 @@
       "minimum": 1
     },
     "progressId": {
-      "description": "Stable name of the drop's pity and first-drop progress, unique in the file. Letters a-z, digits and _ . / -. Only useful with pity, first_kill or first_break.",
+      "description": "Stable name of the drop, unique in the file: keeps its pity and first-drop progress and trigger timers when the file changes, and names it in OnDropEvent's drop key (mob:<file id>@<id>). Letters a-z, digits and _ . / -.",
       "type": "string",
       "pattern": "^[a-z0-9_./-]+$"
     },
@@ -822,50 +822,6 @@
               "per_player": {
                 "description": "Ignored on experience drops (warning).",
                 "const": false
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "required": [
-              "id"
-            ],
-            "not": {
-              "anyOf": [
-                {
-                  "required": [
-                    "pity"
-                  ]
-                },
-                {
-                  "required": [
-                    "first_kill"
-                  ],
-                  "properties": {
-                    "first_kill": {
-                      "const": true
-                    }
-                  }
-                },
-                {
-                  "required": [
-                    "first_break"
-                  ],
-                  "properties": {
-                    "first_break": {
-                      "const": true
-                    }
-                  }
-                }
-              ]
-            }
-          },
-          "then": {
-            "properties": {
-              "id": {
-                "description": "id has no effect without pity, first_kill or first_break (warning).",
-                "not": {}
               }
             }
           }

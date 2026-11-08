@@ -287,14 +287,12 @@ public final class DropEntryParser {
             ctx.at("per_player").warn("per_player_experience");
             isPerPlayer = false;
         }
-        if (id != null && pity == 0 && !isFirstDrop) {
-            ctx.at("id").warn("id_unused", format.firstDropKey());
-        }
         return new DropTracking(format.progressKey(ctx.fileId(), id, index), pity, isFirstDrop, isPerPlayer);
     }
 
     /**
-     * Resolves {@code id}, which keeps a drop's pity and one-time progress when the file changes: lowercase letters,
+     * Resolves {@code id}, the stable part of the drop key (pity and one-time progress, trigger timers and
+     * {@code OnDropEvent#getDropKey()}), kept when the file changes: lowercase letters,
      * digits, {@code _}, {@code -}, {@code .} and {@code /}.
      *
      * @param id  Raw id, or null when missing.
